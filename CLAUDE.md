@@ -1,6 +1,6 @@
 # CLAUDE.md — working agreement for this repo
 
-**Collie** (repo `AltanS/collie`) — a phone web UI for the AI agents running in your terminal,
+**mycroftxxx remote** (personal fork `schugazi/collie`, upstream `AltanS/collie`) — a phone web UI for the AI agents running in your terminal,
 served over Tailscale. A mobile-first PWA (Vite + React + TS + Tailwind v4 + shadcn) plus a Bun/TS
 bridge that mirrors ONE multiplexer per install — Herdr, tmux or zellij — letting you monitor and
 reply to agents from a phone. Herdr is one adapter among the three, not the product: it is the
@@ -11,6 +11,14 @@ language [`DESIGN.md`](./DESIGN.md) · verified API [`HERDR_API.md`](./HERDR_API
 decisions [`.adr/`](./.adr/) · adding a harness
 [`HARNESS_CONTRIBUTING.md`](./HARNESS_CONTRIBUTING.md) · adding a multiplexer
 [`MUX_CONTRIBUTING.md`](./MUX_CONTRIBUTING.md).
+
+## Personal fork
+
+The PWA uses the mycroftxxx server dashboard artwork and the name `mycroftxxx remote`.
+Keep internal CLI, configuration, storage and protocol identifiers compatible with Collie.
+Set `COLLIE_UPDATE_REPO=schugazi/collie` on deployments; origin is the personal fork and
+upstream is AltanS/collie. Deploy main with the existing full build, then restart the bridge.
+The logo is a local bitmap asset, not the upstream generated Collie mark.
 
 ## Decision records — read before reopening a settled question
 

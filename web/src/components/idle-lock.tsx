@@ -65,7 +65,7 @@ export function IdleLock({ onUnlock, catchingUp = false }: IdleLockProps) {
           <span className="grid size-20 shrink-0 place-items-center">
             <CollieMark size={64} weight="header" loading={catchingUp} paper="var(--card)" />
           </span>
-          <span className="text-lg font-semibold tracking-tight">Collie</span>
+          <span className="text-lg font-semibold tracking-tight">mycroftxxx remote</span>
         </div>
         {catchingUp ? (
           <div className="space-y-1">

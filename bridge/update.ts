@@ -379,7 +379,7 @@ export function updateDigestBody(
   const first = versions[0];
   const body =
     versions.length <= 1
-      ? `Collie ${first ?? current} is available`
+      ? `mycroftxxx remote ${first ?? current} is available`
       : `${versions.length} updates since ${current}: ${versions.join(", ")}`;
   const withLink = linkChange === null ? body : `${body}. ${LINK_CHANGE_SENTENCE}`;
   return urgent === null ? withLink : `${urgent.reason} ${withLink}`;

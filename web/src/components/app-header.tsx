@@ -355,10 +355,10 @@ export function AppHeaderHost({ bridge, error, children }: AppHeaderHostProps) {
                 <div
                   data-slot="header-identity"
                   hidden={!claim.wordmark}
-                  className="relative min-w-0"
+                  className="relative min-w-0 w-40"
                 >
                   <SectionLabel className="absolute bottom-full left-0 max-w-full truncate leading-none">
-                    Collie
+                    mycroftxxx remote
                   </SectionLabel>
                   {/* The line the freed width is FOR — "on <mux>", the sentence the brand line
                       above starts. `min-h-6` RESERVES it whether or not a name has arrived:

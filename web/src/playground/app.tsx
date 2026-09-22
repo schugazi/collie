@@ -202,7 +202,7 @@ function Sidebar({ sections, activeId, onSelect, clock, onClock, phoneWidth, onP
   return (
     <aside className="hidden w-[220px] shrink-0 lg:block">
       <div className="sticky top-0 max-h-[100dvh] overflow-y-auto py-4">
-        <h1 className="text-sm font-semibold tracking-tight">Collie — states playground</h1>
+        <h1 className="text-sm font-semibold tracking-tight">mycroftxxx remote — states playground</h1>
         <p className="mt-0.5 text-[11px] text-muted-foreground">
           Dev-only page. Not in the production bundle.
         </p>
@@ -230,7 +230,7 @@ function TopBar({ sections, activeId, onSelect, clock, onClock, phoneWidth, onPh
     <header className="sticky top-0 z-30 -mx-4 -mt-4 border-b border-border bg-background/95 px-4 py-2 backdrop-blur lg:hidden">
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 pb-2">
         <div>
-          <h1 className="text-sm font-semibold tracking-tight">Collie — states playground</h1>
+          <h1 className="text-sm font-semibold tracking-tight">mycroftxxx remote — states playground</h1>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
             Dev-only page. Not in the production bundle.
           </p>

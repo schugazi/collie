@@ -84,7 +84,7 @@ describe("AlphaBar inside the one header shell", () => {
       </Header>,
     );
     expect(screen.getByText(/TEST/)).toBeInTheDocument();
-    expect(screen.getByText("Collie")).toBeInTheDocument();
+    expect(screen.getByText("mycroftxxx remote")).toBeInTheDocument();
     expect(screen.getByText("webapp › main")).toBeInTheDocument();
   });
 

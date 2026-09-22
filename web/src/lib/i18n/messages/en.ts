@@ -35,7 +35,7 @@ export const en = {
   // --- settings.zen ---
   // Availability only: the toggle decides whether the pane menu offers zen at all.
   "settings.install.title": "Install the app",
-  "settings.install.description": "Add Collie to your home screen — full screen, its own icon.",
+  "settings.install.description": "Add mycroftxxx remote to your home screen — full screen, its own icon.",
   "settings.install.button": "Install",
   "settings.install.iosHint": "On an iPhone or iPad, install from the browser's share sheet: tap Share, then \"Add to Home Screen\".",
   "settings.harnessBar.title": "Harness shortcuts",
@@ -63,7 +63,7 @@ export const en = {
   "settings.push.reason.timeout": "Notification setup timed out. Check that this device can reach its push service, then try again.",
   "settings.push.availability.unavailable": "Could not check notification setup. Check your connection or sign in again, then retry.",
   "settings.push.availability.insecure":
-    "Unavailable over plain HTTP — serve Collie over HTTPS to enable push.",
+    "Unavailable over plain HTTP — serve mycroftxxx remote over HTTPS to enable push.",
   "settings.push.availability.serverOff":
     "The bridge has no VAPID keys configured, so push is disabled server-side.",
   "settings.push.availability.denied":
@@ -78,7 +78,7 @@ export const en = {
   "settings.notify.done.label": "Finished",
   "settings.notify.done.hint": "an agent completes its task",
   "settings.notify.updates.label": "App updates",
-  "settings.notify.updates.hint": "a new Collie version is available",
+  "settings.notify.updates.hint": "a new mycroftxxx remote version is available",
   "settings.notify.cache.label": "Cache about to go cold",
   // The second clause is the whole point of this hint: the rule is global OR per-pane, with no per-pane
   // off, so a watched list keeps working under this switch and the operator is told once, here.
@@ -155,7 +155,7 @@ export const en = {
 
   // --- settings.update (update-check-control + footer update banner) ---
   "settings.update.title": "Updates",
-  "settings.update.check.prompt": "Check whether a new Collie version is available.",
+  "settings.update.check.prompt": "Check whether a new mycroftxxx remote version is available.",
   "settings.update.check.running": "Running v{current}",
   "settings.update.check.runningChecked": "Running v{current} · checked {checked}",
   "settings.update.action": "Check for updates",
@@ -163,9 +163,9 @@ export const en = {
   "settings.update.error": "Couldn't check.",
   "settings.update.upToDate": "Up to date",
   "settings.updateBanner.restart": "Bridge restart needed",
-  "settings.updateBanner.restartNeeded": "Collie was replaced on disk. Restart it.",
-  "settings.updateBanner.releaseAvailable": "Collie {version} available",
-  "settings.updateBanner.majorAvailable": "Collie {version} — a new major",
+  "settings.updateBanner.restartNeeded": "mycroftxxx remote was replaced on disk. Restart it.",
+  "settings.updateBanner.releaseAvailable": "mycroftxxx remote {version} available",
+  "settings.updateBanner.majorAvailable": "mycroftxxx remote {version} — a new major",
   "settings.updateBanner.copyAria": "Copy command: {command}",
 
   // --- settings.typeface (the APP's own face — a per-device preference since ADR 0033) ---
@@ -177,11 +177,11 @@ export const en = {
   "settings.typeface.family": "Family",
   "settings.typeface.system": "System default",
   "settings.typeface.note.system": "Your phone's own face. Downloads nothing.",
-  "settings.typeface.note.grotesk": "Collie's own voice, drawn to match the mark.",
+  "settings.typeface.note.grotesk": "mycroftxxx remote's own voice, drawn to match the mark.",
   // Says the cost out loud rather than letting it be discovered: Aldrich ships one weight, and the
   // app suppresses synthesized bold, so bold text under it is not heavier than the rest.
   "settings.typeface.note.aldrich": "One weight, so bold text looks the same as regular.",
-  "settings.typeface.note.operator": "Added by this collie's operator.",
+  "settings.typeface.note.operator": "Added by this server's operator.",
 
   // --- settings.fonts (the terminal face: the mirror's size and the draft field's; NOT the app's own typeface) ---
   "settings.fonts.title": "Terminal font",
@@ -257,7 +257,7 @@ export const en = {
     "Too long to keep as a saved draft — it survives switching panes, but not closing the app.",
   "composer.status.dialogWaiting": "A dialog is waiting — answer it first, then send.",
   "composer.status.unreadDialog":
-    "Collie cannot read this dialog. {key} is on the card. Tap Send again to type anyway.",
+    "mycroftxxx remote cannot read this dialog. {key} is on the card. Tap Send again to type anyway.",
   "composer.status.paneNotWritable": "Pane is no longer writable — nothing was sent",
   "composer.status.inputChanged":
     "The input box changed while clearing it — nothing was typed. Check the pane.",
@@ -269,8 +269,8 @@ export const en = {
   "composer.destructive.confirm": "Destructive: {reason} — tap Send again to confirm",
   "composer.destructive.confirmOnHost": "Destructive: {reason} on {host} — tap Send again to confirm",
   "composer.upload.success": "File added, path in message",
-  "composer.upload.tooLarge": "That file is bigger than {max} MB, the limit on this collie.",
-  "composer.upload.badType": "Collie can't attach {name}.",
+  "composer.upload.tooLarge": "That file is bigger than {max} MB, the limit on this server.",
+  "composer.upload.badType": "mycroftxxx remote can't attach {name}.",
   "composer.noEcho.title": "Password prompt — nothing echoes",
   "composer.noEcho.noLiveTyped":
     "What you typed is already in the pane, unsubmitted — but this view isn't live, so nothing can be sent from here. Answer it at the terminal.",
@@ -399,11 +399,11 @@ export const en = {
   "keys.queue.send": "Send",
   "keys.queue.clearAria": "Clear queued keys",
 
-  // --- nav (app header, Collie mark, settings gear) ---
+  // --- nav (app header, mycroftxxx remote mark, settings gear) ---
   "nav.settings.aria": "Settings",
-  "nav.home.aria.default": "Collie home",
-  "nav.home.aria.lost": "Collie home — not connected",
-  "nav.home.aria.reconnecting": "Collie home — reconnecting",
+  "nav.home.aria.default": "mycroftxxx remote home",
+  "nav.home.aria.lost": "mycroftxxx remote home — not connected",
+  "nav.home.aria.reconnecting": "mycroftxxx remote home — reconnecting",
   "nav.mux.onPrefix": "on",
   "nav.prereleaseTitle": "Pre-release build — {version}",
 
@@ -543,8 +543,8 @@ export const en = {
   "connection.connected": "Connected",
   "connection.reconnecting": "Reconnecting…",
   "connection.herdrDown": "Herdr is down on the host",
-  "connection.offlineCantReach": "Offline — can't reach Collie",
-  "connection.cantReach": "Can't reach Collie",
+  "connection.offlineCantReach": "Offline — can't reach mycroftxxx remote",
+  "connection.cantReach": "Can't reach mycroftxxx remote",
   "connection.withLastSeen": "{cause} — last seen {time}",
   "connection.readOnly.notPaired": "Not paired — pair this device in Settings to type into agents.",
   "connection.readOnly.device": "Read-only — this device isn’t authorised to type into agents{deviceSuffix}.",
@@ -573,7 +573,7 @@ export const en = {
   "connection.host.attentionSuffix": "needs attention · {label}",
   "connection.host.reconnectingAction": "The lead is still trying. Nothing to do.",
   "connection.host.attentionAction": "Trying again will not fix this. Check this machine.",
-  "connection.stale.incompatible": "{name} is running an incompatible Collie",
+  "connection.stale.incompatible": "{name} is running an incompatible mycroftxxx remote",
   "connection.stale.unreachable": "{name} is unreachable · {label}",
   "connection.stale.nothingCached": "Nothing cached for this machine yet.",
   "connection.stale.showingLastKnown":
@@ -627,24 +627,24 @@ export const en = {
   "crew.formation.aria": "Crew formation: {machines}",
   "crew.node.aria": "{name}, {role}, {health}",
   "crew.node.ariaPlain": "{name}, {health}",
-  "crew.solo.title": "This collie is not leading a crew",
+  "crew.solo.title": "This server is not leading a crew",
   "crew.solo.description": "A crew is created and changed from the command line.",
   "crew.error.title": "Could not load crew status",
-  "crew.error.description": "The bridge did not answer. Collie tries again on the next poll.",
+  "crew.error.description": "The bridge did not answer. mycroftxxx remote tries again on the next poll.",
 
   // --- error (boot splash, route-level error recovery) ---
-  "error.boot.connecting": "Connecting to the herd…",
+  "error.boot.connecting": "Connecting to mycroftxxx remote…",
   "error.boot.title": "Not connected",
-  "error.boot.body": "Can’t reach Collie — check your connection to the host, then try again.",
+  "error.boot.body": "Can’t reach mycroftxxx remote — check your connection to the host, then try again.",
   "error.boot.retry": "Retry",
   "error.root.title": "Something went wrong",
   "error.root.unknown": "Unknown error",
   "error.root.reload": "Reload",
 
   // --- idle (the idle-pause cover) ---
-  "idle.dialogAria": "Collie paused",
+  "idle.dialogAria": "mycroftxxx remote paused",
   "idle.catchingUp.title": "Catching up",
-  "idle.catchingUp.body": "Fetching the herd's current state.",
+  "idle.catchingUp.body": "Fetching the server's current state.",
   "idle.paused.title": "Paused",
   "idle.paused.body":
     "Live updates stopped while this screen sat idle — what's behind this is frozen. Resuming picks up right where you left off.",
@@ -714,7 +714,7 @@ export const en = {
   "dialog.menu.moveDown": "Move down",
   "dialog.menu.leftAria": "Left — {verb} ({label})",
   "dialog.menu.rightAria": "Right — {verb} ({label})",
-  "unreadDialog.caption": "Collie cannot read this dialog",
+  "unreadDialog.caption": "mycroftxxx remote cannot read this dialog",
   "dialog.preview.currentAnswerAria": "Current answer",
   "dialog.preview.previewedBelowAria": "Previewed below",
   "dialog.preview.previewLabel": "Preview · {label}",
@@ -756,12 +756,12 @@ export const en = {
   // --- stt (speech-to-text errors, lib/stt.ts + hooks/use-stt-recorder.ts) ---
   "stt.error.busy": "Busy — another recording is still transcribing. Try again in a moment.",
   "stt.error.tooLong": "That recording is too long — record a shorter one.",
-  "stt.error.badFormat": "This browser recorded a format Collie can't send on.",
-  "stt.error.unconfigured": "Speech-to-text isn't configured on this collie.",
+  "stt.error.badFormat": "This browser recorded a format mycroftxxx remote can't send on.",
+  "stt.error.unconfigured": "Speech-to-text isn't configured on this server.",
   "stt.error.timeout": "The transcriber didn't answer in time — try again.",
   "stt.error.unreachable": "The transcriber couldn't be reached — try again.",
   "stt.error.generic": "Transcription failed — record again to retry.",
-  "stt.error.networkFailure": "Couldn't reach Collie to transcribe that — try again.",
+  "stt.error.networkFailure": "Couldn't reach mycroftxxx remote to transcribe that — try again.",
   "stt.error.recordingFailed": "Recording failed — nothing was captured.",
   "stt.error.noSpeechHeard": "Nothing was heard in that recording.",
   "stt.error.nothingRecorded": "Nothing was recorded.",
@@ -784,7 +784,7 @@ export const en = {
   // a code with no key here is a COMPILE error, and a code a newer bridge invents falls back to the
   // English sentence that body already carries.
   //
-  // `{reason}` is NEVER Collie's text: it is the multiplexer's own refusal, passed through byte for
+  // `{reason}` is NEVER mycroftxxx remote's text: it is the multiplexer's own refusal, passed through byte for
   // byte (bridge/error-codes.ts). Those messages are a translated FRAME around a raw remainder —
   // translate the frame, leave the slot where the sentence reads naturally in your language.
   "apiError.unknown": "Something went wrong. Try again.",
@@ -806,11 +806,11 @@ export const en = {
   "apiError.workspace.create_failed": "The space couldn't be created: {reason}",
   "apiError.upload.too_large": "That file is too large, {maxMb} MB is the limit.",
   "apiError.upload.no_file": "No file was sent.",
-  "apiError.upload.bad_type": "Collie can't send that kind of file: {type}",
+  "apiError.upload.bad_type": "mycroftxxx remote can't send that kind of file: {type}",
   "apiError.upload.write_failed": "The file couldn't be saved on the host: {reason}",
-  "apiError.stt.unconfigured": "Speech-to-text isn't set up on this collie.",
+  "apiError.stt.unconfigured": "Speech-to-text isn't set up on this server.",
   "apiError.stt.too_large": "That recording is too long — record a shorter one.",
-  "apiError.stt.bad_format": "This browser recorded a format Collie can't send on.",
+  "apiError.stt.bad_format": "This browser recorded a format mycroftxxx remote can't send on.",
   "apiError.stt.busy": "Two recordings are already being transcribed — try again in a moment.",
   "apiError.stt.unreadable": "That recording couldn't be read.",
   "apiError.stt.empty": "That recording is empty.",
@@ -824,10 +824,10 @@ export const en = {
   "apiError.device.unknown": "No paired device has that name.",
   "apiError.cache.pane_unknown": "That pane is gone, nothing was changed.",
   "apiError.cache.no_session": "That pane's agent names no session, so it can't be watched.",
-  "apiError.session.unknown": "There is no session called {session} on this collie.",
-  "apiError.host.unknown": "There is no collie called {host} in this crew.",
+  "apiError.session.unknown": "There is no session called {session} on this server.",
+  "apiError.host.unknown": "There is no server called {host} in this crew.",
   // The key mirrors the wire code `crew.not_lead` (`bridge/error-codes.ts`). Both say crew from 1.8.0.
-  "apiError.crew.not_lead": "This collie doesn't lead a crew, so there is no crew to show.",
+  "apiError.crew.not_lead": "This server doesn't lead a crew, so there is no crew to show.",
   // --- worktrees (ADR 0032) ---
   "apiError.worktree.list_failed": "The worktrees couldn't be listed: {reason}",
   "apiError.worktree.create_failed": "The worktree couldn't be created: {reason}",
@@ -861,13 +861,13 @@ export const en = {
   "apiError.update.preflight_unavailable": "The preflight couldn't be run on this machine, so the update was refused.",
   "apiError.update.preflight_red": "Preflight is red on {check}: {reason}",
   "apiError.update.major_confirm_required": "{version} crosses a major, and a major needs its own confirm.",
-  "apiError.update.target_mismatch": "This screen offered {asked}, but this collie would install {would}. Reload and read it again.",
+  "apiError.update.target_mismatch": "This screen offered {asked}, but this server would install {would}. Reload and read it again.",
   "apiError.update.none_available": "There is no newer release to take.",
   "apiError.update.peers_packaged": "{name} is a packaged install. Its updates come from its own package manager.",
-  "apiError.update.packaged": "Updates come from your package manager. Collie won't replace this install's files.",
+  "apiError.update.packaged": "Updates come from your package manager. mycroftxxx remote won't replace this install's files.",
   "apiError.update.start_failed": "The update couldn't be started: {reason}",
   // --- settings.updateCard (the update card, M15/05) ---
-  "settings.updateCard.title": "Update Collie",
+  "settings.updateCard.title": "Update mycroftxxx remote",
   "settings.updateCard.running": "Running {current}",
   "settings.updateCard.newest": "Newest {version}",
   "settings.updateCard.upToDate": "Up to date. Nothing to do.",
@@ -889,7 +889,7 @@ export const en = {
   "settings.updateCard.summary.peers.one": "{count} peer",
   "settings.updateCard.summary.peers.other": "{count} peers",
   "settings.updateCard.preflightUnavailable": "The preflight couldn't be run on this machine.",
-  "settings.updateCard.packageManaged": "Your package manager updates this install. Collie won't take it from here.",
+  "settings.updateCard.packageManaged": "Your package manager updates this install. mycroftxxx remote won't take it from here.",
   "settings.updateCard.remedy": "Fix: {command}",
   "settings.updateCard.confirmTitle": "Update to {version}?",
   "settings.updateCard.confirmBody": "Your terminal session stays alive. The phone view drops for up to 30 seconds.",
@@ -972,7 +972,7 @@ export const en = {
   "updates.title": "Updates",
   "updates.nav.back": "Back",
   "updates.entry.title": "Updates",
-  "updates.entry.description": "Update Collie, and the crew with it.",
+  "updates.entry.description": "Update mycroftxxx remote, and the crew with it.",
   "updates.entry.status.updating": "Updating…",
   "updates.entry.status.peersBehind.one": "{count} peer behind",
   "updates.entry.status.peersBehind.other": "{count} peers behind",
@@ -1009,14 +1009,14 @@ export const en = {
   // unbounded length and this row is forty characters. The tap lands on the card, which prints it.
   "updateRibbon.urgent": "Urgent.",
   "updateRibbon.linkChangeShort": "Changes the crew link.",
-  "updateRibbon.available": "Collie {version} available.",
+  "updateRibbon.available": "{version} available.",
   // A packaged host cannot take the tap — its updates come from its package manager (ADR 0035) — so
   // the band STATES the fact and names the manager. It does not instruct: the phone cannot run
   // pacman, and a line that told the operator to would be telling them to go somewhere else.
-  "updateRibbon.availablePackaged": "Collie {version} available via {manager}.",
-  // The same host under a prefix Collie does not recognise: there is no manager to name, so the band
+  "updateRibbon.availablePackaged": "{version} available via {manager}.",
+  // The same host under a prefix mycroftxxx remote does not recognise: there is no manager to name, so the band
   // states the version and points at the page that carries the boundary sentence.
-  "updateRibbon.availablePackagedUnnamed": "Collie {version} available.",
+  "updateRibbon.availablePackagedUnnamed": "{version} available.",
   // The band's own control in the states that can also be PUT DOWN. `ui/notice.tsx` forbids a
   // whole-row tap beside a dismiss X (a button may not hold a button), so those states name the
   // tap instead of being one. It opens /settings/updates, where the confirm lives; it starts nothing.
@@ -1064,7 +1064,7 @@ export const en = {
   // The English here is the source of truth; the six other catalogs carry it verbatim until it is
   // translated. Raise TOUR_VERSION (lib/tour.ts) when a CLAIM below changes, never for polish.
   "tour.skip": "Skip",
-  "tour.title": "Collie shows the agents in your terminal.",
+  "tour.title": "mycroftxxx remote shows the agents in your terminal.",
   // The claim's second sentence, in the three forms the facts can support. {mux} is the
   // multiplexer's display name, {host} the lead machine's crew label; a clause whose fact is missing
   // is dropped rather than filled with a placeholder.
@@ -1097,8 +1097,8 @@ export const en = {
   "tour.space.body": "Start an agent in your terminal, or make a space here.",
   "tour.space.button": "New space",
   "tour.pushCard.title": "Be told when a pane needs you",
-  "tour.pushCard.body": "Collie notifies you when an agent is blocked, or done.",
-  "tour.install.title": "Keep Collie on your home screen",
+  "tour.pushCard.body": "mycroftxxx remote notifies you when an agent is blocked, or done.",
+  "tour.install.title": "Keep mycroftxxx remote on your home screen",
   "tour.install.body": "It opens full screen and remembers where you were.",
   "tour.install.button": "Add",
   "tour.push.enable": "Turn on",
@@ -1119,7 +1119,7 @@ export const en = {
 
   // --- settings.tour ---
   "settings.tour.title": "Show the first screen again",
-  "settings.tour.description": "What Collie does, and what this install looks like.",
+  "settings.tour.description": "What mycroftxxx remote does, and what this install looks like.",
   "settings.tour.button": "Show",
 
   // --- updateScreen (M28/01) ---
@@ -1128,7 +1128,7 @@ export const en = {
   // `lib/update-screen.ts` decides every state it can be in. Short words — these rows are read on a
   // phone while a machine is being rebuilt underneath them.
   "updateScreen.dialogAria": "Update in progress",
-  "updateScreen.title": "Updating Collie",
+  "updateScreen.title": "Updating mycroftxxx remote",
   "updateScreen.close": "Close",
   "updateScreen.rows.label": "Machines",
   "updateScreen.thisMachine": "This machine",

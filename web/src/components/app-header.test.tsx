@@ -67,7 +67,7 @@ describe("the header — the one shared shell", () => {
     expect(container.querySelector(".dog-gallop")).toBeNull(); // mark at rest (static icon)
     expect(screen.getByText("webapp › main")).toBeInTheDocument(); // the breadcrumb slot
     expect(screen.getByText("working")).toBeInTheDocument(); // the agent status badge
-    expect(screen.getByText("Collie")).not.toBeVisible(); // no brand line ON SCREEN in a pane
+    expect(screen.getByText("mycroftxxx remote")).not.toBeVisible(); // no brand line ON SCREEN in a pane
     // The block stays MOUNTED and goes `hidden`, so the mux logo is not re-fetched on the way back.
     // Hidden is `display: none`, so it costs the row no width: the pane's width is the breadcrumb's.
     const identity = container.querySelector('[data-slot="header-identity"]');
@@ -79,7 +79,7 @@ describe("the header — the one shared shell", () => {
     const { container } = renderHeader(
       <Header bridge="connected" error={false} wordmark rightTrail={<SettingsGear />} />,
     );
-    expect(screen.getByText("Collie")).toBeInTheDocument(); // the identity's brand line
+    expect(screen.getByText("mycroftxxx remote")).toBeInTheDocument(); // the identity's brand line
     expect(container.querySelector(".dog-gallop")).toBeNull(); // mark at rest while live
     expect(screen.getByRole("button", { name: "Settings" })).toBeInTheDocument();
   });
@@ -136,7 +136,7 @@ describe("the header — the one shared shell", () => {
     );
     const size = (el: Element | null | undefined) =>
       /(?:^|\s)size-(\d+)(?=\s|$)/.exec(el?.className ?? "")?.[1];
-    const markBox = container.querySelector('button[aria-label^="Collie"] > span');
+    const markBox = container.querySelector('button[aria-label^="mycroftxxx remote"] > span');
     const gear = screen.getByRole("button", { name: "Settings" });
     expect(size(markBox)).toBe("11"); // 44px
     expect(size(markBox)).toBe(size(gear));
@@ -145,7 +145,7 @@ describe("the header — the one shared shell", () => {
   it("returns to the dashboard via onHome when the Collie mark is tapped", async () => {
     const onHome = vi.fn();
     renderHeader(<Header bridge="connected" error={false} onHome={onHome} wordmark />);
-    await userEvent.click(screen.getByRole("button", { name: "Collie home" }));
+    await userEvent.click(screen.getByRole("button", { name: "mycroftxxx remote home" }));
     expect(onHome).toHaveBeenCalledOnce();
   });
 
@@ -189,7 +189,7 @@ describe("the header — the one shared shell", () => {
     // The override owns the row while searching — the normal content is replaced, not stacked.
     expect(screen.getByText("FINDBAR")).toBeInTheDocument();
     expect(screen.queryByText("webapp › main")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Collie home" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "mycroftxxx remote home" })).toBeNull();
   });
 });
 
@@ -269,14 +269,14 @@ describe("the header — the stacked identity", () => {
     );
     renderHeader(<Header bridge="connected" error={false} wordmark rightTrail={<SettingsGear />} />);
     await waitFor(() => expect(screen.getByText("on reference")).toBeInTheDocument());
-    expect(screen.getByText("Collie")).toBeInTheDocument(); // the brand line it completes, still there
+    expect(screen.getByText("mycroftxxx remote")).toBeInTheDocument(); // the brand line it completes, still there
   });
 
   it("says nothing extra when the bridge published no mux block", async () => {
     // The default handler is that bridge — older than the field, or a cached page. The header is
     // exactly the one it has always been: no line, and no "on unknown" placeholder standing in.
     renderHeader(<Header bridge="connected" error={false} wordmark rightTrail={<SettingsGear />} />);
-    await waitFor(() => expect(screen.getByText("Collie")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("mycroftxxx remote")).toBeInTheDocument());
     expect(screen.queryByText(/^on /)).toBeNull();
   });
 
@@ -358,7 +358,7 @@ describe("the header — the stacked identity", () => {
     expect(block?.className).toContain("relative");
     expect(block?.className).toContain("min-w-0");
     const [brand, muxLine] = Array.from(block?.children ?? []);
-    expect(brand?.textContent).toBe("Collie"); // the brand is the TOP line…
+    expect(brand?.textContent).toBe("mycroftxxx remote"); // the brand is the TOP line…
     expect(brand?.className).toContain("bottom-full"); // …and out of flow, above the block
     expect(brand?.className).toContain("max-w-full");
     expect(muxLine?.textContent).toBe("on reference");
@@ -408,7 +408,7 @@ describe("the header — the stacked identity", () => {
     const { container } = renderHeader(
       <Header bridge="connected" error={false} wordmark rightTrail={<SettingsGear />} />,
     );
-    await waitFor(() => expect(screen.getByText("Collie")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("mycroftxxx remote")).toBeInTheDocument());
     const block = container.querySelector<HTMLElement>('[data-slot="header-identity"]');
     const [, muxLine] = Array.from(block?.children ?? []);
     expect(muxLine?.textContent).toBe(""); // no "on unknown" placeholder
@@ -591,30 +591,30 @@ describe("the ONE header — hoisted above the outlet", () => {
     // too. Either way the row must show the ARRIVING route and never a blank or a stale one.
     const { container, go } = renderHoisted();
     // Dashboard: wordmark + gear, no breadcrumb.
-    expect(screen.getByText("Collie")).toBeInTheDocument();
+    expect(screen.getByText("mycroftxxx remote")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Settings" })).toBeInTheDocument();
     expect(screen.queryByText("webapp › main")).toBeNull();
 
     // Pane: the breadcrumb takes the middle, the dashboard's items are gone, the mark stays.
     await go("/pane");
     expect(screen.getByText("webapp › main")).toBeInTheDocument();
-    expect(screen.getByText("Collie")).not.toBeVisible(); // no wordmark inside a pane
+    expect(screen.getByText("mycroftxxx remote")).not.toBeVisible(); // no wordmark inside a pane
     expect(screen.queryByRole("button", { name: "Settings" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Collie home" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "mycroftxxx remote home" })).toBeInTheDocument();
 
     // Settings: `override` takes the WHOLE row — mark and breadcrumb both yield, exactly as they did
     // when the takeover was a prop on a per-route header.
     await go("/settings");
     const row = container.querySelector<HTMLElement>('[data-slot="header-row"]');
     expect(row?.contains(screen.getByRole("button", { name: "Back" }))).toBe(true);
-    expect(screen.queryByRole("button", { name: "Collie home" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "mycroftxxx remote home" })).toBeNull();
     expect(screen.queryByText("webapp › main")).toBeNull();
 
     // …and back. The row is handed over, not kept: nothing of Settings survives into the dashboard.
     await go("/");
     expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Collie home" })).toBeInTheDocument();
-    expect(screen.getByText("Collie")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "mycroftxxx remote home" })).toBeInTheDocument();
+    expect(screen.getByText("mycroftxxx remote")).toBeInTheDocument();
   });
 
   it("carries the route's own width claim, so a hoisted header is not silently full-bleed", async () => {

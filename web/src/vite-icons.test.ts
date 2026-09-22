@@ -45,7 +45,7 @@ describe("iconLinksFor", () => {
   it("release: names the original, undecorated icon files", () => {
     const links = iconLinksFor("release");
     expect(links.map((l) => l.href)).toEqual([
-      "/favicon-96x96.png",
+      "/favicon-32x32.png",
       "/favicon.svg",
       "/favicon.ico",
       "/apple-touch-icon.png",
@@ -57,7 +57,7 @@ describe("iconLinksFor", () => {
     const dev = iconLinksFor("dev");
     expect(dev).toHaveLength(release.length);
     expect(dev.map((l) => l.href)).toEqual([
-      "/favicon-dev-96x96.png",
+      "/favicon-dev-32x32.png",
       "/favicon-dev.svg",
       "/favicon-dev.ico",
       "/apple-touch-icon-dev.png",
@@ -74,8 +74,8 @@ describe("iconLinksFor", () => {
 describe("manifestFor", () => {
   it("release: names Collie and the original manifest tiles", () => {
     const manifest = manifestFor("release");
-    expect(manifest.name).toBe("Collie");
-    expect(manifest.short_name).toBe("Collie");
+    expect(manifest.name).toBe("mycroftxxx remote");
+    expect(manifest.short_name).toBe("mycroftxxx remote");
     expect(manifest.icons.map((i) => i.src)).toEqual([
       "/web-app-manifest-192x192.png",
       "/web-app-manifest-512x512.png",
@@ -84,8 +84,8 @@ describe("manifestFor", () => {
 
   it("dev: names Collie (dev) and the -dev manifest tiles", () => {
     const manifest = manifestFor("dev");
-    expect(manifest.name).toBe("Collie (dev)");
-    expect(manifest.short_name).toBe("Collie dev");
+    expect(manifest.name).toBe("mycroftxxx remote");
+    expect(manifest.short_name).toBe("mycroftxxx remote");
     expect(manifest.icons.map((i) => i.src)).toEqual([
       "/web-app-manifest-dev-192x192.png",
       "/web-app-manifest-dev-512x512.png",
@@ -108,7 +108,7 @@ describe("includeAssetsFor", () => {
     expect(includeAssetsFor("dev")).toEqual([
       "favicon-dev.svg",
       "favicon-dev.ico",
-      "favicon-dev-96x96.png",
+      "favicon-dev-32x32.png",
       "apple-touch-icon-dev.png",
     ]);
   });
@@ -123,17 +123,17 @@ describe("transformIndexIcons — the release build stays byte-identical", () =>
 
   it("dev: rewrites all four icon hrefs to the -dev files, nothing else", () => {
     const out = transformIndexIcons(indexHtml, "dev");
-    expect(out).toContain('href="/favicon-dev-96x96.png"');
+    expect(out).toContain('href="/favicon-dev-32x32.png"');
     expect(out).toContain('href="/favicon-dev.svg"');
     expect(out).toContain('href="/favicon-dev.ico"');
     expect(out).toContain('href="/apple-touch-icon-dev.png"');
     // The originals are gone, not merely joined by the dev ones.
-    expect(out).not.toContain('href="/favicon-96x96.png"');
+    expect(out).not.toContain('href="/favicon-32x32.png"');
     expect(out).not.toContain('href="/favicon.svg"');
     expect(out).not.toContain('href="/favicon.ico"');
     expect(out).not.toContain('href="/apple-touch-icon.png"');
     // Everything past the four <link> tags is untouched (e.g. the title, the boot splash CSS).
-    expect(out).toContain("<title>Collie</title>");
+    expect(out).toContain("<title>mycroftxxx remote</title>");
   });
 });
 
@@ -144,7 +144,7 @@ describe("the states playground wears its own red icon set", () => {
     expect(PLAYGROUND_ICON_LINKS.map((l) => l.href)).toEqual([
       "/favicon-playground.svg",
       "/favicon-playground.ico",
-      "/favicon-playground-96x96.png",
+      "/favicon-playground-32x32.png",
     ]);
   });
 

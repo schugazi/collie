@@ -1,3 +1,13 @@
+# mycroftxxx remote
+
+Personal fork of [Collie](https://github.com/AltanS/collie) for phone access to terminal agents.
+The PWA uses the mycroftxxx dashboard logo. Internal `collie` command and configuration names
+stay compatible with upstream. Set `COLLIE_UPDATE_REPO=schugazi/collie` when deploying this fork.
+
+Upstream documentation and MIT attribution follow.
+
+---
+
 # Collie
 
 <p align="center">

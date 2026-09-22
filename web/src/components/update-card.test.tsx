@@ -191,7 +191,7 @@ describe("update card — what it says before anything happens", () => {
     expect(await screen.findByText(/folds in 1\.3\.1, 1\.4\.0/)).toBeInTheDocument();
     // And it does NOT borrow the bundle banner's words — two things called "update" in one UI is
     // the confusion this card exists to avoid.
-    expect(screen.getByText("Update Collie")).toBeInTheDocument();
+    expect(screen.getByText("Update mycroftxxx remote")).toBeInTheDocument();
     expect(screen.queryByText(/tap to update/i)).not.toBeInTheDocument();
   });
 

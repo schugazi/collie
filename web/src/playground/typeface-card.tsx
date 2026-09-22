@@ -111,7 +111,7 @@ function Specimen({ face }: { face: FaceId }) {
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <CollieMark size={28} weight="header" />
         <div className="flex min-w-0 flex-col">
-          <SectionLabel>Collie</SectionLabel>
+          <SectionLabel>mycroftxxx remote</SectionLabel>
           {/* The real header prints the multiplexer's own name from /api/config; the specimen
               stands in for it, because the frontend never spells one (check-mux-names.sh). */}
           <span className="truncate text-base">on the mux</span>

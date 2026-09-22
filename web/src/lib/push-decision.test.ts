@@ -10,7 +10,7 @@ describe("decidePush", () => {
     expect(decidePush({ type: "clear", tag: "collie:herd" }, true)).toEqual(expected);
   });
 
-  test("suppresses a show when a Collie tab is visible", () => {
+  test("suppresses a show when a mycroftxxx remote tab is visible", () => {
     expect(decidePush({ title: "claude needs you", tag: "collie:herd" }, true)).toEqual({
       kind: "suppress",
     });
@@ -41,7 +41,7 @@ describe("decidePush", () => {
   test("falls back to a per-pane tag, default title, empty body, and renotify off", () => {
     expect(decidePush({ data: { paneId: "test" } }, false)).toEqual({
       kind: "show",
-      title: "Collie",
+      title: "mycroftxxx remote",
       body: "",
       tag: "collie:test",
       paneId: "test",
@@ -61,7 +61,7 @@ describe("decidePush", () => {
     expect(
       decidePush(
         {
-          title: "Collie 0.12.0 available",
+          title: "mycroftxxx remote 0.12.0 available",
           body: "collie-ctl.sh update",
           data: { target: "settings" },
         },
@@ -69,7 +69,7 @@ describe("decidePush", () => {
       ),
     ).toMatchObject({
       kind: "show",
-      title: "Collie 0.12.0 available",
+      title: "mycroftxxx remote 0.12.0 available",
       target: "settings",
       paneId: undefined,
     });

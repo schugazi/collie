@@ -25,7 +25,7 @@ export const ja: Dictionary = {
   // --- settings.zen ---
   // Availability only: the toggle decides whether the pane menu offers zen at all.
   "settings.install.title": "アプリのインストール",
-  "settings.install.description": "ホーム画面に Collie を追加して、全画面と専用アイコンで起動します。",
+  "settings.install.description": "ホーム画面に mycroftxxx remote を追加して、全画面と専用アイコンで起動します。",
   "settings.install.button": "インストール",
   "settings.install.iosHint": "iOS または iPadOS では、ブラウザの共有メニューから「ホーム画面に追加」を選択します。",
   "settings.harnessBar.title": "Harness shortcuts",
@@ -67,7 +67,7 @@ export const ja: Dictionary = {
   "settings.notify.done.label": "完了",
   "settings.notify.done.hint": "エージェントがタスクを完了したとき",
   "settings.notify.updates.label": "アップデート",
-  "settings.notify.updates.hint": "新しい Collie のリリースが存在するとき",
+  "settings.notify.updates.hint": "新しい mycroftxxx remote のリリースが存在するとき",
   "settings.notify.cache.label": "Cache about to go cold",
   "settings.notify.cache.hint":
     "a pane's prompt cache expires in a few minutes; also covers panes you watched one by one",
@@ -142,7 +142,7 @@ export const ja: Dictionary = {
 
   // --- settings.update (update-check-control + footer update banner) ---
   "settings.update.title": "アップデート",
-  "settings.update.check.prompt": "Collie の新しいバージョンを確認します。",
+  "settings.update.check.prompt": "mycroftxxx remote の新しいバージョンを確認します。",
   "settings.update.check.running": "実行中: v{current}",
   "settings.update.check.runningChecked": "v{current} を実行中 · 最終確認: {checked}",
   "settings.update.action": "更新を確認",
@@ -150,9 +150,9 @@ export const ja: Dictionary = {
   "settings.update.error": "確認に失敗しました。",
   "settings.update.upToDate": "最新バージョンです",
   "settings.updateBanner.restart": "Bridgeの再起動が必要です",
-  "settings.updateBanner.restartNeeded": "ディスク上の Collie が置き換えられました。再起動してください。",
-  "settings.updateBanner.releaseAvailable": "Collie {version} が利用可能です",
-  "settings.updateBanner.majorAvailable": "Collie {version} (メジャーアップデート)",
+  "settings.updateBanner.restartNeeded": "ディスク上の mycroftxxx remote が置き換えられました。再起動してください。",
+  "settings.updateBanner.releaseAvailable": "mycroftxxx remote {version} が利用可能です",
+  "settings.updateBanner.majorAvailable": "mycroftxxx remote {version} (メジャーアップデート)",
   "settings.updateBanner.copyAria": "コマンドをコピー: {command}",
 
   // --- settings.typeface ---
@@ -161,7 +161,7 @@ export const ja: Dictionary = {
   "settings.typeface.family": "フォントファミリー",
   "settings.typeface.system": "システム標準",
   "settings.typeface.note.system": "OS標準のフォントを使用します。追加の通信は発生しません。",
-  "settings.typeface.note.grotesk": "Collieのロゴに合わせて設計されたフォントです。",
+  "settings.typeface.note.grotesk": "mycroftxxx remoteのロゴに合わせて設計されたフォントです。",
   "settings.typeface.note.aldrich": "ウェイトが1種類のみのため、太字も標準テキストと同じ太さで表示されます。",
   "settings.typeface.note.operator": "ホストの管理者が設定したフォントです。",
 
@@ -239,7 +239,7 @@ export const ja: Dictionary = {
     "下書き保存の上限を超えています。ペイン切り替え時は保持されますが、アプリ終了時に破棄されます。",
   "composer.status.dialogWaiting": "対話プロンプトの応答待ちです。先に応答してから送信してください。",
   "composer.status.unreadDialog":
-    "Collie はこの対話を読み取れません。カードに {key} があります。それでも入力するには、もう一度送信をタップしてください。", // wordsmith
+    "mycroftxxx remote はこの対話を読み取れません。カードに {key} があります。それでも入力するには、もう一度送信をタップしてください。", // wordsmith
   "composer.status.paneNotWritable": "ペインが書き込み不可になったため、送信を中止しました",
   "composer.status.inputChanged":
     "消去中に入力内容が変更されたため、入力を中断しました。ペインを確認してください。",
@@ -377,11 +377,11 @@ export const ja: Dictionary = {
   "keys.queue.send": "送信",
   "keys.queue.clearAria": "入力キューをクリア",
 
-  // --- nav (app header, Collie mark, settings gear) ---
+  // --- nav (app header, mycroftxxx remote mark, settings gear) ---
   "nav.settings.aria": "設定",
-  "nav.home.aria.default": "Collie ホーム",
-  "nav.home.aria.lost": "Collie ホーム (未接続)",
-  "nav.home.aria.reconnecting": "Collie ホーム (再接続中)",
+  "nav.home.aria.default": "mycroftxxx remote ホーム",
+  "nav.home.aria.lost": "mycroftxxx remote ホーム (未接続)",
+  "nav.home.aria.reconnecting": "mycroftxxx remote ホーム (再接続中)",
   "nav.mux.onPrefix": "on",
   "nav.prereleaseTitle": "プレリリースビルド: {version}",
 
@@ -521,8 +521,8 @@ export const ja: Dictionary = {
   "connection.connected": "接続済み",
   "connection.reconnecting": "再接続中…",
   "connection.herdrDown": "ホスト上のHerdrが停止しています",
-  "connection.offlineCantReach": "オフライン: Collieに接続できません",
-  "connection.cantReach": "Collieに接続できません",
+  "connection.offlineCantReach": "オフライン: mycroftxxx remoteに接続できません",
+  "connection.cantReach": "mycroftxxx remoteに接続できません",
   "connection.withLastSeen": "{cause} (最終確認 {time})",
   "connection.readOnly.notPaired": "未ペアリング。設定でこの端末をペアリングするとエージェントに入力できます。",
   "connection.readOnly.device": "読み取り専用。この端末はエージェントへの入力権限がありません{deviceSuffix}。",
@@ -543,7 +543,7 @@ export const ja: Dictionary = {
   "connection.host.attentionSuffix": "要確認 · {label}",
   "connection.host.reconnectingAction": "leadが再試行しています。対応は不要です。",
   "connection.host.attentionAction": "再試行しても解決しません。このマシンを確認してください。",
-  "connection.stale.incompatible": "{name} で動作中の Collie は非互換です",
+  "connection.stale.incompatible": "{name} で動作中の mycroftxxx remote は非互換です",
   "connection.stale.unreachable": "{name} に到達できません · {label}",
   "connection.stale.nothingCached": "このマシンのキャッシュデータはありません。",
   "connection.stale.showingLastKnown": "最後に取得した画面を表示しています。応答があるまで入力は受け付けません。",
@@ -596,7 +596,7 @@ export const ja: Dictionary = {
   "crew.formation.aria": "クルー構成: {machines}",
   "crew.node.aria": "{name}、{role}、{health}",
   "crew.node.ariaPlain": "{name}、{health}",
-  "crew.solo.title": "このCollieはクルーを主導していません",
+  "crew.solo.title": "このmycroftxxx remoteはクルーを主導していません",
   "crew.solo.description": "クルーの作成や変更はCLIから行います。",
   "crew.error.title": "クルーの状態を取得できませんでした",
   "crew.error.description": "ブリッジの応答がありません。次回のポーリングで再試行します。",
@@ -604,14 +604,14 @@ export const ja: Dictionary = {
   // --- error (boot splash, route-level error recovery) ---
   "error.boot.connecting": "ホスト群に接続中...",
   "error.boot.title": "未接続",
-  "error.boot.body": "Collieに接続できません。ホストへのネットワーク接続を確認して再試行してください。",
+  "error.boot.body": "mycroftxxx remoteに接続できません。ホストへのネットワーク接続を確認して再試行してください。",
   "error.boot.retry": "再試行",
   "error.root.title": "エラーが発生しました",
   "error.root.unknown": "不明なエラー",
   "error.root.reload": "再読み込み",
 
   // --- idle (the idle-pause cover) ---
-  "idle.dialogAria": "Collie 一時停止中",
+  "idle.dialogAria": "mycroftxxx remote 一時停止中",
   "idle.catchingUp.title": "最新状態を取得中",
   "idle.catchingUp.body": "群れの最新状態を取得しています。",
   "idle.paused.title": "一時停止中",
@@ -680,7 +680,7 @@ export const ja: Dictionary = {
   "dialog.menu.moveDown": "下へ移動",
   "dialog.menu.leftAria": "左: {verb}（{label}）",
   "dialog.menu.rightAria": "右: {verb}（{label}）",
-  "unreadDialog.caption": "Collie はこの対話を読み取れません", // wordsmith
+  "unreadDialog.caption": "mycroftxxx remote はこの対話を読み取れません", // wordsmith
   "dialog.preview.currentAnswerAria": "現在の回答",
   "dialog.preview.previewedBelowAria": "プレビューを下に表示中",
   "dialog.preview.previewLabel": "プレビュー · {label}",
@@ -722,12 +722,12 @@ export const ja: Dictionary = {
   // --- stt (speech-to-text errors, lib/stt.ts + hooks/use-stt-recorder.ts) ---
   "stt.error.busy": "別の音声を文字起こし中です。しばらく待ってから再試行してください。",
   "stt.error.tooLong": "録音時間が上限を超えています。短く録音し直してください。",
-  "stt.error.badFormat": "ブラウザの録音フォーマットにCollieが対応していません。",
-  "stt.error.unconfigured": "このCollieインスタンスでは音声文字起こしが設定されていません。",
+  "stt.error.badFormat": "ブラウザの録音フォーマットにmycroftxxx remoteが対応していません。",
+  "stt.error.unconfigured": "このmycroftxxx remoteインスタンスでは音声文字起こしが設定されていません。",
   "stt.error.timeout": "文字起こしサービスがタイムアウトしました。再試行してください。",
   "stt.error.unreachable": "文字起こしサービスに接続できません。再試行してください。",
   "stt.error.generic": "文字起こしに失敗しました。録音し直してください。",
-  "stt.error.networkFailure": "Collieに接続できず文字起こしを実行できませんでした。再試行してください。",
+  "stt.error.networkFailure": "mycroftxxx remoteに接続できず文字起こしを実行できませんでした。再試行してください。",
   "stt.error.recordingFailed": "録音に失敗しました。データが取得されていません。",
   "stt.error.noSpeechHeard": "音声が検出されませんでした。",
   "stt.error.nothingRecorded": "録音データが空です。",
@@ -767,7 +767,7 @@ export const ja: Dictionary = {
   "apiError.upload.no_file": "ファイルが指定されていません。",
   "apiError.upload.bad_type": "未対応のファイル形式です: {type}",
   "apiError.upload.write_failed": "ホストに保存できませんでした: {reason}",
-  "apiError.stt.unconfigured": "この collie では音声入力が設定されていません。",
+  "apiError.stt.unconfigured": "この server では音声入力が設定されていません。",
   "apiError.stt.too_large": "録音時間が上限を超えています。短く録音してください。",
   "apiError.stt.bad_format":
     "ブラウザの録音形式に対応していません。",
@@ -785,9 +785,9 @@ export const ja: Dictionary = {
   "apiError.device.unknown": "該当する名前のペアリング済みデバイスが見つかりません。",
   "apiError.cache.pane_unknown": "That pane is gone, nothing was changed.",
   "apiError.cache.no_session": "That pane's agent names no session, so it can't be watched.",
-  "apiError.session.unknown": "この collie にセッション {session} は存在しません。",
-  "apiError.host.unknown": "このクルーに collie {host} は存在しません。",
-  "apiError.crew.not_lead": "この collie はクルーを統括していないため、表示可能なクルーがありません。",
+  "apiError.session.unknown": "この server にセッション {session} は存在しません。",
+  "apiError.host.unknown": "このクルーに server {host} は存在しません。",
+  "apiError.crew.not_lead": "この server はクルーを統括していないため、表示可能なクルーがありません。",
   // --- worktrees (ADR 0032) ---
   "apiError.worktree.list_failed": "worktree の一覧取得に失敗しました: {reason}",
   "apiError.worktree.create_failed": "worktree の作成に失敗しました: {reason}",
@@ -821,13 +821,13 @@ export const ja: Dictionary = {
   "apiError.update.preflight_unavailable": "このマシンで事前チェックを実行できないため、更新は拒絶されました。",
   "apiError.update.preflight_red": "{check} の事前チェックに失敗しました: {reason}",
   "apiError.update.major_confirm_required": "{version} はメジャー更新です。個別の確認が必要です。",
-  "apiError.update.target_mismatch": "画面上の対象は {asked} ですが、この collie にインストールされるのは {would} です。再読み込みして確認してください。",
+  "apiError.update.target_mismatch": "画面上の対象は {asked} ですが、この server にインストールされるのは {would} です。再読み込みして確認してください。",
   "apiError.update.none_available": "利用可能な新しいリリースはありません。",
   "apiError.update.peers_packaged": "{name} はパッケージ版です。更新はそのマシンのパッケージマネージャーから提供されます。",
-  "apiError.update.packaged": "更新はパッケージマネージャーから行われます。Collie はこのインストールのファイルを置換しません。",
+  "apiError.update.packaged": "更新はパッケージマネージャーから行われます。mycroftxxx remote はこのインストールのファイルを置換しません。",
   "apiError.update.start_failed": "更新を開始できませんでした: {reason}",
   // --- settings.updateCard (the update card, M15/05) ---
-  "settings.updateCard.title": "Collie を更新",
+  "settings.updateCard.title": "mycroftxxx remote を更新",
   "settings.updateCard.running": "実行中: {current}",
   "settings.updateCard.newest": "最新: {version}",
   "settings.updateCard.upToDate": "最新の状態です。必要な操作はありません。",
@@ -849,7 +849,7 @@ export const ja: Dictionary = {
   "settings.updateCard.summary.peers.one": "{count}台のピア",
   "settings.updateCard.summary.peers.other": "{count}台のピア",
   "settings.updateCard.preflightUnavailable": "このマシンでは事前チェックを実行できませんでした。",
-  "settings.updateCard.packageManaged": "このインストールはパッケージマネージャーが更新します。Collie はここからは更新しません。",
+  "settings.updateCard.packageManaged": "このインストールはパッケージマネージャーが更新します。mycroftxxx remote はここからは更新しません。",
   "settings.updateCard.remedy": "対処法: {command}",
   "settings.updateCard.confirmTitle": "{version} に更新しますか？",
   "settings.updateCard.confirmBody": "端末セッションは維持されます。スマホ画面は最大 30 秒間切断されます。",
@@ -916,7 +916,7 @@ export const ja: Dictionary = {
   "updates.title": "アップデート",
   "updates.nav.back": "戻る",
   "updates.entry.title": "アップデート",
-  "updates.entry.description": "Collie とクルーを更新します。",
+  "updates.entry.description": "mycroftxxx remote とクルーを更新します。",
   "updates.entry.status.updating": "更新中…",
   "updates.entry.status.peersBehind.one": "{count} 台のピアが未更新",
   "updates.entry.status.peersBehind.other": "{count} 台のピアが未更新",
@@ -940,9 +940,9 @@ export const ja: Dictionary = {
   "updateRibbon.seeUpdates": "更新画面を確認。",
   "updateRibbon.urgent": "緊急。",
   "updateRibbon.linkChangeShort": "クルーの接続方式が変わります。",
-  "updateRibbon.available": "Collie {version} が利用可能です。",
-  "updateRibbon.availablePackaged": "Collie {version}（{manager}）が利用可能。",
-  "updateRibbon.availablePackagedUnnamed": "Collie {version} が利用可能。",
+  "updateRibbon.available": "{version} が利用可能です。",
+  "updateRibbon.availablePackaged": "{version}（{manager}）が利用可能。",
+  "updateRibbon.availablePackagedUnnamed": "{version} が利用可能。",
   "updateRibbon.view": "表示",
   "updateRibbon.dismiss": "このバージョンを非表示",
   // The prompt-cache chip and its sheet (M28/02). Mirrored from English verbatim: these are new
@@ -979,7 +979,7 @@ export const ja: Dictionary = {
 
   // --- tour (the first-run screen) --- ENGLISH, not yet translated.
   "tour.skip": "Skip",
-  "tour.title": "Collie shows the agents in your terminal.",
+  "tour.title": "mycroftxxx remote shows the agents in your terminal.",
   // The claim's second sentence, in the three forms the facts can support. {mux} is the
   // multiplexer's display name, {host} the lead machine's crew label; a clause whose fact is missing
   // is dropped rather than filled with a placeholder.
@@ -1012,8 +1012,8 @@ export const ja: Dictionary = {
   "tour.space.body": "Start an agent in your terminal, or make a space here.",
   "tour.space.button": "New space",
   "tour.pushCard.title": "Be told when a pane needs you",
-  "tour.pushCard.body": "Collie notifies you when an agent is blocked, or done.",
-  "tour.install.title": "Keep Collie on your home screen",
+  "tour.pushCard.body": "mycroftxxx remote notifies you when an agent is blocked, or done.",
+  "tour.install.title": "Keep mycroftxxx remote on your home screen",
   "tour.install.body": "It opens full screen and remembers where you were.",
   "tour.install.button": "Add",
   "tour.push.enable": "Turn on",
@@ -1034,12 +1034,12 @@ export const ja: Dictionary = {
 
   // --- settings.tour ---
   "settings.tour.title": "Show the first screen again",
-  "settings.tour.description": "What Collie does, and what this install looks like.",
+  "settings.tour.description": "What mycroftxxx remote does, and what this install looks like.",
   "settings.tour.button": "Show",
 
   // --- updateScreen (M28/01): English until translated. ---
   "updateScreen.dialogAria": "Update in progress",
-  "updateScreen.title": "Updating Collie",
+  "updateScreen.title": "Updating mycroftxxx remote",
   "updateScreen.close": "Close",
   "updateScreen.rows.label": "Machines",
   "updateScreen.thisMachine": "This machine",

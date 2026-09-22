@@ -41,7 +41,7 @@ describe("updateNotice", () => {
 
   it("names the available release and links to it, with no command (the release page carries them)", () => {
     expect(updateNotice(someUpdate({ releaseAvailable: true, latest: "0.10.3" }))).toEqual({
-      line: "Collie 0.10.3 available",
+      line: "mycroftxxx remote 0.10.3 available",
       href: RELEASE_URL,
     });
   });
@@ -51,7 +51,7 @@ describe("updateNotice", () => {
     // the `update-major` command rather than leaving the operator to tap update and stay behind.
     const major = "https://github.com/AltanS/collie/releases/tag/v1.0.0";
     expect(updateNotice(someUpdate({ majorAvailable: "1.0.0", majorUrl: major }))).toEqual({
-      line: "Collie 1.0.0 — a new major",
+      line: "mycroftxxx remote 1.0.0 — a new major",
       href: major,
       command: "herdr plugin action invoke update-major --plugin herdr.collie",
     });
@@ -60,7 +60,7 @@ describe("updateNotice", () => {
       updateNotice(
         someUpdate({ releaseAvailable: true, latest: "0.32.0", majorAvailable: "1.0.0", majorUrl: major }),
       ),
-    ).toEqual({ line: "Collie 0.32.0 available", href: RELEASE_URL });
+    ).toEqual({ line: "mycroftxxx remote 0.32.0 available", href: RELEASE_URL });
   });
 
   it("stays silent when a release is flagged but no version is known", () => {
@@ -154,7 +154,7 @@ describe("updateNotice — restart needed after a package swap", () => {
         }),
       ),
     ).toEqual({
-      line: "Collie was replaced on disk. Restart it.",
+      line: "mycroftxxx remote was replaced on disk. Restart it.",
       command: "collie restart",
     });
   });
@@ -170,14 +170,14 @@ describe("updateNotice — restart needed after a package swap", () => {
 describe("UpdateBanner", () => {
   it("shows the release notice as a link to the release, with no command (the page carries it)", async () => {
     renderBanner(someUpdate({ releaseAvailable: true, latest: "0.10.3" }));
-    const link = await screen.findByRole("link", { name: "Collie 0.10.3 available" });
+    const link = await screen.findByRole("link", { name: "mycroftxxx remote 0.10.3 available" });
     expect(link).toHaveAttribute("href", RELEASE_URL);
     expect(screen.queryByRole("button")).toBeNull(); // no copyable command for the release case
   });
 
   it("shows the package-swap restart line with the host's command", async () => {
     renderBanner(someUpdate({ restartNeeded: true, restartCommand: "collie restart" }));
-    expect(await screen.findByText("Collie was replaced on disk. Restart it.")).toBeInTheDocument();
+    expect(await screen.findByText("mycroftxxx remote was replaced on disk. Restart it.")).toBeInTheDocument();
     expect(screen.getByText("collie restart")).toBeInTheDocument();
   });
 

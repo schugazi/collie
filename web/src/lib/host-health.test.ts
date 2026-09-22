@@ -152,7 +152,7 @@ describe("writable vs state — refusal is not smoothed", () => {
       HOT,
     );
     expect(writeRefusal(h)).toBe(
-      "workshop is running an incompatible Collie — crew protocol 2 (this collie speaks 1)",
+      "workshop is running an incompatible mycroftxxx remote — crew protocol 2 (this collie speaks 1)",
     );
   });
 

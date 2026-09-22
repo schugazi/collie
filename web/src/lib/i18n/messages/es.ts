@@ -25,7 +25,7 @@ export const es: Dictionary = {
   // --- settings.zen ---
   // Availability only: the toggle decides whether the pane menu offers zen at all.
   "settings.install.title": "Instalar aplicación",
-  "settings.install.description": "Añade Collie a la pantalla de inicio con ventana dedicada e icono propio.",
+  "settings.install.description": "Añade mycroftxxx remote a la pantalla de inicio con ventana dedicada e icono propio.",
   "settings.install.button": "Instalar",
   "settings.install.iosHint": "En iOS o iPadOS, selecciona Compartir y luego «Añadir a pantalla de inicio».",
   "settings.harnessBar.title": "Harness shortcuts",
@@ -53,7 +53,7 @@ export const es: Dictionary = {
   "settings.push.reason.timeout": "Se agotó el tiempo para configurar las notificaciones. Comprueba que este dispositivo pueda conectarse al servicio push y vuelve a intentarlo.",
   "settings.push.availability.unavailable": "No se pudo comprobar la configuración de notificaciones. Revisa la conexión o inicia sesión de nuevo y vuelve a intentarlo.",
   "settings.push.availability.insecure":
-    "No disponible en HTTP. Sirve Collie sobre HTTPS para habilitar push.",
+    "No disponible en HTTP. Sirve mycroftxxx remote sobre HTTPS para habilitar push.",
   "settings.push.availability.serverOff":
     "El bridge no tiene claves VAPID configuradas. Push está deshabilitado en el servidor.",
   "settings.push.availability.denied":
@@ -68,7 +68,7 @@ export const es: Dictionary = {
   "settings.notify.done.label": "Finalizado",
   "settings.notify.done.hint": "un agente completa su tarea",
   "settings.notify.updates.label": "Actualizaciones",
-  "settings.notify.updates.hint": "hay una nueva versión de Collie disponible",
+  "settings.notify.updates.hint": "hay una nueva versión de mycroftxxx remote disponible",
   "settings.notify.cache.label": "Cache about to go cold",
   "settings.notify.cache.hint":
     "a pane's prompt cache expires in a few minutes; also covers panes you watched one by one",
@@ -144,7 +144,7 @@ export const es: Dictionary = {
 
   // --- settings.update (update-check-control + footer update banner) ---
   "settings.update.title": "Actualizaciones",
-  "settings.update.check.prompt": "Comprobar si hay versiones nuevas de Collie.",
+  "settings.update.check.prompt": "Comprobar si hay versiones nuevas de mycroftxxx remote.",
   "settings.update.check.running": "Ejecutando v{current}",
   "settings.update.check.runningChecked": "Ejecutando v{current} · comprobado {checked}",
   "settings.update.action": "Buscar actualizaciones",
@@ -152,9 +152,9 @@ export const es: Dictionary = {
   "settings.update.error": "Error al comprobar.",
   "settings.update.upToDate": "Actualizado",
   "settings.updateBanner.restart": "Reinicio del bridge requerido",
-  "settings.updateBanner.restartNeeded": "Collie fue reemplazado en el disco. Reinícialo.",
-  "settings.updateBanner.releaseAvailable": "Collie {version} disponible",
-  "settings.updateBanner.majorAvailable": "Collie {version}, nueva versión mayor",
+  "settings.updateBanner.restartNeeded": "mycroftxxx remote fue reemplazado en el disco. Reinícialo.",
+  "settings.updateBanner.releaseAvailable": "mycroftxxx remote {version} disponible",
+  "settings.updateBanner.majorAvailable": "mycroftxxx remote {version}, nueva versión mayor",
   "settings.updateBanner.copyAria": "Copiar comando: {command}",
 
   // --- settings.typeface ---
@@ -163,9 +163,9 @@ export const es: Dictionary = {
   "settings.typeface.family": "Familia",
   "settings.typeface.system": "Predeterminada del sistema",
   "settings.typeface.note.system": "Fuente del sistema del dispositivo. Sin descargas de red.",
-  "settings.typeface.note.grotesk": "Tipografía propia de Collie, diseñada a juego con el logotipo.",
+  "settings.typeface.note.grotesk": "Tipografía propia de mycroftxxx remote, diseñada a juego con el logotipo.",
   "settings.typeface.note.aldrich": "Solo incluye un grosor, por lo que el texto en negrita se muestra igual que el normal.",
-  "settings.typeface.note.operator": "Añadida por el operador de este collie.",
+  "settings.typeface.note.operator": "Añadida por el operador de este server.",
 
   // --- settings.fonts ---
   "settings.fonts.title": "Fuente del terminal",
@@ -241,7 +241,7 @@ export const es: Dictionary = {
     "Texto demasiado largo para persistir como borrador. Se conserva al cambiar de panel, pero no al cerrar la app.",
   "composer.status.dialogWaiting": "Hay un diálogo pendiente. Respóndelo antes de enviar.",
   "composer.status.unreadDialog":
-    "Collie no puede leer este diálogo. {key} está en la tarjeta. Pulsa Enviar de nuevo para escribir igualmente.", // wordsmith
+    "mycroftxxx remote no puede leer este diálogo. {key} está en la tarjeta. Pulsa Enviar de nuevo para escribir igualmente.", // wordsmith
   "composer.status.paneNotWritable": "El panel ya no admite escritura. No se envió nada.",
   "composer.status.inputChanged":
     "La entrada cambió durante la limpieza y no se escribió nada. Revisa el panel.",
@@ -254,8 +254,8 @@ export const es: Dictionary = {
   "composer.destructive.confirmOnHost":
     "Acción destructiva: {reason} en {host}. Pulsa Enviar de nuevo para confirmar.",
   "composer.upload.success": "Archivo añadido, ruta en el mensaje",
-  "composer.upload.tooLarge": "El archivo supera los {max} MB, el límite en este collie.",
-  "composer.upload.badType": "Collie no puede adjuntar {name}.",
+  "composer.upload.tooLarge": "El archivo supera los {max} MB, el límite en este server.",
+  "composer.upload.badType": "mycroftxxx remote no puede adjuntar {name}.",
   "composer.noEcho.title": "Solicitud de contraseña: sin eco en terminal",
   "composer.noEcho.noLiveTyped":
     "El texto introducido está en el panel sin enviar. Esta vista no está en vivo y no permite enviar datos; responde directamente en la terminal.",
@@ -381,11 +381,11 @@ export const es: Dictionary = {
   "keys.queue.send": "Enviar",
   "keys.queue.clearAria": "Vaciar teclas en cola",
 
-  // --- nav (app header, Collie mark, settings gear) ---
+  // --- nav (app header, mycroftxxx remote mark, settings gear) ---
   "nav.settings.aria": "Configuración",
-  "nav.home.aria.default": "Inicio de Collie",
-  "nav.home.aria.lost": "Inicio de Collie (sin conexión)",
-  "nav.home.aria.reconnecting": "Inicio de Collie (reconectando)",
+  "nav.home.aria.default": "Inicio de mycroftxxx remote",
+  "nav.home.aria.lost": "Inicio de mycroftxxx remote (sin conexión)",
+  "nav.home.aria.reconnecting": "Inicio de mycroftxxx remote (reconectando)",
   "nav.mux.onPrefix": "en",
   "nav.prereleaseTitle": "Compilación preliminar: {version}",
 
@@ -525,8 +525,8 @@ export const es: Dictionary = {
   "connection.connected": "Conectado",
   "connection.reconnecting": "Reconectando…",
   "connection.herdrDown": "Herdr no responde en el host",
-  "connection.offlineCantReach": "Sin conexión: no se puede conectar con Collie",
-  "connection.cantReach": "No se puede conectar con Collie",
+  "connection.offlineCantReach": "Sin conexión: no se puede conectar con mycroftxxx remote",
+  "connection.cantReach": "No se puede conectar con mycroftxxx remote",
   "connection.withLastSeen": "{cause}. Última conexión: {time}",
   "connection.readOnly.notPaired": "Sin vincular. Enlaza este dispositivo en Ajustes para enviar comandos a los agentes.",
   "connection.readOnly.device": "Solo lectura: este dispositivo no tiene permisos para escribir a los agentes{deviceSuffix}.",
@@ -547,7 +547,7 @@ export const es: Dictionary = {
   "connection.host.attentionSuffix": "requiere atención · {label}",
   "connection.host.reconnectingAction": "El lead sigue reintentando. No hay que hacer nada.",
   "connection.host.attentionAction": "Reintentar no solucionará esto. Revisa esta máquina.",
-  "connection.stale.incompatible": "{name} ejecuta una versión incompatible de Collie",
+  "connection.stale.incompatible": "{name} ejecuta una versión incompatible de mycroftxxx remote",
   "connection.stale.unreachable": "{name} inaccesible · {label}",
   "connection.stale.nothingCached": "No hay datos en caché para esta máquina.",
   "connection.stale.showingLastKnown":
@@ -601,23 +601,23 @@ export const es: Dictionary = {
   "crew.formation.aria": "Formación del equipo: {machines}",
   "crew.node.aria": "{name}, {role}, {health}",
   "crew.node.ariaPlain": "{name}, {health}",
-  "crew.solo.title": "Este collie no lidera ningún equipo",
+  "crew.solo.title": "Este server no lidera ningún equipo",
   "crew.solo.description": "Un equipo se crea y modifica desde la línea de comandos.",
   "crew.error.title": "Error al cargar el estado del equipo",
   "crew.error.description":
-    "El bridge no respondió. Collie reintentará en el siguiente sondeo.",
+    "El bridge no respondió. mycroftxxx remote reintentará en el siguiente sondeo.",
 
   // --- error (boot splash, route-level error recovery) ---
   "error.boot.connecting": "Estableciendo conexión...",
   "error.boot.title": "Sin conexión",
-  "error.boot.body": "No se puede conectar con Collie. Comprueba la conexión con el host e inténtalo de nuevo.",
+  "error.boot.body": "No se puede conectar con mycroftxxx remote. Comprueba la conexión con el host e inténtalo de nuevo.",
   "error.boot.retry": "Reintentar",
   "error.root.title": "Error en la aplicación",
   "error.root.unknown": "Error desconocido",
   "error.root.reload": "Recargar",
 
   // --- idle (the idle-pause cover) ---
-  "idle.dialogAria": "Collie en pausa",
+  "idle.dialogAria": "mycroftxxx remote en pausa",
   "idle.catchingUp.title": "Sincronizando",
   "idle.catchingUp.body": "Obteniendo el estado actual de la manada.",
   "idle.paused.title": "En pausa",
@@ -687,7 +687,7 @@ export const es: Dictionary = {
   "dialog.menu.moveDown": "Bajar",
   "dialog.menu.leftAria": "Izquierda: {verb} ({label})",
   "dialog.menu.rightAria": "Derecha: {verb} ({label})",
-  "unreadDialog.caption": "Collie no puede leer este diálogo", // wordsmith
+  "unreadDialog.caption": "mycroftxxx remote no puede leer este diálogo", // wordsmith
   "dialog.preview.currentAnswerAria": "Respuesta actual",
   "dialog.preview.previewedBelowAria": "Vista previa a continuación",
   "dialog.preview.previewLabel": "Vista previa · {label}",
@@ -729,13 +729,13 @@ export const es: Dictionary = {
   // --- stt (speech-to-text errors, lib/stt.ts + hooks/use-stt-recorder.ts) ---
   "stt.error.busy": "Ocupado. Hay otra transcripción en curso. Reintenta en unos segundos.",
   "stt.error.tooLong": "El audio supera la duración máxima permitida.",
-  "stt.error.badFormat": "Formato de audio no compatible con el servicio Collie.",
+  "stt.error.badFormat": "Formato de audio no compatible con el servicio mycroftxxx remote.",
   "stt.error.unconfigured": "El servicio de voz a texto no está configurado.",
   "stt.error.timeout": "Tiempo de espera agotado al transcribir. Reintenta.",
   "stt.error.unreachable": "No hay conexión con el servicio de transcripción.",
   "stt.error.generic": "Error en la transcripción. Vuelve a grabar el mensaje.",
   "stt.error.networkFailure":
-    "Sin conexión con Collie para procesar el audio.",
+    "Sin conexión con mycroftxxx remote para procesar el audio.",
   "stt.error.recordingFailed": "Error de captura de audio. No se generaron datos.",
   "stt.error.noSpeechHeard": "No se detectó voz en la grabación.",
   "stt.error.nothingRecorded": "No se registró audio.",
@@ -773,11 +773,11 @@ export const es: Dictionary = {
   "apiError.workspace.create_failed": "Error al crear el espacio: {reason}",
   "apiError.upload.too_large": "El archivo es demasiado grande, el límite es {maxMb} MB.",
   "apiError.upload.no_file": "No se especificó ningún archivo.",
-  "apiError.upload.bad_type": "Formato de archivo no admitido por Collie: {type}",
+  "apiError.upload.bad_type": "Formato de archivo no admitido por mycroftxxx remote: {type}",
   "apiError.upload.write_failed": "No se pudo guardar el archivo en el host: {reason}",
-  "apiError.stt.unconfigured": "El servicio de dictado por voz no está configurado en este collie.",
+  "apiError.stt.unconfigured": "El servicio de dictado por voz no está configurado en este server.",
   "apiError.stt.too_large": "La grabación excede la duración permitida. Use un audio más corto.",
-  "apiError.stt.bad_format": "El navegador generó un formato de audio incompatible con Collie.",
+  "apiError.stt.bad_format": "El navegador generó un formato de audio incompatible con mycroftxxx remote.",
   "apiError.stt.busy":
     "Hay dos transcripciones en proceso. Reintente en un momento.",
   "apiError.stt.unreadable": "No se pudo procesar el archivo de audio.",
@@ -794,9 +794,9 @@ export const es: Dictionary = {
   "apiError.device.unknown": "No existe ningún dispositivo vinculado con ese nombre.",
   "apiError.cache.pane_unknown": "That pane is gone, nothing was changed.",
   "apiError.cache.no_session": "That pane's agent names no session, so it can't be watched.",
-  "apiError.session.unknown": "No existe la sesión {session} en este collie.",
-  "apiError.host.unknown": "No existe el collie {host} en este equipo.",
-  "apiError.crew.not_lead": "Este collie no lidera ningún equipo. No hay datos para mostrar.",
+  "apiError.session.unknown": "No existe la sesión {session} en este server.",
+  "apiError.host.unknown": "No existe el server {host} en este equipo.",
+  "apiError.crew.not_lead": "Este server no lidera ningún equipo. No hay datos para mostrar.",
   // --- worktrees (ADR 0032) ---
   "apiError.worktree.list_failed": "Error al listar los worktrees: {reason}",
   "apiError.worktree.create_failed": "Error al crear el worktree: {reason}",
@@ -830,13 +830,13 @@ export const es: Dictionary = {
   "apiError.update.preflight_unavailable": "No se pudo ejecutar la comprobación previa en este equipo; se rechazó la actualización.",
   "apiError.update.preflight_red": "Falló la comprobación previa en {check}: {reason}",
   "apiError.update.major_confirm_required": "{version} pasa a una versión mayor y requiere confirmación explícita.",
-  "apiError.update.target_mismatch": "Esta pantalla ofreció {asked}, pero este collie instalaría {would}. Recargue y vuelva a revisar.",
+  "apiError.update.target_mismatch": "Esta pantalla ofreció {asked}, pero este server instalaría {would}. Recargue y vuelva a revisar.",
   "apiError.update.none_available": "No hay ninguna versión más reciente disponible.",
   "apiError.update.peers_packaged": "{name} es una instalación por paquete. Sus actualizaciones vienen de su propio gestor de paquetes.",
-  "apiError.update.packaged": "Las actualizaciones se gestionan con tu gestor de paquetes. Collie no reemplazará los archivos de esta instalación.",
+  "apiError.update.packaged": "Las actualizaciones se gestionan con tu gestor de paquetes. mycroftxxx remote no reemplazará los archivos de esta instalación.",
   "apiError.update.start_failed": "No se pudo iniciar la actualización: {reason}",
   // --- settings.updateCard (the update card, M15/05) ---
-  "settings.updateCard.title": "Actualizar Collie",
+  "settings.updateCard.title": "Actualizar mycroftxxx remote",
   "settings.updateCard.running": "Ejecutando {current}",
   "settings.updateCard.newest": "Más reciente: {version}",
   "settings.updateCard.upToDate": "Al día. Nada que hacer.",
@@ -858,7 +858,7 @@ export const es: Dictionary = {
   "settings.updateCard.summary.peers.one": "{count} equipo",
   "settings.updateCard.summary.peers.other": "{count} equipos",
   "settings.updateCard.preflightUnavailable": "No se pudo ejecutar la comprobación previa en este equipo.",
-  "settings.updateCard.packageManaged": "Tu gestor de paquetes actualiza esta instalación. Collie no la actualizará desde aquí.",
+  "settings.updateCard.packageManaged": "Tu gestor de paquetes actualiza esta instalación. mycroftxxx remote no la actualizará desde aquí.",
   "settings.updateCard.remedy": "Solución: {command}",
   "settings.updateCard.confirmTitle": "¿Actualizar a {version}?",
   "settings.updateCard.confirmBody": "La sesión de terminal se mantiene activa. La vista móvil se interrumpe hasta 30 segundos.",
@@ -925,7 +925,7 @@ export const es: Dictionary = {
   "updates.title": "Actualizaciones",
   "updates.nav.back": "Atrás",
   "updates.entry.title": "Actualizaciones",
-  "updates.entry.description": "Actualiza Collie y el equipo con él.",
+  "updates.entry.description": "Actualiza mycroftxxx remote y el equipo con él.",
   "updates.entry.status.updating": "Actualizando…",
   "updates.entry.status.peersBehind.one": "{count} par desactualizado",
   "updates.entry.status.peersBehind.other": "{count} pares desactualizados",
@@ -949,9 +949,9 @@ export const es: Dictionary = {
   "updateRibbon.seeUpdates": "Ver Actualizaciones.",
   "updateRibbon.urgent": "Urgente.",
   "updateRibbon.linkChangeShort": "Cambia el enlace del equipo.",
-  "updateRibbon.available": "Collie {version} disponible.",
-  "updateRibbon.availablePackaged": "Collie {version} disponible vía {manager}.",
-  "updateRibbon.availablePackagedUnnamed": "Collie {version} disponible.",
+  "updateRibbon.available": "{version} disponible.",
+  "updateRibbon.availablePackaged": "{version} disponible vía {manager}.",
+  "updateRibbon.availablePackagedUnnamed": "{version} disponible.",
   "updateRibbon.view": "Ver",
   "updateRibbon.dismiss": "Descartar esta versión",
   // The prompt-cache chip and its sheet (M28/02). Mirrored from English verbatim: these are new
@@ -988,7 +988,7 @@ export const es: Dictionary = {
 
   // --- tour (the first-run screen) --- ENGLISH, not yet translated.
   "tour.skip": "Skip",
-  "tour.title": "Collie shows the agents in your terminal.",
+  "tour.title": "mycroftxxx remote shows the agents in your terminal.",
   // The claim's second sentence, in the three forms the facts can support. {mux} is the
   // multiplexer's display name, {host} the lead machine's crew label; a clause whose fact is missing
   // is dropped rather than filled with a placeholder.
@@ -1021,8 +1021,8 @@ export const es: Dictionary = {
   "tour.space.body": "Start an agent in your terminal, or make a space here.",
   "tour.space.button": "New space",
   "tour.pushCard.title": "Be told when a pane needs you",
-  "tour.pushCard.body": "Collie notifies you when an agent is blocked, or done.",
-  "tour.install.title": "Keep Collie on your home screen",
+  "tour.pushCard.body": "mycroftxxx remote notifies you when an agent is blocked, or done.",
+  "tour.install.title": "Keep mycroftxxx remote on your home screen",
   "tour.install.body": "It opens full screen and remembers where you were.",
   "tour.install.button": "Add",
   "tour.push.enable": "Turn on",
@@ -1043,12 +1043,12 @@ export const es: Dictionary = {
 
   // --- settings.tour ---
   "settings.tour.title": "Show the first screen again",
-  "settings.tour.description": "What Collie does, and what this install looks like.",
+  "settings.tour.description": "What mycroftxxx remote does, and what this install looks like.",
   "settings.tour.button": "Show",
 
   // --- updateScreen (M28/01): English until translated. ---
   "updateScreen.dialogAria": "Update in progress",
-  "updateScreen.title": "Updating Collie",
+  "updateScreen.title": "Updating mycroftxxx remote",
   "updateScreen.close": "Close",
   "updateScreen.rows.label": "Machines",
   "updateScreen.thisMachine": "This machine",

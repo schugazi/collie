@@ -23,9 +23,9 @@ function ihdr(name: string) {
 }
 
 describe("push notification assets", () => {
-  it("ships a 96×96 badge with an alpha channel", () => {
-    const { width, height, colorType } = ihdr("badge-96x96.png");
-    expect([width, height]).toEqual([96, 96]);
+  it("ships a 32×32 badge with an alpha channel", () => {
+    const { width, height, colorType } = ihdr("badge-32x32.png");
+    expect([width, height]).toEqual([32, 32]);
     expect(colorType).toBe(6); // RGBA — 6 is the only colour type sw.ts's badge may have
   });
 
@@ -37,7 +37,7 @@ describe("push notification assets", () => {
   it("points sw.ts at those two files and not at the maskable tile", () => {
     const sw = readFileSync(resolve(import.meta.dirname, "../sw.ts"), "utf8");
     expect(sw).toContain('const ICON = under("/notification-icon-192x192.png")');
-    expect(sw).toContain('const BADGE = under("/badge-96x96.png")');
+    expect(sw).toContain('const BADGE = under("/badge-32x32.png")');
     expect(sw).toContain("badge: BADGE");
   });
 });

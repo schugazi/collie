@@ -163,7 +163,7 @@ describe("ConnectionBanner — the single connection surface", () => {
     setOnline(false);
     renderBanner();
     await act(async () => {});
-    expect(screen.getByText("Offline — can't reach Collie")).toBeInTheDocument();
+    expect(screen.getByText("Offline — can't reach mycroftxxx remote")).toBeInTheDocument();
     expect(row()?.className).toMatch(/bg-status-blocked/); // offline is always red
   });
 
@@ -173,7 +173,7 @@ describe("ConnectionBanner — the single connection surface", () => {
     setOnline(true);
     renderBanner();
     await act(async () => {});
-    expect(screen.getByText("Can't reach Collie")).toBeInTheDocument();
+    expect(screen.getByText("Can't reach mycroftxxx remote")).toBeInTheDocument();
   });
 
   // A cold boot with the tunnel down re-renders the whole herd from cache, which looks exactly like a
@@ -184,7 +184,7 @@ describe("ConnectionBanner — the single connection surface", () => {
     setOnline(true);
     renderBanner({ error: true, lastSeenAt: new Date(2026, 0, 2, 14, 32).getTime() });
     await act(async () => {});
-    expect(announced("alert")).toHaveTextContent(/Can't reach Collie — last seen \d/);
+    expect(announced("alert")).toHaveTextContent(/Can't reach mycroftxxx remote — last seen \d/);
   });
 
   it("leaves the red row undated when nothing can date it", async () => {

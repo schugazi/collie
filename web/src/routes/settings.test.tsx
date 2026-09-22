@@ -54,7 +54,7 @@ describe("SettingsRoute — the shared header shell", () => {
     expect(back.className).toContain("size-11");
     expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
     // The mark is NOT here — this route leads with the way out, not with the way home.
-    expect(screen.queryByRole("button", { name: /^Collie/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^mycroftxxx remote/ })).toBeNull();
   });
 });
 
@@ -78,7 +78,7 @@ describe("SettingsRoute — the update surfaces", () => {
     const rows = await screen.findAllByRole("button", { name: /Updates/ });
     expect(rows).toHaveLength(1);
     // Both of those live on /settings/updates now.
-    expect(screen.queryByText("Update Collie")).toBeNull();
+    expect(screen.queryByText("Update mycroftxxx remote")).toBeNull();
     expect(screen.queryByRole("button", { name: "Check for updates" })).toBeNull();
   });
 });

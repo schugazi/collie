@@ -111,7 +111,7 @@ export function decidePush(payload: PushPayload, hasVisibleClient: boolean): Pus
   if (hasVisibleClient) return { kind: "suppress" };
   return {
     kind: "show",
-    title: payload.title ?? "Collie",
+    title: payload.title ?? "mycroftxxx remote",
     body: payload.body ?? "",
     tag,
     paneId,

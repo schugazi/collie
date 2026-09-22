@@ -288,7 +288,7 @@ describe("a packaged host reads its own line", () => {
   it("names the manager from the host's own command, and never says Tap to update", () => {
     const view = read({ update: packaged() });
     expect(view).toEqual({ kind: "available-packaged", version: "1.5.0", manager: "pacman" });
-    expect(ribbonText(view)).toBe("Collie 1.5.0 available via pacman.");
+    expect(ribbonText(view)).toBe("1.5.0 available via pacman.");
     expect(ribbonText(view)).not.toContain("Tap to update");
   });
 
@@ -305,7 +305,7 @@ describe("a packaged host reads its own line", () => {
   it("states the version alone when the packaged host resolved no manager to name", () => {
     const view = read({ update: packaged({ packageCommand: undefined }) });
     expect(view).toEqual({ kind: "available-packaged", version: "1.5.0", manager: null });
-    expect(ribbonText(view)).toBe("Collie 1.5.0 available. See Updates.");
+    expect(ribbonText(view)).toBe("1.5.0 available. See Updates.");
     expect(ribbonText(view)).not.toContain("Tap to update");
   });
 
@@ -322,7 +322,7 @@ describe("a packaged host reads its own line", () => {
   it("leaves every other install kind on the ordinary offer", () => {
     const view = read({ update: info({ installKind: "binary", packageCommand: undefined }) });
     expect(view).toEqual({ kind: "available", version: "1.5.0" });
-    expect(ribbonText(view)).toBe("Collie 1.5.0 available.");
+    expect(ribbonText(view)).toBe("1.5.0 available.");
   });
 });
 // ── WHAT A DISMISS CAN CLOSE (M17/08) ───────────────────────────────────────────────────────────
@@ -494,20 +494,20 @@ describe("the urgent label", () => {
 
   it("appends the label to the offer, and never the reason", () => {
     const view = read({ update: info({ urgent: URGENT }) });
-    expect(ribbonText(view, null, URGENT)).toBe("Collie 1.5.0 available. Urgent.");
+    expect(ribbonText(view, null, URGENT)).toBe("1.5.0 available. Urgent.");
     expect(ribbonText(view, null, URGENT)).not.toContain("cache reaper");
   });
 
   it("goes before the crew link note when a release carries both", () => {
     const view = read({ update: info({ urgent: URGENT, linkChange: { from: 1, to: 2 } }) });
     expect(ribbonText(view, { from: 1, to: 2 }, URGENT)).toBe(
-      "Collie 1.5.0 available. Urgent. Changes the crew link.",
+      "1.5.0 available. Urgent. Changes the crew link.",
     );
   });
 
   it("is absent when no release asked for it", () => {
     const view = read();
-    expect(ribbonText(view)).toBe("Collie 1.5.0 available.");
+    expect(ribbonText(view)).toBe("1.5.0 available.");
     expect(ribbonText(view, null, null)).not.toContain("Urgent");
     expect(urgentBandNote(null)).toBeNull();
     expect(urgentBandNote(undefined)).toBeNull();
@@ -530,14 +530,14 @@ describe("the crew link sentence", () => {
   it("appends the SHORT form to the offer — the band is one budgeted row", () => {
     const view = read({ update: info({ linkChange: { from: 1, to: 2 } }) });
     expect(view).toEqual({ kind: "available", version: "1.5.0" });
-    expect(ribbonText(view, { from: 1, to: 2 })).toBe(`Collie 1.5.0 available. ${SHORT}`);
+    expect(ribbonText(view, { from: 1, to: 2 })).toBe(`1.5.0 available. ${SHORT}`);
     // Never the whole sentence: that one belongs above the confirm, where there is room for it.
     expect(ribbonText(view, { from: 1, to: 2 })).not.toContain("members follow");
   });
 
   it("is absent when the reading carries no link change", () => {
     const view = read();
-    expect(ribbonText(view)).toBe("Collie 1.5.0 available.");
+    expect(ribbonText(view)).toBe("1.5.0 available.");
     expect(ribbonText(view, null)).not.toContain("crew link");
     expect(linkChangeBandNote(null)).toBeNull();
     expect(linkChangeBandNote(undefined)).toBeNull();
@@ -552,7 +552,7 @@ describe("the crew link sentence", () => {
 
   it("rides the packaged offer too — that host still has a crew to level", () => {
     const view = read({ update: info({ installKind: "packaged", packageCommand: "sudo pacman -Syu" }) });
-    expect(ribbonText(view, { from: 1, to: 2 })).toBe(`Collie 1.5.0 available via pacman. ${SHORT}`);
+    expect(ribbonText(view, { from: 1, to: 2 })).toBe(`1.5.0 available via pacman. ${SHORT}`);
   });
 
   it("says nothing on a state that is past being told — the bundle reload row", () => {

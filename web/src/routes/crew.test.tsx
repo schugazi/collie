@@ -211,14 +211,14 @@ describe("CrewRoute", () => {
 
   it("renders one honest card, not a spinner, when this collie leads no crew", async () => {
     renderCrew({ status: null, error: false });
-    expect(await screen.findByText("This collie is not leading a crew")).toBeInTheDocument();
+    expect(await screen.findByText("This server is not leading a crew")).toBeInTheDocument();
     expect(screen.queryByText("Could not load crew status")).not.toBeInTheDocument();
   });
 
   it("keeps 'could not ask' apart from 'nothing to ask about'", async () => {
     renderCrew({ status: null, error: true });
     expect(await screen.findByText("Could not load crew status")).toBeInTheDocument();
-    expect(screen.queryByText("This collie is not leading a crew")).not.toBeInTheDocument();
+    expect(screen.queryByText("This server is not leading a crew")).not.toBeInTheDocument();
   });
 
   it("opens a peer at its own home — its own machine, never a pane id carried across", async () => {

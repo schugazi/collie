@@ -189,10 +189,8 @@ export function CollieHome({ onHome, trouble, lost = false, className }: CollieH
   // states why it is that curve; this is the machinery that applies it, and there are three reasons
   // it is done HERE, in JavaScript, rather than as an easing in the stylesheet.
   //
-  //  1. **The stylesheet is not ours to edit.** components/collie-mark.tsx is GENERATED and
-  //     hash-sealed — a test recomputes the digest and fails on any hand-edit; changes belong in the
-  //     collie-brand repo's scripts/logo-ship.ts. The `linear` on the bead animations is emitted
-  //     there.
+  //  1. The shared mark owns its CSS; the host only changes the playback rate.
+  //
   //  2. **An `animation-timing-function` would tear the mark in two.** Each bead runs TWO animations
   //     off one clock: `cm-tN` moves it, and `cm-nN`/`cm-fN` are `step-end` switches that swap it
   //     between the near group (drawn over the head, with a knockout) and the far group. Easing the

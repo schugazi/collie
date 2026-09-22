@@ -88,7 +88,7 @@ describe("HostStaleBanner — it never claims a refusal that will not happen", (
         })}
       />,
     );
-    expect(screen.getByText(/running an incompatible Collie/i)).toBeInTheDocument();
+    expect(screen.getByText(/running an incompatible mycroftxxx remote/i)).toBeInTheDocument();
     expect(screen.getByText(/crew protocol 2 \(this collie speaks 1\)/i)).toBeInTheDocument();
   });
 

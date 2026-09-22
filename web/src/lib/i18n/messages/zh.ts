@@ -26,7 +26,7 @@ export const zh: Dictionary = {
   // --- settings.zen ---
   // Availability only: the toggle decides whether the pane menu offers zen at all.
   "settings.install.title": "安装应用",
-  "settings.install.description": "将 Collie 添加至主屏幕，支持全屏运行并显示独立图标。",
+  "settings.install.description": "将 mycroftxxx remote 添加至主屏幕，支持全屏运行并显示独立图标。",
   "settings.install.button": "安装",
   "settings.install.iosHint": "在 iPhone 或 iPad 上，点击浏览器分享按钮，选择“添加到主屏幕”。",
   "settings.harnessBar.title": "Harness shortcuts",
@@ -52,7 +52,7 @@ export const zh: Dictionary = {
   "settings.push.reason.default": "无法启用推送通知。",
   "settings.push.reason.timeout": "通知设置超时。请确认当前设备能连接推送服务，然后重试。",
   "settings.push.availability.unavailable": "无法检查通知配置。请检查网络或重新登录，然后重试。",
-  "settings.push.availability.insecure": "普通 HTTP 环境不可用。请通过 HTTPS 部署 Collie 以启用推送。",
+  "settings.push.availability.insecure": "普通 HTTP 环境不可用。请通过 HTTPS 部署 mycroftxxx remote 以启用推送。",
   "settings.push.availability.serverOff": "网桥缺少 VAPID 密钥配置，服务端已禁用推送功能。",
   "settings.push.availability.denied": "当前站点的通知权限已被拒绝。请在浏览器设置中重新允许。",
   "settings.push.availability.unsupported": "当前浏览器不支持推送通知。",
@@ -65,7 +65,7 @@ export const zh: Dictionary = {
   "settings.notify.done.label": "任务完成",
   "settings.notify.done.hint": "Agent 已完成当前任务",
   "settings.notify.updates.label": "版本更新",
-  "settings.notify.updates.hint": "Collie 有新版本可用",
+  "settings.notify.updates.hint": "mycroftxxx remote 有新版本可用",
   "settings.notify.cache.label": "Cache about to go cold",
   "settings.notify.cache.hint":
     "a pane's prompt cache expires in a few minutes; also covers panes you watched one by one",
@@ -132,7 +132,7 @@ export const zh: Dictionary = {
 
   // --- settings.update (update-check-control + footer update banner) ---
   "settings.update.title": "版本更新",
-  "settings.update.check.prompt": "检查是否有可用的 Collie 新版本。",
+  "settings.update.check.prompt": "检查是否有可用的 mycroftxxx remote 新版本。",
   "settings.update.check.running": "当前运行 v{current}",
   "settings.update.check.runningChecked": "当前运行 v{current} · 上次检查于 {checked}",
   "settings.update.action": "检查更新",
@@ -140,9 +140,9 @@ export const zh: Dictionary = {
   "settings.update.error": "检查更新失败。",
   "settings.update.upToDate": "已是最新版本",
   "settings.updateBanner.restart": "需要重启网桥",
-  "settings.updateBanner.restartNeeded": "磁盘上的 Collie 已被替换，请重启。",
-  "settings.updateBanner.releaseAvailable": "Collie {version} 已发布",
-  "settings.updateBanner.majorAvailable": "Collie {version} 发布（主版本升级）",
+  "settings.updateBanner.restartNeeded": "磁盘上的 mycroftxxx remote 已被替换，请重启。",
+  "settings.updateBanner.releaseAvailable": "mycroftxxx remote {version} 已发布",
+  "settings.updateBanner.majorAvailable": "mycroftxxx remote {version} 发布（主版本升级）",
   "settings.updateBanner.copyAria": "复制命令：{command}",
 
   // --- settings.typeface ---
@@ -151,7 +151,7 @@ export const zh: Dictionary = {
   "settings.typeface.family": "字体族",
   "settings.typeface.system": "系统默认",
   "settings.typeface.note.system": "使用系统自带字体，无需额外下载资源。",
-  "settings.typeface.note.grotesk": "Collie 定制无衬线体，匹配产品标识风格。",
+  "settings.typeface.note.grotesk": "mycroftxxx remote 定制无衬线体，匹配产品标识风格。",
   "settings.typeface.note.aldrich": "仅提供一种字重，粗体文本显示效果与常规文本相同。",
   "settings.typeface.note.operator": "由当前实例管理员配置添加。",
 
@@ -228,7 +228,7 @@ export const zh: Dictionary = {
   "composer.draft.tooLong": "内容过长无法持久化保存为草稿。切换窗格会保留，但退出应用后将丢失。",
   "composer.status.dialogWaiting": "有等待响应的对话框，请先处理后再发送。",
   "composer.status.unreadDialog":
-    "Collie 无法读取此对话框。卡片上是 {key}。要继续键入，请再次点击“发送”。", // wordsmith
+    "mycroftxxx remote 无法读取此对话框。卡片上是 {key}。要继续键入，请再次点击“发送”。", // wordsmith
   "composer.status.paneNotWritable": "窗格已不可写，未发送任何内容",
   "composer.status.inputChanged": "清空输入框时内容发生变动，未写入任何内容。请检查窗格状态。",
   "composer.status.clearFailed": "无法清空终端当前输入",
@@ -239,8 +239,8 @@ export const zh: Dictionary = {
   "composer.destructive.confirm": "破坏性操作：{reason}。再次点击“发送”以确认",
   "composer.destructive.confirmOnHost": "破坏性操作：{host} 上的 {reason}。再次点击“发送”以确认",
   "composer.upload.success": "文件已添加，路径已填入消息",
-  "composer.upload.tooLarge": "文件超过此 collie 的 {max} MB 大小限制。",
-  "composer.upload.badType": "Collie 无法附加 {name}。",
+  "composer.upload.tooLarge": "文件超过此 server 的 {max} MB 大小限制。",
+  "composer.upload.badType": "mycroftxxx remote 无法附加 {name}。",
   "composer.noEcho.title": "密码提示（无回显）",
   "composer.noEcho.noLiveTyped":
     "已键入内容已在窗格中但未提交。当前视图非实时，无法在此发送。请直接在终端中处理。",
@@ -364,11 +364,11 @@ export const zh: Dictionary = {
   "keys.queue.send": "发送",
   "keys.queue.clearAria": "清空按键队列",
 
-  // --- nav (app header, Collie mark, settings gear) ---
+  // --- nav (app header, mycroftxxx remote mark, settings gear) ---
   "nav.settings.aria": "系统设置",
-  "nav.home.aria.default": "Collie 首页",
-  "nav.home.aria.lost": "Collie 首页（连接中断）",
-  "nav.home.aria.reconnecting": "Collie 首页（重新连接中）",
+  "nav.home.aria.default": "mycroftxxx remote 首页",
+  "nav.home.aria.lost": "mycroftxxx remote 首页（连接中断）",
+  "nav.home.aria.reconnecting": "mycroftxxx remote 首页（重新连接中）",
   "nav.mux.onPrefix": "运行于",
   "nav.prereleaseTitle": "预览版本: {version}",
 
@@ -508,8 +508,8 @@ export const zh: Dictionary = {
   "connection.connected": "已连接",
   "connection.reconnecting": "正在重新连接…",
   "connection.herdrDown": "主机上的 Herdr 服务已停止",
-  "connection.offlineCantReach": "离线：无法访问 Collie",
-  "connection.cantReach": "无法连接至 Collie",
+  "connection.offlineCantReach": "离线：无法访问 mycroftxxx remote",
+  "connection.cantReach": "无法连接至 mycroftxxx remote",
   "connection.withLastSeen": "{cause}，最后在线时间：{time}",
   "connection.readOnly.notPaired": "未配对。在设置中配对此设备后方可向 Agent 输入。",
   "connection.readOnly.device": "只读模式。此设备无权向 Agent 输入{deviceSuffix}。",
@@ -530,7 +530,7 @@ export const zh: Dictionary = {
   "connection.host.attentionSuffix": "需要处理 · {label}",
   "connection.host.reconnectingAction": "主节点仍在重试，无需操作。",
   "connection.host.attentionAction": "重试无法解决问题，请检查此机器。",
-  "connection.stale.incompatible": "{name} 运行的 Collie 版本不兼容",
+  "connection.stale.incompatible": "{name} 运行的 mycroftxxx remote 版本不兼容",
   "connection.stale.unreachable": "{name} 不可达 · {label}",
   "connection.stale.nothingCached": "该主机暂无缓存数据。",
   "connection.stale.showingLastKnown": "当前显示最后已知界面。主机响应前，拒绝所有回复和按键输入。",
@@ -583,22 +583,22 @@ export const zh: Dictionary = {
   "crew.formation.aria": "机组拓扑：{machines}",
   "crew.node.aria": "{name}，{role}，{health}",
   "crew.node.ariaPlain": "{name}，{health}",
-  "crew.solo.title": "当前 collie 实例未管理任何机组",
+  "crew.solo.title": "当前 server 实例未管理任何机组",
   "crew.solo.description": "机组需在命令行中创建和管理。",
   "crew.error.title": "无法获取机组状态",
-  "crew.error.description": "Bridge 未响应，Collie 将在下次轮询时重试。",
+  "crew.error.description": "Bridge 未响应，mycroftxxx remote 将在下次轮询时重试。",
 
   // --- error (boot splash, route-level error recovery) ---
   "error.boot.connecting": "正在连接节点…",
   "error.boot.title": "未连接",
-  "error.boot.body": "无法连接至 Collie。请检查主机网络连接后重试。",
+  "error.boot.body": "无法连接至 mycroftxxx remote。请检查主机网络连接后重试。",
   "error.boot.retry": "重试",
   "error.root.title": "发生错误",
   "error.root.unknown": "未知错误",
   "error.root.reload": "重新加载",
 
   // --- idle (the idle-pause cover) ---
-  "idle.dialogAria": "Collie 连接已挂起",
+  "idle.dialogAria": "mycroftxxx remote 连接已挂起",
   "idle.catchingUp.title": "同步中",
   "idle.catchingUp.body": "正在拉取当前集群状态。",
   "idle.paused.title": "已暂停",
@@ -667,7 +667,7 @@ export const zh: Dictionary = {
   "dialog.menu.moveDown": "下移",
   "dialog.menu.leftAria": "向左：{verb}（{label}）",
   "dialog.menu.rightAria": "向右：{verb}（{label}）",
-  "unreadDialog.caption": "Collie 无法读取此对话框", // wordsmith
+  "unreadDialog.caption": "mycroftxxx remote 无法读取此对话框", // wordsmith
   "dialog.preview.currentAnswerAria": "当前回答",
   "dialog.preview.previewedBelowAria": "下方显示预览",
   "dialog.preview.previewLabel": "预览 · {label}",
@@ -707,12 +707,12 @@ export const zh: Dictionary = {
   // --- stt (speech-to-text errors, lib/stt.ts + hooks/use-stt-recorder.ts) ---
   "stt.error.busy": "系统繁忙，上一段音频正在转写。请稍后重试。",
   "stt.error.tooLong": "录音过长，请缩短录音时间。",
-  "stt.error.badFormat": "当前浏览器录制的音频格式不受 Collie 支持。",
-  "stt.error.unconfigured": "当前 Collie 实例未配置语音转文字服务。",
+  "stt.error.badFormat": "当前浏览器录制的音频格式不受 mycroftxxx remote 支持。",
+  "stt.error.unconfigured": "当前 mycroftxxx remote 实例未配置语音转文字服务。",
   "stt.error.timeout": "转写服务响应超时，请重试。",
   "stt.error.unreachable": "无法连接转写服务，请重试。",
   "stt.error.generic": "转写失败，请重新录音后重试。",
-  "stt.error.networkFailure": "无法连接 Collie 进行转写，请重试。",
+  "stt.error.networkFailure": "无法连接 mycroftxxx remote 进行转写，请重试。",
   "stt.error.recordingFailed": "录音失败，未采集到有效输入。",
   "stt.error.noSpeechHeard": "录音中未检测到语音输入。",
   "stt.error.nothingRecorded": "未录制到音频数据。",
@@ -745,11 +745,11 @@ export const zh: Dictionary = {
   "apiError.workspace.create_failed": "创建工作区失败：{reason}",
   "apiError.upload.too_large": "文件过大，限制为 {maxMb} MB。",
   "apiError.upload.no_file": "未提供任何文件。",
-  "apiError.upload.bad_type": "Collie 不支持该文件格式：{type}",
+  "apiError.upload.bad_type": "mycroftxxx remote 不支持该文件格式：{type}",
   "apiError.upload.write_failed": "无法在主机上保存文件：{reason}",
-  "apiError.stt.unconfigured": "当前 collie 实例未配置语音转文字服务。",
+  "apiError.stt.unconfigured": "当前 server 实例未配置语音转文字服务。",
   "apiError.stt.too_large": "录音时长超出限制，请提供较短的音频。",
-  "apiError.stt.bad_format": "当前浏览器录制的音频格式不被 Collie 支持。",
+  "apiError.stt.bad_format": "当前浏览器录制的音频格式不被 mycroftxxx remote 支持。",
   "apiError.stt.busy": "已有两个录音正在转写，请稍后重试。",
   "apiError.stt.unreadable": "无法读取录音数据。",
   "apiError.stt.empty": "录音数据为空。",
@@ -763,9 +763,9 @@ export const zh: Dictionary = {
   "apiError.device.unknown": "未找到匹配该名称的已配对设备。",
   "apiError.cache.pane_unknown": "That pane is gone, nothing was changed.",
   "apiError.cache.no_session": "That pane's agent names no session, so it can't be watched.",
-  "apiError.session.unknown": "当前 collie 上不存在名为 {session} 的会话。",
-  "apiError.host.unknown": "当前机组中不存在名为 {host} 的 collie 实例。",
-  "apiError.crew.not_lead": "当前 collie 不是机组 lead，无可展示的机组。",
+  "apiError.session.unknown": "当前 server 上不存在名为 {session} 的会话。",
+  "apiError.host.unknown": "当前机组中不存在名为 {host} 的 server 实例。",
+  "apiError.crew.not_lead": "当前 server 不是机组 lead，无可展示的机组。",
   // --- worktrees (ADR 0032) ---
   "apiError.worktree.list_failed": "获取 worktree 列表失败：{reason}",
   "apiError.worktree.create_failed": "创建 worktree 失败：{reason}",
@@ -799,13 +799,13 @@ export const zh: Dictionary = {
   "apiError.update.preflight_unavailable": "无法在此机器上运行预检，更新已被拒绝。",
   "apiError.update.preflight_red": "预检未通过（{check}）：{reason}",
   "apiError.update.major_confirm_required": "{version} 跨越了大版本，需单独确认。",
-  "apiError.update.target_mismatch": "当前界面显示的是 {asked}，但此 collie 将安装 {would}。请重新加载查看。",
+  "apiError.update.target_mismatch": "当前界面显示的是 {asked}，但此 server 将安装 {would}。请重新加载查看。",
   "apiError.update.none_available": "没有可更新的版本。",
   "apiError.update.peers_packaged": "{name} 是包管理器安装的。它的更新来自它自己的包管理器。",
-  "apiError.update.packaged": "更新由系统的包管理器提供。Collie 不会替换当前安装的文件。",
+  "apiError.update.packaged": "更新由系统的包管理器提供。mycroftxxx remote 不会替换当前安装的文件。",
   "apiError.update.start_failed": "无法启动更新：{reason}",
   // --- settings.updateCard (the update card, M15/05) ---
-  "settings.updateCard.title": "更新 Collie",
+  "settings.updateCard.title": "更新 mycroftxxx remote",
   "settings.updateCard.running": "当前运行 {current}",
   "settings.updateCard.newest": "最新版本 {version}",
   "settings.updateCard.upToDate": "已是最新版本。无需操作。",
@@ -827,7 +827,7 @@ export const zh: Dictionary = {
   "settings.updateCard.summary.peers.one": "{count} 台节点",
   "settings.updateCard.summary.peers.other": "{count} 台节点",
   "settings.updateCard.preflightUnavailable": "无法在此机器上运行预检。",
-  "settings.updateCard.packageManaged": "此安装由你的软件包管理器更新，Collie 不会从这里更新它。",
+  "settings.updateCard.packageManaged": "此安装由你的软件包管理器更新，mycroftxxx remote 不会从这里更新它。",
   "settings.updateCard.remedy": "修复命令：{command}",
   "settings.updateCard.confirmTitle": "更新至 {version}？",
   "settings.updateCard.confirmBody": "终端会话将保持连接。手机端视图将中断最多 30 秒。",
@@ -894,7 +894,7 @@ export const zh: Dictionary = {
   "updates.title": "更新",
   "updates.nav.back": "返回",
   "updates.entry.title": "更新",
-  "updates.entry.description": "更新 Collie，并同步更新机组。",
+  "updates.entry.description": "更新 mycroftxxx remote，并同步更新机组。",
   "updates.entry.status.updating": "更新中…",
   "updates.entry.status.peersBehind.one": "{count} 个 Peer 节点落后",
   "updates.entry.status.peersBehind.other": "{count} 个 Peer 节点落后",
@@ -918,9 +918,9 @@ export const zh: Dictionary = {
   "updateRibbon.seeUpdates": "查看更新。",
   "updateRibbon.urgent": "紧急。",
   "updateRibbon.linkChangeShort": "机组连接方式会变更。",
-  "updateRibbon.available": "Collie {version} 可用。",
-  "updateRibbon.availablePackaged": "Collie {version} 可通过 {manager} 获取。",
-  "updateRibbon.availablePackagedUnnamed": "Collie {version} 可用。",
+  "updateRibbon.available": "{version} 可用。",
+  "updateRibbon.availablePackaged": "{version} 可通过 {manager} 获取。",
+  "updateRibbon.availablePackagedUnnamed": "{version} 可用。",
   "updateRibbon.view": "查看",
   "updateRibbon.dismiss": "忽略此版本",
   // The prompt-cache chip and its sheet (M28/02). Mirrored from English verbatim: these are new
@@ -957,7 +957,7 @@ export const zh: Dictionary = {
 
   // --- tour (the first-run screen) --- ENGLISH, not yet translated.
   "tour.skip": "Skip",
-  "tour.title": "Collie shows the agents in your terminal.",
+  "tour.title": "mycroftxxx remote shows the agents in your terminal.",
   // The claim's second sentence, in the three forms the facts can support. {mux} is the
   // multiplexer's display name, {host} the lead machine's crew label; a clause whose fact is missing
   // is dropped rather than filled with a placeholder.
@@ -990,8 +990,8 @@ export const zh: Dictionary = {
   "tour.space.body": "Start an agent in your terminal, or make a space here.",
   "tour.space.button": "New space",
   "tour.pushCard.title": "Be told when a pane needs you",
-  "tour.pushCard.body": "Collie notifies you when an agent is blocked, or done.",
-  "tour.install.title": "Keep Collie on your home screen",
+  "tour.pushCard.body": "mycroftxxx remote notifies you when an agent is blocked, or done.",
+  "tour.install.title": "Keep mycroftxxx remote on your home screen",
   "tour.install.body": "It opens full screen and remembers where you were.",
   "tour.install.button": "Add",
   "tour.push.enable": "Turn on",
@@ -1012,12 +1012,12 @@ export const zh: Dictionary = {
 
   // --- settings.tour ---
   "settings.tour.title": "Show the first screen again",
-  "settings.tour.description": "What Collie does, and what this install looks like.",
+  "settings.tour.description": "What mycroftxxx remote does, and what this install looks like.",
   "settings.tour.button": "Show",
 
   // --- updateScreen (M28/01): English until translated. ---
   "updateScreen.dialogAria": "Update in progress",
-  "updateScreen.title": "Updating Collie",
+  "updateScreen.title": "Updating mycroftxxx remote",
   "updateScreen.close": "Close",
   "updateScreen.rows.label": "Machines",
   "updateScreen.thisMachine": "This machine",

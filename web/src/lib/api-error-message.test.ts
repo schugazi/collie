@@ -22,7 +22,7 @@ describe("describeApiError", () => {
         code: "upload.bad_type",
         detail: { type: "image/tiff" },
       }),
-    ).toBe("Collie can't send that kind of file: image/tiff");
+    ).toBe("mycroftxxx remote can't send that kind of file: image/tiff");
   });
 
   it("frames a passthrough reason without translating the reason itself", () => {
@@ -67,7 +67,7 @@ describe("describeApiError", () => {
     );
     expect(
       describeApiError({ error: "x", code: "session.unknown", detail: { session: "work" } }),
-    ).toBe("Keine Sitzung namens work auf diesem collie vorhanden.");
+    ).toBe("Keine Sitzung namens work auf diesem server vorhanden.");
   });
 });
 
@@ -82,7 +82,7 @@ describe("describeThrownError", () => {
       ),
     );
     const thrown = await sendReply("w1:p1", "hi").catch(<TThrown,>(e: TThrown) => e);
-    expect(describeThrownError(thrown)).toBe("There is no session called work on this collie.");
+    expect(describeThrownError(thrown)).toBe("There is no session called work on this server.");
   });
 
   it("keeps a non-JSON refusal's own message — a proxy page is not a bridge body", async () => {

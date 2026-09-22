@@ -13,7 +13,7 @@ import type { AgentView } from "@/lib/types";
 // this side renders what it was handed, verbatim, which is exactly what "does not interpret it"
 // means.
 
-const SENTENCE = "This pane may be running an agent. Install Collie's hooks on the host to identify it.";
+const SENTENCE = "This pane may be running an agent. Install mycroftxxx remote's hooks on the host to identify it.";
 
 const shell = (over: Partial<AgentView> = {}): AgentView => ({ ...fixtureShellPanes[0]!, ...over });
 

@@ -48,14 +48,14 @@ export interface IconLink {
 // Order matches the four `<link>` tags in index.html — kept as arrays (not a Map) so
 // `transformIndexIcons` can zip release ↔ dev by index.
 const RELEASE_ICON_LINKS: readonly IconLink[] = [
-  { rel: "icon", type: "image/png", href: "/favicon-96x96.png", sizes: "96x96" },
+  { rel: "icon", type: "image/png", href: "/favicon-32x32.png", sizes: "32x32" },
   { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
   { rel: "shortcut icon", href: "/favicon.ico" },
   { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
 ];
 
 const DEV_ICON_LINKS: readonly IconLink[] = [
-  { rel: "icon", type: "image/png", href: "/favicon-dev-96x96.png", sizes: "96x96" },
+  { rel: "icon", type: "image/png", href: "/favicon-dev-32x32.png", sizes: "32x32" },
   { rel: "icon", type: "image/svg+xml", href: "/favicon-dev.svg" },
   { rel: "shortcut icon", href: "/favicon-dev.ico" },
   { rel: "apple-touch-icon", href: "/apple-touch-icon-dev.png", sizes: "180x180" },
@@ -69,14 +69,14 @@ export function iconLinksFor(channel: Channel): readonly IconLink[] {
 const RELEASE_INCLUDE_ASSETS: readonly string[] = [
   "favicon.svg",
   "favicon.ico",
-  "favicon-96x96.png",
+  "favicon-32x32.png",
   "apple-touch-icon.png",
 ];
 
 const DEV_INCLUDE_ASSETS: readonly string[] = [
   "favicon-dev.svg",
   "favicon-dev.ico",
-  "favicon-dev-96x96.png",
+  "favicon-dev-32x32.png",
   "apple-touch-icon-dev.png",
 ];
 
@@ -100,11 +100,11 @@ export interface ChannelManifest {
 }
 
 const RELEASE_MANIFEST: ChannelManifest = {
-  name: "Collie",
-  short_name: "Collie",
+  name: "mycroftxxx remote",
+  short_name: "mycroftxxx remote",
   icons: [
-    { src: "/web-app-manifest-192x192.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
-    { src: "/web-app-manifest-512x512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
+    { src: "/web-app-manifest-192x192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+    { src: "/web-app-manifest-512x512.png", sizes: "512x512", type: "image/png", purpose: "any" },
   ],
 };
 
@@ -112,11 +112,11 @@ const RELEASE_MANIFEST: ChannelManifest = {
 // why the tile must stay dark) — only the paint and the name change, so an operator who installs
 // both a release and a dev build still recognises the app family at a glance.
 const DEV_MANIFEST: ChannelManifest = {
-  name: "Collie (dev)",
-  short_name: "Collie dev",
+  name: "mycroftxxx remote",
+  short_name: "mycroftxxx remote",
   icons: [
-    { src: "/web-app-manifest-dev-192x192.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
-    { src: "/web-app-manifest-dev-512x512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
+    { src: "/web-app-manifest-dev-192x192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+    { src: "/web-app-manifest-dev-512x512.png", sizes: "512x512", type: "image/png", purpose: "any" },
   ],
 };
 
@@ -131,7 +131,7 @@ export function manifestFor(channel: Channel): ChannelManifest {
 export const PLAYGROUND_ICON_LINKS: readonly IconLink[] = [
   { rel: "icon", type: "image/svg+xml", href: "/favicon-playground.svg" },
   { rel: "shortcut icon", href: "/favicon-playground.ico" },
-  { rel: "icon", type: "image/png", href: "/favicon-playground-96x96.png", sizes: "96x96" },
+  { rel: "icon", type: "image/png", href: "/favicon-playground-32x32.png", sizes: "32x32" },
 ];
 
 // The bare (no leading "/") filenames for one channel's icons, derived from the same lists

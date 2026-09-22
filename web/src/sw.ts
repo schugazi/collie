@@ -152,7 +152,7 @@ self.addEventListener("message", (event: ExtendableMessageEvent) => {
 // (`/web-app-manifest-192x192.png`) must never be used for either — it is opaque with no alpha, so
 // Android stamps it on the icon's corner as a solid grey block.
 const ICON = under("/notification-icon-192x192.png");
-const BADGE = under("/badge-96x96.png");
+const BADGE = under("/badge-32x32.png");
 
 self.addEventListener("push", (event: PushEvent) => {
   event.waitUntil(handlePush(event));

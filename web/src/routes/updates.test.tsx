@@ -122,7 +122,7 @@ describe("updates page", () => {
     // The question…
     expect(screen.getByRole("button", { name: "Check for updates" })).toBeInTheDocument();
     // …and the answer, which is where every actionable line lives.
-    expect(await screen.findByText("Update Collie")).toBeInTheDocument();
+    expect(await screen.findByText("Update mycroftxxx remote")).toBeInTheDocument();
   });
 
   it("leads with a 44px back button that returns to Settings, not home", async () => {
@@ -146,7 +146,7 @@ describe("updates page", () => {
     const list = await screen.findByRole("list", { name: "Crew members" });
     // The list is INSIDE the card that carries the button — the thing that blocks the confirm has
     // to be readable without moving your eyes to a second surface.
-    const card = screen.getByText("Update Collie").closest("[data-slot='card']");
+    const card = screen.getByText("Update mycroftxxx remote").closest("[data-slot='card']");
     expect(card).not.toBeNull();
     expect(card?.contains(list)).toBe(true);
     expect(within(list).queryAllByRole("button")).toHaveLength(0);

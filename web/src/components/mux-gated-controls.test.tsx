@@ -300,9 +300,9 @@ describe("Tab actions — renameTab and closeTab", () => {
   });
 
   it("explains when neither is", async () => {
-    declares({ renameTab: false, closeTab: false }, { closeTab: "tabs are not Collie's to change here." });
+    declares({ renameTab: false, closeTab: false }, { closeTab: "tabs are not mycroftxxx remote's to change here." });
     tabSheet();
-    expect(await screen.findByText(/not Collie's to change here/i)).toBeInTheDocument();
+    expect(await screen.findByText(/not mycroftxxx remote's to change here/i)).toBeInTheDocument();
     expect(screen.queryByText("Close tab")).toBeNull();
   });
 });
@@ -367,7 +367,7 @@ describe("Pane history — agentSessionRef", () => {
   it("is withdrawn when it cannot — and SAYS SO, in the adapter's words", async () => {
     declares(
       { agentSessionRef: false },
-      { agentSessionRef: "This multiplexer keeps no agent session log for Collie to read." },
+      { agentSessionRef: "This multiplexer keeps no agent session log for mycroftxxx remote to read." },
     );
     chat();
     expect(await screen.findByText(/keeps no agent session log/i)).toBeInTheDocument();

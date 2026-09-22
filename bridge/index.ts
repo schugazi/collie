@@ -752,7 +752,7 @@ const updateMonitor = new UpdateMonitor({
       // release page carry the location-independent Herdr actions. Keeps this off the cwd-dependent path.
       // The TITLE never moves, not even for an urgent release (ADR 0046): the notification is the same
       // kind of thing it always was, and what makes it urgent is the first sentence of the body.
-      title: "Collie update available",
+      title: "mycroftxxx remote update available",
       body: updateDigestBody(currentVersion, versions, linkChange, urgent),
       target: "settings",
     }),

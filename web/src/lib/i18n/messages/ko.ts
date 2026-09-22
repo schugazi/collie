@@ -26,7 +26,7 @@ export const ko: Dictionary = {
   // --- settings.zen ---
   // Availability only: the toggle decides whether the pane menu offers zen at all.
   "settings.install.title": "앱 설치",
-  "settings.install.description": "Collie를 홈 화면에 추가하여 전용 아이콘과 전체 화면으로 실행합니다.",
+  "settings.install.description": "mycroftxxx remote를 홈 화면에 추가하여 전용 아이콘과 전체 화면으로 실행합니다.",
   "settings.install.button": "설치",
   "settings.install.iosHint": "iPhone 및 iPad에서는 브라우저 공유 메뉴에서 \"홈 화면에 추가\"를 선택하여 설치합니다.",
   "settings.harnessBar.title": "Harness shortcuts",
@@ -53,7 +53,7 @@ export const ko: Dictionary = {
   "settings.push.reason.timeout": "알림 설정 시간이 초과되었습니다. 이 기기에서 푸시 서비스에 연결할 수 있는지 확인한 후 다시 시도하세요.",
   "settings.push.availability.unavailable": "알림 설정을 확인할 수 없습니다. 연결을 확인하거나 다시 로그인한 후 다시 시도하세요.",
   "settings.push.availability.insecure":
-    "HTTP 연결에서는 푸시 알림을 지원하지 않습니다. HTTPS로 Collie를 호스팅하십시오.",
+    "HTTP 연결에서는 푸시 알림을 지원하지 않습니다. HTTPS로 mycroftxxx remote를 호스팅하십시오.",
   "settings.push.availability.serverOff":
     "서버에 VAPID 키가 구성되지 않아 푸시 알림이 비활성화되었습니다.",
   "settings.push.availability.denied":
@@ -68,7 +68,7 @@ export const ko: Dictionary = {
   "settings.notify.done.label": "작업 완료",
   "settings.notify.done.hint": "에이전트 작업이 끝났을 때",
   "settings.notify.updates.label": "앱 업데이트",
-  "settings.notify.updates.hint": "새로운 Collie 버전이 릴리스되었을 때",
+  "settings.notify.updates.hint": "새로운 mycroftxxx remote 버전이 릴리스되었을 때",
   "settings.notify.cache.label": "Cache about to go cold",
   "settings.notify.cache.hint":
     "a pane's prompt cache expires in a few minutes; also covers panes you watched one by one",
@@ -141,7 +141,7 @@ export const ko: Dictionary = {
 
   // --- settings.update (update-check-control + footer update banner) ---
   "settings.update.title": "업데이트",
-  "settings.update.check.prompt": "새 Collie 버전 배포 여부를 확인합니다.",
+  "settings.update.check.prompt": "새 mycroftxxx remote 버전 배포 여부를 확인합니다.",
   "settings.update.check.running": "실행 중: v{current}",
   "settings.update.check.runningChecked": "실행 중: v{current} (확인 시각: {checked})",
   "settings.update.action": "업데이트 확인",
@@ -149,9 +149,9 @@ export const ko: Dictionary = {
   "settings.update.error": "업데이트를 확인하지 못했습니다.",
   "settings.update.upToDate": "최신 버전",
   "settings.updateBanner.restart": "브리지 재시작 필요",
-  "settings.updateBanner.restartNeeded": "디스크의 Collie가 교체되었습니다. 다시 시작하세요.",
-  "settings.updateBanner.releaseAvailable": "Collie {version} 업데이트 가능",
-  "settings.updateBanner.majorAvailable": "Collie {version} 메이저 업데이트 출시",
+  "settings.updateBanner.restartNeeded": "디스크의 mycroftxxx remote가 교체되었습니다. 다시 시작하세요.",
+  "settings.updateBanner.releaseAvailable": "mycroftxxx remote {version} 업데이트 가능",
+  "settings.updateBanner.majorAvailable": "mycroftxxx remote {version} 메이저 업데이트 출시",
   "settings.updateBanner.copyAria": "명령어 복사: {command}",
 
   // --- settings.typeface ---
@@ -160,7 +160,7 @@ export const ko: Dictionary = {
   "settings.typeface.family": "글꼴 계열",
   "settings.typeface.system": "시스템 기본",
   "settings.typeface.note.system": "디바이스 기본 글꼴을 사용합니다. 추가 다운로드는 없습니다.",
-  "settings.typeface.note.grotesk": "Collie 로고 디자인에 맞춰 구성된 전용 글꼴입니다.",
+  "settings.typeface.note.grotesk": "mycroftxxx remote 로고 디자인에 맞춰 구성된 전용 글꼴입니다.",
   "settings.typeface.note.aldrich": "두께가 한 종류뿐이어서 굵은 글씨도 일반 텍스트와 동일하게 표시됩니다.",
   "settings.typeface.note.operator": "서버 관리자가 직접 추가한 글꼴입니다.",
 
@@ -237,7 +237,7 @@ export const ko: Dictionary = {
   "composer.draft.tooLong": "임시 저장 용량을 초과했습니다. 창 전환 시에는 유지되지만 앱 종료 시 삭제됩니다.",
   "composer.status.dialogWaiting": "대기 중인 대화상자가 있습니다. 먼저 응답해야 전송할 수 있습니다.",
   "composer.status.unreadDialog":
-    "Collie가 이 대화상자를 읽을 수 없습니다. 카드에 {key}이(가) 있습니다. 그래도 입력하려면 전송을 다시 누르세요.", // wordsmith
+    "mycroftxxx remote가 이 대화상자를 읽을 수 없습니다. 카드에 {key}이(가) 있습니다. 그래도 입력하려면 전송을 다시 누르세요.", // wordsmith
   "composer.status.paneNotWritable": "창에 쓸 수 없는 상태입니다. 아무것도 전송되지 않았습니다.",
   "composer.status.inputChanged":
     "입력 초기화 중 내용이 변경되어 전송이 취소되었습니다. 창을 확인하십시오.",
@@ -249,8 +249,8 @@ export const ko: Dictionary = {
   "composer.destructive.confirm": "주의가 필요한 명령: {reason}. 확인하려면 전송을 다시 누르세요.",
   "composer.destructive.confirmOnHost": "주의가 필요한 명령: {host}의 {reason}. 확인하려면 전송을 다시 누르세요.",
   "composer.upload.success": "파일 추가됨, 메시지에 경로 표시",
-  "composer.upload.tooLarge": "파일이 이 Collie의 제한인 {max}MB를 초과합니다.",
-  "composer.upload.badType": "Collie에서 {name} 파일을 첨부할 수 없습니다.",
+  "composer.upload.tooLarge": "파일이 이 mycroftxxx remote의 제한인 {max}MB를 초과합니다.",
+  "composer.upload.badType": "mycroftxxx remote에서 {name} 파일을 첨부할 수 없습니다.",
   "composer.noEcho.title": "비밀번호 입력 프롬프트. 입력 내용이 표시되지 않습니다.",
   "composer.noEcho.noLiveTyped":
     "입력한 내용이 창에 남아 있지만 제출되지 않았습니다. 현재 뷰는 실시간 세션이 아니므로 여기서 전송할 수 없습니다. 터미널에서 직접 처리하세요.",
@@ -375,11 +375,11 @@ export const ko: Dictionary = {
   "keys.queue.send": "전송",
   "keys.queue.clearAria": "대기 중인 키 삭제",
 
-  // --- nav (app header, Collie mark, settings gear) ---
+  // --- nav (app header, mycroftxxx remote mark, settings gear) ---
   "nav.settings.aria": "설정",
-  "nav.home.aria.default": "Collie 홈",
-  "nav.home.aria.lost": "Collie 홈, 연결 끊김",
-  "nav.home.aria.reconnecting": "Collie 홈, 재연결 중",
+  "nav.home.aria.default": "mycroftxxx remote 홈",
+  "nav.home.aria.lost": "mycroftxxx remote 홈, 연결 끊김",
+  "nav.home.aria.reconnecting": "mycroftxxx remote 홈, 재연결 중",
   "nav.mux.onPrefix": "on",
   "nav.prereleaseTitle": "프리릴리스 빌드 {version}",
 
@@ -519,8 +519,8 @@ export const ko: Dictionary = {
   "connection.connected": "연결됨",
   "connection.reconnecting": "재연결 중…",
   "connection.herdrDown": "호스트의 Herdr 프로세스가 중단되었습니다.",
-  "connection.offlineCantReach": "오프라인. Collie에 접근할 수 없습니다.",
-  "connection.cantReach": "Collie에 접근할 수 없습니다.",
+  "connection.offlineCantReach": "오프라인. mycroftxxx remote에 접근할 수 없습니다.",
+  "connection.cantReach": "mycroftxxx remote에 접근할 수 없습니다.",
   "connection.withLastSeen": "{cause}. 마지막 확인 시각: {time}",
   "connection.readOnly.notPaired": "미등록 기기. 에이전트에 입력하려면 설정에서 기기를 페어링하세요.",
   "connection.readOnly.device": "읽기 전용. 이 기기에는 에이전트 입력 권한이 없습니다{deviceSuffix}.",
@@ -541,7 +541,7 @@ export const ko: Dictionary = {
   "connection.host.attentionSuffix": "확인 필요 · {label}",
   "connection.host.reconnectingAction": "lead가 재시도 중입니다. 조치할 필요가 없습니다.",
   "connection.host.attentionAction": "재시도로 해결되지 않습니다. 이 머신을 확인하세요.",
-  "connection.stale.incompatible": "{name}에서 호환되지 않는 Collie 버전이 실행 중입니다.",
+  "connection.stale.incompatible": "{name}에서 호환되지 않는 mycroftxxx remote 버전이 실행 중입니다.",
   "connection.stale.unreachable": "{name}에 접근할 수 없습니다 · {label}",
   "connection.stale.nothingCached": "이 머신에 캐시된 데이터가 없습니다.",
   "connection.stale.showingLastKnown": "마지막으로 수신된 화면을 표시합니다. 호스트 응답 전까지 입력 및 전송이 제한됩니다.",
@@ -602,14 +602,14 @@ export const ko: Dictionary = {
   // --- error (boot splash, route-level error recovery) ---
   "error.boot.connecting": "클러스터 연결 중...",
   "error.boot.title": "연결 끊김",
-  "error.boot.body": "Collie에 연결할 수 없습니다. 호스트 연결 상태를 확인한 후 다시 시도하세요.",
+  "error.boot.body": "mycroftxxx remote에 연결할 수 없습니다. 호스트 연결 상태를 확인한 후 다시 시도하세요.",
   "error.boot.retry": "다시 시도",
   "error.root.title": "오류 발생",
   "error.root.unknown": "알 수 없는 오류",
   "error.root.reload": "새로고침",
 
   // --- idle (the idle-pause cover) ---
-  "idle.dialogAria": "Collie 일시 중지됨",
+  "idle.dialogAria": "mycroftxxx remote 일시 중지됨",
   "idle.catchingUp.title": "동기화 중",
   "idle.catchingUp.body": "클러스터의 현재 상태를 가져오는 중입니다.",
   "idle.paused.title": "일시 중지됨",
@@ -678,7 +678,7 @@ export const ko: Dictionary = {
   "dialog.menu.moveDown": "아래로 이동",
   "dialog.menu.leftAria": "왼쪽: {verb} ({label})",
   "dialog.menu.rightAria": "오른쪽: {verb} ({label})",
-  "unreadDialog.caption": "Collie가 이 대화상자를 읽을 수 없습니다", // wordsmith
+  "unreadDialog.caption": "mycroftxxx remote가 이 대화상자를 읽을 수 없습니다", // wordsmith
   "dialog.preview.currentAnswerAria": "현재 답변",
   "dialog.preview.previewedBelowAria": "하단 미리보기",
   "dialog.preview.previewLabel": "미리보기 · {label}",
@@ -721,11 +721,11 @@ export const ko: Dictionary = {
   "stt.error.busy": "이전 녹음을 변환 중입니다. 잠시 후 다시 시도하세요.",
   "stt.error.tooLong": "녹음 길이가 초과되었습니다. 더 짧게 녹음하세요.",
   "stt.error.badFormat": "지원하지 않는 오디오 형식입니다.",
-  "stt.error.unconfigured": "이 Collie 인스턴스에 음성 인식이 설정되어 있지 않습니다.",
+  "stt.error.unconfigured": "이 mycroftxxx remote 인스턴스에 음성 인식이 설정되어 있지 않습니다.",
   "stt.error.timeout": "변환 서비스 응답 시간이 초과되었습니다. 다시 시도하세요.",
   "stt.error.unreachable": "변환 서비스에 연결할 수 없습니다. 다시 시도하세요.",
   "stt.error.generic": "음성 변환에 실패했습니다. 다시 녹음하세요.",
-  "stt.error.networkFailure": "Collie 서버에 연결할 수 없습니다. 다시 시도하세요.",
+  "stt.error.networkFailure": "mycroftxxx remote 서버에 연결할 수 없습니다. 다시 시도하세요.",
   "stt.error.recordingFailed": "녹음에 실패했습니다. 수신된 오디오가 없습니다.",
   "stt.error.noSpeechHeard": "음성이 감지되지 않았습니다.",
   "stt.error.nothingRecorded": "녹음된 데이터가 없습니다.",
@@ -759,11 +759,11 @@ export const ko: Dictionary = {
   "apiError.workspace.create_failed": "작업 공간을 생성하지 못했습니다: {reason}",
   "apiError.upload.too_large": "파일이 너무 큽니다. 제한은 {maxMb}MB입니다.",
   "apiError.upload.no_file": "전송된 파일이 없습니다.",
-  "apiError.upload.bad_type": "Collie에서 지원하지 않는 파일 형식입니다: {type}",
+  "apiError.upload.bad_type": "mycroftxxx remote에서 지원하지 않는 파일 형식입니다: {type}",
   "apiError.upload.write_failed": "호스트에 파일을 저장하지 못했습니다: {reason}",
   "apiError.stt.unconfigured": "해당 collie에 음성 인식(STT)이 구성되지 않았습니다.",
   "apiError.stt.too_large": "녹음 길이가 초과되었습니다. 더 짧게 녹음하십시오.",
-  "apiError.stt.bad_format": "브라우저에서 Collie가 처리할 수 없는 형식으로 녹음되었습니다.",
+  "apiError.stt.bad_format": "브라우저에서 mycroftxxx remote가 처리할 수 없는 형식으로 녹음되었습니다.",
   "apiError.stt.busy": "이미 두 개의 음성을 변환 중입니다. 잠시 후 다시 시도하십시오.",
   "apiError.stt.unreadable": "녹음 데이터를 읽을 수 없습니다.",
   "apiError.stt.empty": "녹음 데이터가 비어 있습니다.",
@@ -816,10 +816,10 @@ export const ko: Dictionary = {
   "apiError.update.target_mismatch": "화면에는 {asked} 버전이 표시되었으나 실제로는 {would} 버전이 설치됩니다. 화면을 새로고침하십시오.",
   "apiError.update.none_available": "설치할 최신 릴리스가 없습니다.",
   "apiError.update.peers_packaged": "{name}은(는) 패키지 설치본입니다. 업데이트는 해당 머신의 패키지 관리자에서 받습니다.",
-  "apiError.update.packaged": "업데이트는 패키지 관리자를 통해 제공됩니다. Collie는 이 설치본의 파일을 덮어쓰지 않습니다.",
+  "apiError.update.packaged": "업데이트는 패키지 관리자를 통해 제공됩니다. mycroftxxx remote는 이 설치본의 파일을 덮어쓰지 않습니다.",
   "apiError.update.start_failed": "업데이트를 시작하지 못했습니다: {reason}",
   // --- settings.updateCard (the update card, M15/05) ---
-  "settings.updateCard.title": "Collie 업데이트",
+  "settings.updateCard.title": "mycroftxxx remote 업데이트",
   "settings.updateCard.running": "현재 버전: {current}",
   "settings.updateCard.newest": "최신 버전: {version}",
   "settings.updateCard.upToDate": "최신 상태입니다. 필요한 작업이 없습니다.",
@@ -841,7 +841,7 @@ export const ko: Dictionary = {
   "settings.updateCard.summary.peers.one": "피어 {count}대",
   "settings.updateCard.summary.peers.other": "피어 {count}대",
   "settings.updateCard.preflightUnavailable": "이 머신에서 사전 점검을 실행할 수 없습니다.",
-  "settings.updateCard.packageManaged": "이 설치는 패키지 관리자가 업데이트합니다. Collie는 여기서 업데이트하지 않습니다.",
+  "settings.updateCard.packageManaged": "이 설치는 패키지 관리자가 업데이트합니다. mycroftxxx remote는 여기서 업데이트하지 않습니다.",
   "settings.updateCard.remedy": "해결 방법: {command}",
   "settings.updateCard.confirmTitle": "{version} 버전으로 업데이트하시겠습니까?",
   "settings.updateCard.confirmBody": "터미널 세션은 유지됩니다. 모바일 화면 연결은 최대 30초 동안 끊깁니다.",
@@ -908,7 +908,7 @@ export const ko: Dictionary = {
   "updates.title": "업데이트",
   "updates.nav.back": "뒤로",
   "updates.entry.title": "업데이트",
-  "updates.entry.description": "Collie 및 크루를 함께 업데이트합니다.",
+  "updates.entry.description": "mycroftxxx remote 및 크루를 함께 업데이트합니다.",
   "updates.entry.status.updating": "업데이트 중…",
   "updates.entry.status.peersBehind.one": "피어 {count}개 뒤처짐",
   "updates.entry.status.peersBehind.other": "피어 {count}개 뒤처짐",
@@ -932,9 +932,9 @@ export const ko: Dictionary = {
   "updateRibbon.seeUpdates": "업데이트 화면 보기.",
   "updateRibbon.urgent": "긴급.",
   "updateRibbon.linkChangeShort": "크루 연결 방식이 바뀝니다.",
-  "updateRibbon.available": "Collie {version} 사용 가능.",
-  "updateRibbon.availablePackaged": "Collie {version} ({manager}) 이용 가능.",
-  "updateRibbon.availablePackagedUnnamed": "Collie {version} 이용 가능.",
+  "updateRibbon.available": "{version} 사용 가능.",
+  "updateRibbon.availablePackaged": "{version} ({manager}) 이용 가능.",
+  "updateRibbon.availablePackagedUnnamed": "{version} 이용 가능.",
   "updateRibbon.view": "보기",
   "updateRibbon.dismiss": "이 버전 숨기기",
   // The prompt-cache chip and its sheet (M28/02). Mirrored from English verbatim: these are new
@@ -971,7 +971,7 @@ export const ko: Dictionary = {
 
   // --- tour (the first-run screen) --- ENGLISH, not yet translated.
   "tour.skip": "Skip",
-  "tour.title": "Collie shows the agents in your terminal.",
+  "tour.title": "mycroftxxx remote shows the agents in your terminal.",
   // The claim's second sentence, in the three forms the facts can support. {mux} is the
   // multiplexer's display name, {host} the lead machine's crew label; a clause whose fact is missing
   // is dropped rather than filled with a placeholder.
@@ -1004,8 +1004,8 @@ export const ko: Dictionary = {
   "tour.space.body": "Start an agent in your terminal, or make a space here.",
   "tour.space.button": "New space",
   "tour.pushCard.title": "Be told when a pane needs you",
-  "tour.pushCard.body": "Collie notifies you when an agent is blocked, or done.",
-  "tour.install.title": "Keep Collie on your home screen",
+  "tour.pushCard.body": "mycroftxxx remote notifies you when an agent is blocked, or done.",
+  "tour.install.title": "Keep mycroftxxx remote on your home screen",
   "tour.install.body": "It opens full screen and remembers where you were.",
   "tour.install.button": "Add",
   "tour.push.enable": "Turn on",
@@ -1026,12 +1026,12 @@ export const ko: Dictionary = {
 
   // --- settings.tour ---
   "settings.tour.title": "Show the first screen again",
-  "settings.tour.description": "What Collie does, and what this install looks like.",
+  "settings.tour.description": "What mycroftxxx remote does, and what this install looks like.",
   "settings.tour.button": "Show",
 
   // --- updateScreen (M28/01): English until translated. ---
   "updateScreen.dialogAria": "Update in progress",
-  "updateScreen.title": "Updating Collie",
+  "updateScreen.title": "Updating mycroftxxx remote",
   "updateScreen.close": "Close",
   "updateScreen.rows.label": "Machines",
   "updateScreen.thisMachine": "This machine",

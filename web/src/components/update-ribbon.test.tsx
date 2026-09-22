@@ -208,7 +208,7 @@ describe("update ribbon states — the row on screen", () => {
 
   it("(a) offers the release and names the version", async () => {
     await renderBand(info());
-    expect(screen.getByText("Collie 1.5.0 available.")).toBeInTheDocument();
+    expect(screen.getByText("1.5.0 available.")).toBeInTheDocument();
   });
 
   it("(d) names a peer that rolled back, with its reason and a pointer to the page", async () => {
@@ -253,7 +253,7 @@ describe("a run in progress is not this band's row", () => {
 
   it("still shows the OFFER under a run, because a standing fact is not the run", async () => {
     await renderBand(info({ run: run("staging") }));
-    expect(screen.getByText("Collie 1.5.0 available.")).toBeInTheDocument();
+    expect(screen.getByText("1.5.0 available.")).toBeInTheDocument();
   });
 });
 
@@ -275,7 +275,7 @@ describe("available navigates, never runs", () => {
     // button, so there is no nesting for a browser to have an opinion about.
     await renderBand(info());
     expect(
-      screen.getByText("Collie 1.5.0 available.").closest("button"),
+      screen.getByText("1.5.0 available.").closest("button"),
     ).toBeNull();
   });
 
@@ -437,7 +437,7 @@ describe("dismissal is per version, and it belongs to the machine", () => {
   it("a newer release brings it back", async () => {
     const { container } = await renderBand(info({ latest: "1.6.0", dismissedVersion: "1.5.0" }));
     expect(band(container)).not.toBeNull();
-    expect(screen.getByText("Collie 1.6.0 available.")).toBeInTheDocument();
+    expect(screen.getByText("1.6.0 available.")).toBeInTheDocument();
   });
 
   it("a failed dismiss is a courtesy lost, not an error on screen", async () => {
@@ -456,7 +456,7 @@ describe("a packaged host on the band", () => {
 
   it("names the package manager and never offers a tap-to-update", async () => {
     await renderBand(packaged());
-    expect(screen.getByText("Collie 1.5.0 available via pacman.")).toBeInTheDocument();
+    expect(screen.getByText("1.5.0 available via pacman.")).toBeInTheDocument();
     expect(screen.queryByText(/Tap to update/)).toBeNull();
   });
 

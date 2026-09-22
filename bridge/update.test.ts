@@ -198,20 +198,20 @@ describe("updatesNewerThan", () => {
 
 describe("updateDigestBody", () => {
   it("names the one version, or the count AND every folded version", () => {
-    expect(updateDigestBody("1.3.0", ["1.3.1"])).toBe("Collie 1.3.1 is available");
+    expect(updateDigestBody("1.3.0", ["1.3.1"])).toBe("mycroftxxx remote 1.3.1 is available");
     expect(updateDigestBody("1.3.0", ["1.3.1", "1.3.2"])).toBe("2 updates since 1.3.0: 1.3.1, 1.3.2");
   });
 
   it("an urgent release opens the body with its own sentence, ahead of the link change", () => {
     const urgent = { version: "1.3.1", reason: "The reaper deletes live entries." };
     expect(updateDigestBody("1.3.0", ["1.3.1"], null, urgent)).toBe(
-      "The reaper deletes live entries. Collie 1.3.1 is available",
+      "The reaper deletes live entries. mycroftxxx remote 1.3.1 is available",
     );
     expect(updateDigestBody("1.3.0", ["1.3.1"], { from: 1, to: 2 }, urgent)).toBe(
-      `The reaper deletes live entries. Collie 1.3.1 is available. ${LINK_CHANGE_SENTENCE}`,
+      `The reaper deletes live entries. mycroftxxx remote 1.3.1 is available. ${LINK_CHANGE_SENTENCE}`,
     );
     // Without one, the body is byte-identical to what it always was.
-    expect(updateDigestBody("1.3.0", ["1.3.1"], null, null)).toBe("Collie 1.3.1 is available");
+    expect(updateDigestBody("1.3.0", ["1.3.1"], null, null)).toBe("mycroftxxx remote 1.3.1 is available");
   });
 });
 
@@ -1244,7 +1244,7 @@ describe("UpdateMonitor — the link change", () => {
     // The push says it too, appended to a body that is otherwise what it always was.
     expect(pushes).toEqual([{ versions: ["1.8.0"], linkChange: { from: 1, to: 2 }, urgent: null }]);
     expect(updateDigestBody("1.7.0", ["1.8.0"], { from: 1, to: 2 })).toBe(
-      "Collie 1.8.0 is available. Changes the crew link. Update the lead first, members follow.",
+      "mycroftxxx remote 1.8.0 is available. Changes the crew link. Update the lead first, members follow.",
     );
   });
 
@@ -1260,7 +1260,7 @@ describe("UpdateMonitor — the link change", () => {
     expect(monitor.status().linkChange).toBeUndefined();
     expect(pushes[0]?.linkChange).toBeNull();
     // And the body is byte-identical to the one every release before this always produced.
-    expect(updateDigestBody("1.8.0", ["1.8.1"], null)).toBe("Collie 1.8.1 is available");
+    expect(updateDigestBody("1.8.0", ["1.8.1"], null)).toBe("mycroftxxx remote 1.8.1 is available");
   });
 
   it("is absent when the release published no asset at all — every release before 1.8.0", async () => {
