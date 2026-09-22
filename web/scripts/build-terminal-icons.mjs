@@ -1,5 +1,5 @@
 // Run from web/: dev-run -- bun scripts/build-terminal-icons.mjs
-// One SVG supplies the transparent favicons and the gold Home Screen tiles.
+// One SVG supplies transparent favicons/iOS tiles and gold manifest tiles.
 import { readFile, writeFile } from "node:fs/promises";
 import { chromium } from "@playwright/test";
 
@@ -27,7 +27,7 @@ try {
   };
 
   const favicon = await render(32, false);
-  const apple = await render(180, true);
+  const apple = await render(180, false);
   const icon192 = await render(192, true);
   const icon512 = await render(512, true);
   const icoSizes = [16, 32, 48];

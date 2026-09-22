@@ -47,6 +47,7 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 - **The installed app has its own terminal icon.** Home Screen tiles and favicons use the teal and gold style shared with Personal Feed and Paper Notes; the in-app dashboard logo remains.
 - **The installed icon shows a single large terminal prompt.** A centered `>_` replaces the window frame on Home Screen tiles and favicons.
 - **The terminal prompt gets more breathing room.** Shrink the centered `>_` on Home Screen tiles and favicons while keeping its teal and gold colors.
+- **The iOS Home Screen icon has a transparent background.** Keep the teal terminal prompt as the foreground for iOS Clear appearance while leaving Android's gold tiles unchanged.
 
 
 ### Fixed
