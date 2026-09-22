@@ -101,7 +101,7 @@ const RELEASE_MANIFEST: ChannelManifest = {
   ],
 };
 
-// Dev retains the same name and dashboard artwork; channel identity lives in the build version.
+// Dev retains the same name and terminal icon; channel identity lives in the build version.
 const DEV_MANIFEST: ChannelManifest = {
   name: "mycroftxxx remote",
   short_name: "mycroftxxx",
@@ -117,7 +117,7 @@ export function manifestFor(channel: Channel): ChannelManifest {
   return channel === "dev" ? DEV_MANIFEST : RELEASE_MANIFEST;
 }
 
-/** The states playground uses separate paths for the same dashboard artwork — no manifest, no service worker, so just the
+/** The states playground uses separate paths for the same terminal icon — no manifest, no service worker, so just the
  *  three direct `<link>` tags playground.html carries. */
 export const PLAYGROUND_ICON_LINKS: readonly IconLink[] = [
   { rel: "icon", type: "image/svg+xml", href: "/favicon-playground.svg" },

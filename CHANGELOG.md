@@ -44,6 +44,7 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ### Changed
 - **The personal fork wears the mycroftxxx remote name and artwork.** The PWA uses the server dashboard logo across its header, splash, installed icons and notifications.
+- **The installed app has its own terminal icon.** Home Screen tiles and favicons use the teal and gold style shared with Personal Feed and Paper Notes; the in-app dashboard logo remains.
 
 
 ### Fixed

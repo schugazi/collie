@@ -14,8 +14,10 @@ decisions [`.adr/`](./.adr/) · adding a harness
 
 ## Personal fork
 
-The PWA uses the mycroftxxx server dashboard emblem with a transparent exterior and the name `mycroftxxx remote`;
-its Home Screen label is `mycroftxxx`. Release and dev channels share this branding.
+The in-app logo uses the mycroftxxx server dashboard emblem with a transparent exterior. The installed PWA icon
+is a teal terminal on gold, matching Personal Feed and Paper Notes; regenerate its tiles and favicons with
+`cd web && dev-run -- bun scripts/build-terminal-icons.mjs`. The app name is `mycroftxxx remote` and its Home
+Screen label is `mycroftxxx`. Release and dev channels share this branding.
 The Android notification badge is a transparent monochrome glyph (`web/public/badge.svg`).
 The shipped HTML locks page zoom and document scrolling; routes and sheets own their scrollers.
 New workspaces offer home, visible immediate home subdirectories, and a custom path.
