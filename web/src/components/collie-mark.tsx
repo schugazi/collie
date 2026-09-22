@@ -32,8 +32,8 @@ export function CollieMark({ size = 32, loading = false, paper, title, className
         @media (prefers-reduced-motion: reduce) { .cm-indicator { animation: none !important; } }
       `}</style>
       <image href={logo} width="192" height="192" />
-      <rect className="cm-indicator" x="3" y="3" width="186" height="186"
-        rx="8" fill="none" stroke="var(--cm-a1)" strokeWidth="6" />
+      <circle className="cm-indicator" cx="96" cy="96" r="87"
+        fill="none" stroke="var(--cm-a1)" strokeWidth="6" />
     </svg>
   );
 }

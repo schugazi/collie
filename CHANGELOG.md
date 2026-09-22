@@ -59,6 +59,7 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 - **The phone shell stays fixed while its content scrolls.** Disable page zoom gestures and document overscroll while preserving terminal, list and sheet scrolling.
 - **Browser back swipes no longer replay the screen slide.** History navigation leaves animation to the browser, while in-app navigation keeps its existing transition.
 - **The personal logo has transparent space outside its ring.** Installed icons, favicons, notifications and in-app artwork retain the yellow interior without the yellow square surrounding the circle.
+- **The logo loading highlight follows its circular ring.** Navigation and loading feedback no longer flash a square border around the transparent logo.
 
 ## [1.11.1] - 2026-09-20
 

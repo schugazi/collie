@@ -12,6 +12,8 @@ it("uses the dashboard artwork, preserves loading feedback and supports reduced 
   rerender(<CollieMark loading title="mycroftxxx remote" className="opacity-40" />);
   expect(screen.getByRole("img", { name: "mycroftxxx remote" })).toBe(mark);
   expect(mark).toHaveClass("cm-live", "opacity-40");
+  expect(mark?.querySelector("rect")).toBeNull();
+  expect(mark?.querySelector("circle.cm-indicator")).toHaveAttribute("stroke", "var(--cm-a1)");
   expect(mark?.style.getPropertyValue("--cm-a1")).not.toBe("transparent");
   expect(mark?.querySelector("style")?.textContent).toContain("prefers-reduced-motion: reduce");
   expect(mark?.querySelector("style")?.textContent).toContain("animation: none !important");
