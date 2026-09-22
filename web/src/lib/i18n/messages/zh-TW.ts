@@ -433,6 +433,8 @@ export const zhTW: Dictionary = {
   "space.new.title": "新增工作區",
   "space.new.dir.label": "目錄（選填）",
   "space.new.dir.placeholder": "~（home 目錄）",
+  "space.new.dir.other": "其他目錄…",
+  "space.new.dir.custom": "自訂目錄",
   "space.new.label.label": "標籤（選填）",
   "space.new.label.placeholder": "輸入工作區名稱",
   "space.new.create": "建立工作區並啟動 shell",

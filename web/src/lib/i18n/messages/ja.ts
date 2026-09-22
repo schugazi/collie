@@ -450,6 +450,8 @@ export const ja: Dictionary = {
   "space.new.title": "スペースを作成",
   "space.new.dir.label": "ディレクトリ（任意）",
   "space.new.dir.placeholder": "~（ホームディレクトリ）",
+  "space.new.dir.other": "その他のディレクトリ…",
+  "space.new.dir.custom": "ディレクトリのパス",
   "space.new.label.label": "ラベル（任意）",
   "space.new.label.placeholder": "スペース名",
   "space.new.create": "スペースを作成してシェルを起動",

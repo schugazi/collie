@@ -455,6 +455,8 @@ export const de: Dictionary = {
   "space.new.title": "Neuer Space",
   "space.new.dir.label": "Verzeichnis (optional)",
   "space.new.dir.placeholder": "~ (Home-Verzeichnis)",
+  "space.new.dir.other": "Anderes Verzeichnis…",
+  "space.new.dir.custom": "Eigener Verzeichnispfad",
   "space.new.label.label": "Label (optional)",
   "space.new.label.placeholder": "Space benennen",
   "space.new.create": "Space erstellen und Shell öffnen",

@@ -1,5 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
+import { server } from "@/test/setup";
 
 import { NewSpaceSheet } from "./new-space-sheet";
 import { CrewProvider } from "./crew-provider";
@@ -127,5 +129,51 @@ describe("NewSpaceSheet — choosing the host on a crew", () => {
     mount(refusing);
     expect(screen.getByRole("button", { name: /create space/i })).toBeDisabled();
     expect(screen.getByText(/workshop is unreachable/i)).toBeInTheDocument();
+  });
+});
+
+describe("NewSpaceSheet — starting directory", () => {
+  it("creates in the chosen directory without typing a path", async () => {
+    server.use(http.get("/api/launchers", () => HttpResponse.json({
+      launchers: [], home: "/home/op", directories: ["/home/op/alpha project", "/home/op/collie"],
+    })));
+    const user = userEvent.setup();
+    const onCreate = vi.fn();
+    mount(solo, { onCreate });
+    await screen.findByRole("option", { name: "~/alpha project" });
+    await user.selectOptions(screen.getByRole("combobox", { name: /directory/i }), "/home/op/alpha project");
+    await user.click(screen.getByRole("button", { name: /create space/i }));
+    expect(onCreate).toHaveBeenCalledWith({ label: undefined, cwd: "/home/op/alpha project" }, undefined);
+  });
+
+  it("keeps custom paths available when directory listing fails", async () => {
+    server.use(http.get("/api/launchers", () => new HttpResponse(null, { status: 503 })));
+    const user = userEvent.setup();
+    const onCreate = vi.fn();
+    mount(solo, { onCreate });
+    await user.selectOptions(screen.getByRole("combobox", { name: /directory/i }), "custom");
+    await user.type(screen.getByRole("textbox", { name: /custom directory/i }), " /srv/my project ");
+    await user.click(screen.getByRole("button", { name: /create space/i }));
+    expect(onCreate).toHaveBeenCalledWith({ label: undefined, cwd: "/srv/my project" }, undefined);
+  });
+
+  it("replaces choices and clears the selected directory when changing host", async () => {
+    server.use(http.get("/api/launchers", ({ request }) => {
+      const peer = new URL(request.url).searchParams.get("host") === "workshop";
+      const home = peer ? "/home/peer" : "/home/lead";
+      return HttpResponse.json({ launchers: [], home, directories: [`${home}/project`] });
+    }));
+    const user = userEvent.setup();
+    const onCreate = vi.fn();
+    mount(fixtureServers, { onCreate });
+    const picker = screen.getByRole("combobox", { name: /directory/i });
+    await screen.findByRole("option", { name: "~/project" });
+    await user.selectOptions(picker, "/home/lead/project");
+    await user.click(chip(/workshop/));
+    await waitFor(() => expect(screen.getByRole("option", { name: "~/project" })).toHaveValue("/home/peer/project"));
+    expect(picker).toHaveValue("");
+    await user.selectOptions(picker, "/home/peer/project");
+    await user.click(screen.getByRole("button", { name: /create space/i }));
+    expect(onCreate).toHaveBeenCalledWith({ label: undefined, cwd: "/home/peer/project" }, { host: "workshop" });
   });
 });

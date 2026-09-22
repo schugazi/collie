@@ -1,4 +1,4 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, readdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { extname, join, normalize, sep } from "node:path";
 import type { JsonObject, JsonValue } from "./json.ts";
@@ -3314,9 +3314,18 @@ async function openWorktree(
 export async function launchersRoute(
   getLaunchers: () => Promise<Launcher[]>,
   acceptEncoding: string | null,
+  home = homedir(),
 ): Promise<Response> {
   const rows = await getLaunchers();
-  return json({ launchers: rows, home: homedir() } satisfies LaunchersResponse, acceptEncoding);
+  // Only this server-owned home directory is listed: no client path, recursion or file reads.
+  // Hidden directories and symlinks are excluded. Home/custom paths still work if listing fails.
+  const directories = await readdir(home, { withFileTypes: true })
+    .then((entries) => entries
+      .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
+      .toSorted((a, b) => a.name.localeCompare(b.name))
+      .map((entry) => join(home, entry.name)))
+    .catch(() => []);
+  return json({ launchers: rows, home, directories } satisfies LaunchersResponse, acceptEncoding);
 }
 
 // GET /api/cache-rules — the rule catalog behind every cache chip on THIS host, plus the overrides

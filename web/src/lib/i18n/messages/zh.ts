@@ -437,6 +437,8 @@ export const zh: Dictionary = {
   "space.new.title": "新建工作区",
   "space.new.dir.label": "目录（可选）",
   "space.new.dir.placeholder": "~ (home 目录)",
+  "space.new.dir.other": "其他目录…",
+  "space.new.dir.custom": "自定义目录",
   "space.new.label.label": "标签（可选）",
   "space.new.label.placeholder": "输入工作区名称",
   "space.new.create": "创建工作区并启动 shell",

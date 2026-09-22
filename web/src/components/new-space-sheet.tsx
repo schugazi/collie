@@ -3,10 +3,11 @@ import { Server } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { listWorktrees } from "@/lib/api";
+import { fetchLaunchers, listWorktrees } from "@/lib/api";
 import { hostHealth, writeRefusal } from "@/lib/host-health";
 import { HOST_TEXT_CLASSES, hostSlot, isMultiHost, leadHost } from "@/lib/hosts";
 import { useCrew } from "@/components/crew-provider";
+import { shortenHome } from "@/lib/shorten-home";
 import type { Scope } from "@/lib/scope";
 import type { HostHealth } from "@/lib/host-health";
 import type { ServerSummary, WorktreeView } from "@/lib/types";
@@ -87,9 +88,7 @@ interface NewSpaceSheetProps {
   scope?: Scope;
 }
 
-// Create a new space (workspace). Both fields are optional and dictation-friendly: leave the
-// directory blank to open the shell in your home dir (it's a shell — cd from there), or set a path
-// for a specific project. The new space opens a fresh shell you launch your own agent in.
+// Create a fresh shell in home, a listed project directory, or a custom path.
 export function NewSpaceSheet({
   open,
   onClose,
@@ -102,6 +101,8 @@ export function NewSpaceSheet({
   useLocale();
   const [label, setLabel] = useState("");
   const [cwd, setCwd] = useState("");
+  const [directory, setDirectory] = useState("");
+  const [directoryOptions, setDirectoryOptions] = useState<{ home: string; paths: string[] }>({ home: "", paths: [] });
   // Which kind of space this will be. Two tabs rather than two entry points: from the spaces list
   // there is no "current space" to carry a repo, so the worktree side has to ask which repo anyway
   // — and once it asks, the choice belongs beside the plain one, not behind a second button.
@@ -168,6 +169,28 @@ export function NewSpaceSheet({
     };
   }, [open, mode, repo, scope]);
 
+  const directoryHost = multiHost
+    ? chosen === leadHost(servers) ? undefined : chosen
+    : scope?.host;
+  const directorySession = scope?.session;
+  useEffect(() => {
+    if (!open) return;
+    // A path belongs to the selected host. Clear it when that host changes or the sheet reopens.
+    setDirectory("");
+    setCwd("");
+    setDirectoryOptions({ home: "", paths: [] });
+    let live = true;
+    void (async () => {
+      try {
+        const res = await fetchLaunchers({ host: directoryHost, session: directorySession });
+        if (live) setDirectoryOptions({ home: res.home, paths: res.directories ?? [] });
+      } catch {
+        // Home and custom paths remain available when listing is unavailable.
+      }
+    })();
+    return () => { live = false; };
+  }, [open, directoryHost, directorySession]);
+
   function create() {
     if (refusal !== undefined) return;
     // The lead carries no `?h=` — absent means the lead — so selecting it restores the bare URL,
@@ -175,7 +198,8 @@ export function NewSpaceSheet({
     const at: Scope | undefined = multiHost
       ? { ...scope, host: chosen === leadHost(servers) ? undefined : chosen }
       : undefined;
-    onCreate({ label: label.trim() || undefined, cwd: cwd.trim() || undefined }, at);
+    const selectedCwd = directory === "custom" ? cwd : directory;
+    onCreate({ label: label.trim() || undefined, cwd: selectedCwd.trim() || undefined }, at);
     onClose();
   }
 
@@ -350,16 +374,32 @@ export function NewSpaceSheet({
         <>
         <label className="flex flex-col gap-1">
           <span className="text-xs font-medium text-muted-foreground">{t("space.new.dir.label")}</span>
-          <input
-            value={cwd}
-            onChange={(e) => setCwd(e.target.value)}
-            placeholder={t("space.new.dir.placeholder")}
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
-            className="h-11 rounded-lg border border-border bg-background px-3 font-mono text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          />
+          <select
+            value={directory}
+            onChange={(e) => setDirectory(e.target.value)}
+            className="h-11 min-w-0 w-full rounded-lg border border-border bg-background px-3 font-mono text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <option value="">{t("space.new.dir.placeholder")}</option>
+            {directoryOptions.paths.map((path) => (
+              <option key={path} value={path}>{shortenHome(path, directoryOptions.home)}</option>
+            ))}
+            <option value="custom">{t("space.new.dir.other")}</option>
+          </select>
         </label>
+        {directory === "custom" && (
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-muted-foreground">{t("space.new.dir.custom")}</span>
+            <input
+              value={cwd}
+              onChange={(e) => setCwd(e.target.value)}
+              placeholder={t("space.new.dir.placeholder")}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              className="h-11 min-w-0 w-full rounded-lg border border-border bg-background px-3 font-mono text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            />
+          </label>
+        )}
         <label className="flex flex-col gap-1">
           <span className="text-xs font-medium text-muted-foreground">{t("space.new.label.label")}</span>
           <input

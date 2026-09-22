@@ -1093,6 +1093,8 @@ export interface Launcher {
 export interface LaunchersResponse {
   launchers: Launcher[];
   home: string;
+  /** Visible immediate directories under this host’s home; absent on older bridges. */
+  directories?: string[];
 }
 
 export interface BridgeConfig {

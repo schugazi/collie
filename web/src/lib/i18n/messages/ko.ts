@@ -448,6 +448,8 @@ export const ko: Dictionary = {
   "space.new.title": "새 스페이스",
   "space.new.dir.label": "디렉터리 (선택)",
   "space.new.dir.placeholder": "~ (홈 디렉터리)",
+  "space.new.dir.other": "다른 디렉터리…",
+  "space.new.dir.custom": "직접 입력할 디렉터리",
   "space.new.label.label": "라벨 (선택)",
   "space.new.label.placeholder": "스페이스 이름 지정",
   "space.new.create": "스페이스 생성 및 셸 열기",

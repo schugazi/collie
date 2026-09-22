@@ -49,7 +49,7 @@ import {
   mountIndexHtml,
 } from "./server.ts";
 import { readFileSync } from "node:fs";
-import { mkdir, mkdtemp, rm, truncate, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, truncate, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -2784,6 +2784,25 @@ describe("launch — an allowlisted space create, then the command and Enter", (
 });
 
 describe("GET /api/launchers — this host's own rows, home included", () => {
+  test("lists only visible immediate directories, sorted, without following symlinks", async () => {
+    const home = await mkdtemp(join(tmpdir(), "remote-directories-"));
+    try {
+      await mkdir(join(home, "zeta"));
+      await mkdir(join(home, "alpha project", "nested"), { recursive: true });
+      await mkdir(join(home, ".private"));
+      await writeFile(join(home, "notes.txt"), "not a directory");
+      await symlink(join(home, "zeta"), join(home, "linked"));
+      const res = await launchersRoute(() => Promise.resolve([]), null, home);
+      expect(await res.json()).toEqual({ launchers: [], home,
+        directories: [join(home, "alpha project"), join(home, "zeta")] });
+      const unavailable = join(home, "missing");
+      const fallback = await launchersRoute(() => Promise.resolve([]), null, unavailable);
+      expect(await fallback.json()).toEqual({ launchers: [], home: unavailable, directories: [] });
+    } finally {
+      await rm(home, { recursive: true, force: true });
+    }
+  });
+
   test("answers the rows this getLaunchers gives, plus this host's home dir", async () => {
     const rows: Launcher[] = [{ command: "rumen-peek", label: "Runs & quota", cwd: "/home/op/project" }];
     const res = await launchersRoute(() => Promise.resolve(rows), null);
@@ -2798,7 +2817,7 @@ describe("GET /api/launchers — this host's own rows, home included", () => {
   test("no launchers.toml answers an empty list, never an error", async () => {
     const res = await launchersRoute(() => Promise.resolve([]), null);
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ launchers: [], home: homedir() });
+    expect(await res.json()).toMatchObject({ launchers: [], home: homedir() });
   });
 });
 

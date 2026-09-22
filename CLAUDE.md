@@ -18,6 +18,8 @@ The PWA uses the mycroftxxx server dashboard emblem with a transparent exterior 
 its Home Screen label is `mycroftxxx`. Release and dev channels share this branding.
 The Android notification badge is a transparent monochrome glyph (`web/public/badge.svg`).
 The shipped HTML locks page zoom and document scrolling; routes and sheets own their scrollers.
+New workspaces offer home, visible immediate home subdirectories, and a custom path.
+Directory choices come from the selected host’s `/api/launchers` response; no recursive browsing or file reads.
 Keep internal CLI, configuration, storage and protocol identifiers compatible with Collie.
 Set `COLLIE_UPDATE_REPO=schugazi/collie` on deployments; origin is the personal fork and
 upstream is AltanS/collie. Deploy main with the existing full build, then restart the bridge.

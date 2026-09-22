@@ -472,6 +472,8 @@ export const en = {
   "space.new.title": "New space",
   "space.new.dir.label": "Directory (optional)",
   "space.new.dir.placeholder": "~ (home dir)",
+  "space.new.dir.other": "Other directory…",
+  "space.new.dir.custom": "Custom directory",
   "space.new.label.label": "Label (optional)",
   "space.new.label.placeholder": "name this space",
   "space.new.create": "Create space & open shell",
