@@ -294,64 +294,10 @@ export function AppHeaderHost({ bridge, error, children }: AppHeaderHostProps) {
                   trouble={trouble}
                   lost={lost}
                 />
-                {/* THE IDENTITY, STACKED: the brand over the multiplexer this collie drives, both
-                    beside the mark. It was ONE 18px line — "Collie on <mux>" — and on a phone that
-                    line ran out of room inside the multiplexer's NAME, the one word here the reader
-                    does not already know; the operator's screenshot had it down to a single letter.
-                    Stacking inverts what gives way. The two runs no longer compete for one line's
-                    width, so the brand costs the name nothing and the name gets the whole block —
-                    the width this block asks the row for is the mux line's alone (the brand is out
-                    of flow, see below). Both lines still carry `truncate`, and the brand is the one
-                    that clips first, because it is the shorter run inside a box the longer run
-                    sized.
-
-                    The brand wears the app's EXISTING 11px uppercase tracked tier — `SectionLabel`,
-                    DESIGN.md §1 — and not a new type style. It reads as the eyebrow over the line
-                    that carries the information, which is the right emphasis: which multiplexer is
-                    under this collie is what a support question needs; that the app is called Collie
-                    is not.
-
-                    THE MUX LINE IS THE BLOCK'S ONLY FLOW CHILD; the brand rides above it out of
-                    flow. This is what puts "on <mux>" on the same visual line as the row's other
-                    centred children (the host/session chips, the gear): the row centres every
-                    child, so whatever height this block CONTRIBUTES is what gets centred — and
-                    when it contributed both lines (40.5px), the mux line's centre landed 8px below
-                    everything else's, which read as the right cluster floating on its own line
-                    between the two left ones. With the eyebrow absolute (`bottom-full`), the block
-                    contributes exactly the mux line's 24px box, so that line's centre IS the row's
-                    centre, shared with every chip. The alignment holds by construction, not by a
-                    compensating offset that would drift the next time a size changes.
-
-                    THE ROW'S HEIGHT STILL DOES NOT MOVE (DESIGN.md §2, §6). The row is `min-h-15`
-                    (60px) with `py-1`, a 52px content box, and its tallest child is the mark's 44px
-                    tap box — this block now contributes 24px, less than before, so nothing grows.
-                    The eyebrow is 11px at `leading-none` (the arbitrary size would otherwise take
-                    the body's 1.5 and draw 16.5px): from the block's top at 18px it reaches up to
-                    7px from the row's top edge, inside the row's own box with the top padding to
-                    spare. An out-of-flow child adds no width either — this block is sized by the
-                    mux line alone, which the old flex column already guaranteed in practice (the
-                    brand is the shorter run) and this makes true by construction; `max-w-full`
-                    keeps the eyebrow clipping to that width, so it still truncates first. The mux
-                    logo changes none of it: 1.15em on a -0.2em baseline shift stays inside the
-                    line box the type already asked for.
-
-                    IT IS MOUNTED ONCE AND HIDDEN off the wordmark routes, rather than rendered
-                    conditionally. It shows where the claim asks for it (dashboard + space, never the
-                    pane, where the breadcrumb owns the width), but the node stays: rendering it on
-                    the claim unmounted it on every dashboard → pane → dashboard move, and each
-                    remount built a fresh mux-logo `<img>`, which the bridge answers with a
-                    conditional request before the picture paints. On a phone over Tailscale that is
-                    a blank logo box for a round trip on every dashboard open, reproduced 2026-09-10.
-                    The switch is the HTML `hidden` ATTRIBUTE and not a `hidden` utility class:
-                    Tailwind's preflight gives `[hidden]` `display: none !important`, so the block
-                    takes no width and leaves the accessibility tree, and no later display utility
-                    can undo it. It also states the fact in the DOM, where a test and a screen
-                    reader read it without a stylesheet.
-
-                    It sits OUTSIDE the home button, as the mux line always has: that button's
-                    aria-label would otherwise replace both lines for a screen reader. The brand word moved out of the button with it, so the tap target
-                    is the mark's own 44px box and nothing else — the floor §6 asks for, and the same
-                    box the gear at the other end of the row has. */}
+                {/* Reserve 10rem for the full personal name. The absolute brand label leaves the
+                    mux line vertically aligned with the other header controls. Keep this outside
+                    the home button for screen readers, and mounted while hidden to avoid
+                    refetching the mux logo on every route change. */}
                 <div
                   data-slot="header-identity"
                   hidden={!claim.wordmark}

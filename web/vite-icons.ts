@@ -1,12 +1,5 @@
-// Pure helpers behind the per-channel icon story (CHANGELOG "A dev build wears an orange icon").
-// No `vite` import here on purpose: `vite.config.ts` imports this module to build the real
-// `VitePWA` options and the `transformIndexHtml` rewrite, and `src/vite-icons.test.ts` imports the
-// same functions to assert the release/dev/playground shapes without running a Vite build. Keeping
-// this file dependency-free is what makes that second import cheap.
-//
-// The release shapes below are BYTE-IDENTICAL to what `index.html` and the manifest already
-// declared before channels existed — the release build must render no diff at all.
-
+// Channel-specific asset paths retain the same personal branding across builds.
+// These pure helpers are shared by Vite and unit tests.
 export type Channel = "release" | "dev";
 
 // The evidence vite.config.ts gathers about the checkout, each field independently nullable when
@@ -101,19 +94,17 @@ export interface ChannelManifest {
 
 const RELEASE_MANIFEST: ChannelManifest = {
   name: "mycroftxxx remote",
-  short_name: "mycroftxxx remote",
+  short_name: "mycroftxxx",
   icons: [
     { src: "/web-app-manifest-192x192.png", sizes: "192x192", type: "image/png", purpose: "any" },
     { src: "/web-app-manifest-512x512.png", sizes: "512x512", type: "image/png", purpose: "any" },
   ],
 };
 
-// Same dark polarity as the release tiles (vite.config.ts's long comment above `icons` explains
-// why the tile must stay dark) — only the paint and the name change, so an operator who installs
-// both a release and a dev build still recognises the app family at a glance.
+// Dev retains the same name and dashboard artwork; channel identity lives in the build version.
 const DEV_MANIFEST: ChannelManifest = {
   name: "mycroftxxx remote",
-  short_name: "mycroftxxx remote",
+  short_name: "mycroftxxx",
   icons: [
     { src: "/web-app-manifest-dev-192x192.png", sizes: "192x192", type: "image/png", purpose: "any" },
     { src: "/web-app-manifest-dev-512x512.png", sizes: "512x512", type: "image/png", purpose: "any" },
@@ -126,7 +117,7 @@ export function manifestFor(channel: Channel): ChannelManifest {
   return channel === "dev" ? DEV_MANIFEST : RELEASE_MANIFEST;
 }
 
-/** The states playground wears its own red set — no manifest, no service worker, so just the
+/** The states playground uses separate paths for the same dashboard artwork — no manifest, no service worker, so just the
  *  three direct `<link>` tags playground.html carries. */
 export const PLAYGROUND_ICON_LINKS: readonly IconLink[] = [
   { rel: "icon", type: "image/svg+xml", href: "/favicon-playground.svg" },
@@ -158,7 +149,7 @@ function playgroundFiles(): string[] {
 /**
  * The workbox `globIgnores` for this channel's precache: every icon file that belongs to a
  * DIFFERENT channel, plus everything playground. A release build's service worker has no
- * business precaching the dev tiles or the playground's red icon set, and vice versa — every
+ * business precaching the dev tiles or the playground's icon files, and vice versa — every
  * byte of that precache competes with the app's own polls on a slow link.
  */
 export function precacheIgnoresFor(channel: Channel): string[] {

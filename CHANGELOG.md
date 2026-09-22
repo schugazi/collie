@@ -55,6 +55,7 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 - **A harness chip no longer shrinks to a lone ✓ after it fires.** The check takes the icon's place and the word stays, so the other chips on the belt no longer slide left for 700ms and back.
 - **The `/effort` slider shows its Confirm and Cancel buttons again.** Claude Code's `/effort` picker prints "Enter to confirm" in its footer, and Collie read that one phrase as the folder-trust prompt, so the generic menu stood down and the screen arrived with no buttons at all. The trust prompt is now recognised by its own words, and every other screen that prints the phrase keeps the keys its footer names.
 
+- **Installed branding fits launchers and renders clear notification badges.** Use the short Home Screen label mycroftxxx, a transparent monochrome Android badge, consistent splash artwork, and accurate fork diagnostics; repair the playground favicon and remove the shared screenshot output.
 
 ## [1.11.1] - 2026-09-20
 

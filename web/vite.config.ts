@@ -284,31 +284,8 @@ export default defineConfig({
         orientation: "any",
         background_color: "#0a0a0a",
         theme_color: "#0a0a0a",
-        // The 192/512 are safe-zone-padded, so they serve as both the regular ("any") install
-        // icon and the Android adaptive ("maskable") icon, and they paint their own paper —
-        // an app icon that lets the home screen through is a bug. (favicon.svg is intentionally
-        // NOT a manifest icon: it is a different drawing — the head alone, on no background,
-        // legible at 16px — so declaring it sizes:"any" would let an installer pick the wrong
-        // artwork for the install icon.)
-        //
-        // THE TILES ARE THE DARK POLARITY BECAUSE THE MANIFEST IS DARK. Android paints the
-        // install splash as this icon centred on `background_color`, and a manifest colour is a
-        // single value — it cannot follow the OS the way index.html's paired `theme-color` metas
-        // and index.css's `light-dark()` do. `background_color` and `theme_color` were already
-        // both #0a0a0a, so the light tile that shipped first put a near-white square on black:
-        // the one combination that is wrong under EVERY theme. Making the tile dark makes all
-        // three manifest values agree, and it is the choice that costs least — flipping
-        // `background_color` to the light paper instead would leave `theme_color` dark, i.e. a
-        // light splash under dark system bars, and it would still be one fixed polarity.
-        // The tile's own paper is #0f1113 against a #0a0a0a splash: a hair lighter, invisible in
-        // practice, and `background_color` is left alone so the installed chrome keeps one value.
-        // If these are ever re-copied, take the `collie-tile-dark-*` files, not the light ones.
-        //
-        // A dev build (channel !== "release") swaps this pair for the `-dev` tiles instead
-        // (vite-icons.ts's manifestFor) — same dark polarity, same safe-zone padding, orange
-        // paint, so a dev install is unmistakable next to a release install on the same home
-        // screen without breaking either fact above.
-        // vite-icons.ts spells the tile srcs root-absolute; the manifest is relative (above).
+        // Dashboard artwork is not maskable-safe. Both channels use the same art with
+        // separate asset paths; manifest URLs are relative to support mounted deployments.
         icons: channelManifest.icons.map((icon) => ({
           src: `./${icon.src.replace(/^\/+/, "")}`,
           sizes: icon.sizes,

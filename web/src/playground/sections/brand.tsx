@@ -120,7 +120,7 @@ export function BrandSection() {
               <IconSample src="/favicon.svg" size={16} label="favicon.svg @16" />
               <IconSample src="/favicon.svg" size={32} label="favicon.svg @32" />
               <IconSample src="/favicon.ico" size={16} label="favicon.ico 16×16" />
-              <IconSample src="/favicon-96x96.png" size={96} label="favicon 96×96" />
+              <IconSample src="/favicon-32x32.png" size={32} label="favicon 32×32" />
               <IconSample src="/apple-touch-icon.png" size={180} label="apple-touch 180×180" />
               <IconSample src="/web-app-manifest-192x192.png" size={192} label="manifest 192×192" />
             </div>

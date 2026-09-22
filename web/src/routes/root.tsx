@@ -223,12 +223,7 @@ export function BootSplash() {
   if (!stuck) {
     return (
       <div className="flex h-[100dvh] flex-col items-center justify-center gap-3 text-muted-foreground">
-        {/* The bloom: the same mark as the rest state below, but turning and at full chroma. It is
-            a COLOUR as well as motion, which is the half a reduced-motion reader still gets —
-            `prefers-reduced-motion` stops the orbit and cannot stop the accents. `paper` is this
-            screen's ground, `bg-background`, the knockout that puts a near-side bead in front of
-            the head. The "Connecting to the herd…" copy below carries the accessible meaning, so
-            the mark is decorative. */}
+        {/* The loading border stays coloured with reduced motion. The text names the state. */}
         <CollieMark size={64} weight="header" loading paper="var(--background)" />
         <span className="text-sm">{t("error.boot.connecting")}</span>
       </div>
@@ -236,12 +231,7 @@ export function BootSplash() {
   }
   return (
     <div className="flex h-[100dvh] flex-col items-center justify-center gap-3 p-6 text-center">
-      {/* Rest = the Collie mark still, muted (grayscale + dimmed) to read asleep
-          — never the gallop's own rest frame, whose full-stretch mid-stride pose looks frozen
-          mid-run. No `loading`: we have stopped trying, and a blooming mark would say otherwise.
-          `paper` is this screen's ground, `bg-background`, which is the knockout colour that puts a
-          near-side bead in front of the head. The "Not connected" copy below carries the accessible
-          meaning, so the mark is decorative. */}
+      {/* A disconnected mark is still and muted; the text names the state. */}
       <CollieMark size={64} weight="header" paper="var(--background)" className="opacity-40 grayscale" />
       <p className="font-medium text-foreground">{t("error.boot.title")}</p>
       <p className="max-w-xs text-sm text-muted-foreground">{t("error.boot.body")}</p>

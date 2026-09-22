@@ -11,10 +11,10 @@ test("the installed app and phone header use mycroftxxx remote branding", async 
   expect(await name.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
   const manifest = await (await request.get("/manifest.webmanifest")).json();
   expect(manifest.name).toBe("mycroftxxx remote");
-  expect(manifest.short_name).toBe("mycroftxxx remote");
+  expect(manifest.short_name).toBe("mycroftxxx");
   for (const icon of manifest.icons) {
     expect((await request.get(icon.src)).ok()).toBe(true);
   }
   await expect(page.getByText("Collie", { exact: true })).toHaveCount(0);
-  await page.screenshot({ path: "/tmp/mycroftxxx-remote-phone.png" });
+  await expect(page.locator('meta[name="apple-mobile-web-app-title"]')).toHaveAttribute("content", "mycroftxxx");
 });

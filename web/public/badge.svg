@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 192 192">
+  <!-- Monochrome dashboard emblem for Android's alpha-derived notification glyph. -->
+  <circle cx="96" cy="96" r="84" fill="none" stroke="white" stroke-width="12"/>
+  <path fill="white" d="M96 25C88 25 86 96 51 120V110L46 115V139Q96 112 146 139V115L141 110V120C106 96 104 25 96 25Z M80 133H87V176H80Z M93 132H100V178H93Z M105 133H112V176H105Z"/>
+</svg>

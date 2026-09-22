@@ -72,20 +72,20 @@ describe("iconLinksFor", () => {
 });
 
 describe("manifestFor", () => {
-  it("release: names Collie and the original manifest tiles", () => {
+  it("release: uses the personal name, short label and release asset paths", () => {
     const manifest = manifestFor("release");
     expect(manifest.name).toBe("mycroftxxx remote");
-    expect(manifest.short_name).toBe("mycroftxxx remote");
+    expect(manifest.short_name).toBe("mycroftxxx");
     expect(manifest.icons.map((i) => i.src)).toEqual([
       "/web-app-manifest-192x192.png",
       "/web-app-manifest-512x512.png",
     ]);
   });
 
-  it("dev: names Collie (dev) and the -dev manifest tiles", () => {
+  it("dev: keeps the personal branding with dev asset paths", () => {
     const manifest = manifestFor("dev");
     expect(manifest.name).toBe("mycroftxxx remote");
-    expect(manifest.short_name).toBe("mycroftxxx remote");
+    expect(manifest.short_name).toBe("mycroftxxx");
     expect(manifest.icons.map((i) => i.src)).toEqual([
       "/web-app-manifest-dev-192x192.png",
       "/web-app-manifest-dev-512x512.png",
@@ -137,7 +137,7 @@ describe("transformIndexIcons — the release build stays byte-identical", () =>
   });
 });
 
-describe("the states playground wears its own red icon set", () => {
+describe("the states playground uses its own icon paths", () => {
   const playgroundHtml = readFileSync(resolve(import.meta.dirname, "../playground.html"), "utf8");
 
   it("PLAYGROUND_ICON_LINKS names the -playground files", () => {

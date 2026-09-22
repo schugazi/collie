@@ -1486,7 +1486,8 @@ describe("serveStatic — a text file ships gzipped", () => {
     '<!doctype html><html><head><meta name="collie-base" content="/" />' +
     '<script src="/theme-init.js"></script><style>@font-face{src:url("/fonts/a.woff2")}' +
     ".dog{background:url(/dog-gallop.png)}</style>" +
-    '<script type="module" src="/assets/app.js"></script></head><body></body></html>';
+    '<script type="module" src="/assets/app.js"></script></head><body>' +
+    '<img class="boot-splash__logo" src="/notification-icon-192x192.png" alt="" /></body></html>';
 
   test("index.html goes out as built at the root, and resolved to the mount under a path", async () => {
     resetStaticGzipCache();
@@ -1499,6 +1500,7 @@ describe("serveStatic — a text file ships gzipped", () => {
     expect(mounted).toContain('<meta name="collie-base" content="/collie/" />');
     expect(mounted).toContain('src="/collie/theme-init.js"');
     expect(mounted).toContain('src="/collie/assets/app.js"');
+    expect(mounted).toContain('src="/collie/notification-icon-192x192.png"');
     expect(mounted).toContain('url("/collie/fonts/a.woff2")');
     expect(mounted).toContain("url(/collie/dog-gallop.png)");
     expect(mounted).not.toContain('="/theme');
