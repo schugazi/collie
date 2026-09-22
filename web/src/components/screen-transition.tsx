@@ -1,12 +1,12 @@
 import { useState, type ReactNode } from "react";
-import { useLocation } from "react-router";
+import { useLocation, useNavigationType } from "react-router";
 
 import { cn } from "@/lib/utils";
 import { homePath, panePath } from "@/lib/nav";
 
 /**
  * The everyday move, animated: dashboard → pane slides in from the right, pane → dashboard slides
- * back in from the left. Nothing else on the router moves at all.
+ * back in from the left on in-app navigation. Browser Back/Forward supplies its own transition.
  *
  * IT IS NOT THE VIEW TRANSITIONS API, AND IT MAY NOT BECOME ONE. That path was removed in
  * `1d925922` and the reason has not changed: React Router persists an "applied view transitions"
@@ -101,6 +101,7 @@ export function ScreenTransition({
   className?: string;
 }) {
   const { pathname, key } = useLocation();
+  const navigationType = useNavigationType();
   // The previous pathname, held as STATE and updated during render rather than through a ref or an
   // effect. A ref mutated in the render body is double-written under StrictMode's second pass, which
   // classifies every move as `none`; an effect runs after the commit, so the first frame of the new
@@ -122,7 +123,9 @@ export function ScreenTransition({
     mounts: number;
   }>(() => ({ pathname, key, move: "none", mounts: 0 }));
   if (seen.key !== key) {
-    const move = classifyMove(seen.pathname, pathname);
+    // Browser Back/Forward already owns the visual transition (including iOS edge swipes).
+    // A second entrance here makes the arriving screen slide again after the gesture finishes.
+    const move = navigationType === "POP" ? "none" : classifyMove(seen.pathname, pathname);
     // A move that does not animate does not remount either. This is not an optimisation; it is the
     // difference between keying the outlet and breaking every screen that keeps state across a
     // navigation React Router would have reconciled: pane → pane through the pane strip, pane →

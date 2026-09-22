@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+      content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"
     />
     <!-- Blocking, and first: the pin class must be on <html> before anything paints. Same-origin,
          so `script-src 'self'` already allows it. -->
@@ -61,6 +61,18 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <!-- Dashboard artwork is also the first-paint splash. -->
     <style>
+      /* The document is an app shell; routes, terminal output and sheets own scrolling.
+         pan-x pan-y permits those scrollers without pinch or double-tap page zoom.
+         Horizontal browser history swipes remain available.
+         Keep this here so it also covers the first-paint splash, before the bundle loads. */
+      html, body, #root {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        overscroll-behavior: auto none;
+        touch-action: pan-x pan-y;
+      }
+      body { position: fixed; inset: 0; margin: 0; }
       /* index.css has not loaded at this point, so the splash declares `color-scheme` itself —
          otherwise light-dark() below has nothing to resolve against and every value falls to its
          light branch. These three rules mirror index.css exactly; keep them in step. */

@@ -87,6 +87,20 @@ describe("ScreenTransition — what the arriving screen carries", () => {
     expect(wrapper(container).className).not.toMatch(/slide-in-from-right/);
   });
 
+  it("leaves browser back and forward transitions to the browser", async () => {
+    const { router, container } = mount();
+    await act(() => router.navigate("/pane/p1"));
+    const before = wrapper(container);
+    await act(() => router.navigate(-1));
+    expect(wrapper(container)).toBe(before);
+    expect(wrapper(container).className).not.toMatch(/animate-in/);
+    await act(() => router.revalidate());
+    expect(wrapper(container).className).not.toMatch(/animate-in/);
+    await act(() => router.navigate(1));
+    expect(wrapper(container)).toBe(before);
+    expect(wrapper(container).className).not.toMatch(/animate-in/);
+  });
+
   it("carries neither on a same-path navigation — the revalidation case", async () => {
     const { router, container } = mount();
     await act(() => router.navigate("/pane/p1"));

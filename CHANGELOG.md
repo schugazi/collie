@@ -56,6 +56,9 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 - **The `/effort` slider shows its Confirm and Cancel buttons again.** Claude Code's `/effort` picker prints "Enter to confirm" in its footer, and Collie read that one phrase as the folder-trust prompt, so the generic menu stood down and the screen arrived with no buttons at all. The trust prompt is now recognised by its own words, and every other screen that prints the phrase keeps the keys its footer names.
 
 - **Installed branding fits launchers and renders clear notification badges.** Use the short Home Screen label mycroftxxx, a transparent monochrome Android badge, consistent splash artwork, and accurate fork diagnostics; repair the playground favicon and remove the shared screenshot output.
+- **The phone shell stays fixed while its content scrolls.** Disable page zoom gestures and document overscroll while preserving terminal, list and sheet scrolling.
+- **Browser back swipes no longer replay the screen slide.** History navigation leaves animation to the browser, while in-app navigation keeps its existing transition.
+- **The personal logo has transparent space outside its ring.** Installed icons, favicons, notifications and in-app artwork retain the yellow interior without the yellow square surrounding the circle.
 
 ## [1.11.1] - 2026-09-20
 
