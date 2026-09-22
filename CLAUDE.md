@@ -15,8 +15,7 @@ decisions [`.adr/`](./.adr/) · adding a harness
 ## Personal fork
 
 The in-app logo uses the mycroftxxx server dashboard emblem with a transparent exterior. The installed PWA icon
-is a large teal `>_`, matching Personal Feed and Paper Notes. Its iOS touch icon has a transparent background
-for Clear appearance; manifest tiles remain gold. Regenerate its tiles and favicons with
+is a large teal `>_` on gold, matching Personal Feed and Paper Notes; regenerate its tiles and favicons with
 `cd web && dev-run -- bun scripts/build-terminal-icons.mjs`. The app name is `mycroftxxx remote` and its Home
 Screen label is `mycroftxxx`. Release and dev channels share this branding.
 The Android notification badge is a transparent monochrome glyph (`web/public/badge.svg`).
