@@ -1,12 +1,16 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Keyboard, Terminal } from "lucide-react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { COLLAPSE_MS } from "@/components/ui/collapse";
 import { __resetHarnessBar, setHarnessBarEnabled } from "@/lib/harness-bar-pref";
 import { ActionsRow, type GeneralAction } from "./actions-row";
 
-afterEach(() => __resetHarnessBar());
+afterEach(() => {
+  __resetHarnessBar();
+  vi.useRealTimers();
+});
 
 const took = async () => true;
 
@@ -172,16 +176,22 @@ describe("ActionsRow", () => {
     expect(screen.queryByRole("button", { name: "Switch pane" })).not.toBeInTheDocument();
   });
 
-  it("reserves room for the pinned Switch block with a trailing spacer, not padding, and draws no right fade of its own", () => {
-    // jsdom has no ResizeObserver (lib/env.ts's hasResizeObserver), so the scroller falls back to
-    // SWITCH_PILL_INSET's first-paint value — the same number a real browser reports for today's
-    // box before its first observation callback lands. A spacer, not `paddingRight`: measured over
-    // CDP on a Claude pane, `paddingRight` on this scroller did not reliably reach the scrollable
-    // overflow in Chrome — the last pill still sat ~5px under the Switch block's fade at
-    // `scrollLeft` max — because the scroller is a `flex` row and the harness section is itself a
-    // nested `flex` row, so the overflowing pill is two levels down from the padded element. A real
-    // flex child always counts toward `scrollWidth`, at any nesting depth. `OverflowEdges` is told
-    // `edges="left"` so it never paints a second, scroll-dependent fade over the block's own.
+  it("draws two rows: Collie's controls on top, the harness's commands on their own row below", () => {
+    // The operator's ask: "two rows rather than requiring horizontal scrolling". Each row is its own
+    // scroller, so a row that does overflow on a narrow phone pans alone and never drags the other.
+    render(<ActionsRow general={[general()]} agent="claude" onRun={took} />);
+    const rows = document.querySelectorAll<HTMLElement>(".overflow-x-auto");
+    expect(rows).toHaveLength(2);
+    expect(rows[0]!.querySelector('[data-slot="composer-controls"]')).not.toBeNull();
+    expect(rows[0]!.querySelector('[data-slot="harness-bar"]')).toBeNull();
+    expect(rows[1]!.querySelector('[data-slot="harness-bar"]')).not.toBeNull();
+  });
+
+  it("stands the Switch cell BESIDE both rows, never over them, so no row needs a spacer or a fade", () => {
+    // The Switch block used to be laid over a single scroller's right end, which needed a measured
+    // spacer and a fade so the last pill could scroll out from under it. As a flex sibling of the
+    // rows it covers nothing: the controls keep a 4px gutter at both ends, and the harness row keeps
+    // none, so its tint runs from the screen edge up to the cell's hairline.
     render(
       <ActionsRow
         general={[general()]}
@@ -190,19 +200,20 @@ describe("ActionsRow", () => {
         handle={{ ref: vi.fn(), onClick: vi.fn(), label: "Switch pane" }}
       />,
     );
-    const scroller = document.querySelector<HTMLElement>(".overflow-x-auto")!;
-    expect(scroller.style.paddingRight).toBe("");
-    expect(scroller.className).not.toMatch(/(?:^|\s)pr-3(?=\s|$)/);
-    const spacer = scroller.lastElementChild!;
-    expect(spacer.getAttribute("aria-hidden")).toBe("true");
-    expect(spacer.getAttribute("style")).toBe("width: 117px;");
-    // The masked wrapper one level out never carries a right-hand gradient stop — `edges="left"`
-    // took effect.
-    const masked = scroller.parentElement!;
-    expect(masked.className).not.toContain("black_calc");
+    const cell = screen.getByRole("button", { name: "Switch pane" }).parentElement!;
+    expect(cell.className).not.toMatch(/(?:^|\s)absolute(?=\s|$)/);
+    expect(cell.className).toMatch(/(?:^|\s)border-l(?=\s|$)/);
+    const [controls, harness] = document.querySelectorAll<HTMLElement>(".overflow-x-auto");
+    expect(controls!.className).toMatch(/(?:^|\s)px-1(?=\s|$)/);
+    expect(harness!.className).toMatch(/(?:^|\s)px-0(?=\s|$)/);
+    expect(harness!.querySelector('[data-slot="harness-bar"]')!.className).toMatch(/(?:^|\s)grow(?=\s|$)/);
+    for (const row of [controls!, harness!]) {
+      expect(row.lastElementChild?.getAttribute("aria-hidden")).not.toBe("true");
+      expect(row.parentElement!.className).not.toContain("black_calc");
+    }
   });
 
-  it("stands the belt's scroller at py-1 (40px), with no vertical scroll under a thumb", () => {
+  it("stands each belt row at py-1 (40px), with no vertical scroll under a thumb", () => {
     // Option 6 of the belt-shade deck (playground, removed 2026-09-14 once it had served) first
     // dropped STRIP_SCROLLER's own `py-1.5` to `py-0`, the pill's own 32px. The phone read that as
     // too thin, so it came back up to `py-1` — 40px, 4px above and below the 32px pills — and
@@ -210,12 +221,13 @@ describe("ActionsRow", () => {
     // wider than the 4px of padding on each side, cannot force a vertical scrollbar the way it did
     // in the playground.
     render(<ActionsRow general={[general()]} agent="claude" onRun={took} />);
-    const scroller = document.querySelector<HTMLElement>(".overflow-x-auto")!;
-    expect(scroller.className).toMatch(/(?:^|\s)py-1(?=\s|$)/);
-    expect(scroller.className).toMatch(/(?:^|\s)overflow-y-hidden(?=\s|$)/);
+    for (const row of document.querySelectorAll<HTMLElement>(".overflow-x-auto")) {
+      expect(row.className).toMatch(/(?:^|\s)py-1(?=\s|$)/);
+      expect(row.className).toMatch(/(?:^|\s)overflow-y-hidden(?=\s|$)/);
+    }
   });
 
-  it("narrows the Switch button to 32px, the operator's pick", () => {
+  it("draws the Switch cell 32 to 44px wide, taking free width before the rows do", () => {
     render(
       <ActionsRow
         general={[general()]}
@@ -225,16 +237,49 @@ describe("ActionsRow", () => {
       />,
     );
     const grip = screen.getByRole("button", { name: "Switch pane" });
-    expect(grip.className).toMatch(/(?:^|\s)w-8(?=\s|$)/);
-    expect(grip.className).toMatch(/(?:^|\s)min-w-8(?=\s|$)/);
+    // jsdom has no layout, so the rule is pinned as the classes that ARE it; e2e/belt.spec.ts
+    // measures the result.
+    const cell = grip.parentElement!;
+    for (const cls of ["min-w-8", "max-w-11", "grow-1000", "basis-0"]) {
+      expect(cell.className).toMatch(new RegExp(`(?:^|\\s)${cls}(?=\\s|$)`));
+    }
+    const rowsColumn = document.querySelector('[data-slot="composer-controls"]')!.closest(".flex-col")!;
+    expect(rowsColumn.className).toMatch(/(?:^|\s)grow(?=\s|$)/);
+    expect(grip.className).toMatch(/(?:^|\s)flex-1(?=\s|$)/);
+    // `h-auto` beats the `sm` size's `h-8`, so the button stretches with its cell to the belt's full
+    // height instead of standing as a 32px pill in the middle of it.
+    expect(grip.className).toMatch(/(?:^|\s)h-auto(?=\s|$)/);
+    expect(grip.className).not.toMatch(/(?:^|\s)h-8(?=\s|$)/);
   });
 
-  it("gives the scroller symmetric px-3 padding, no trailing spacer, and OverflowEdges its default edges when there is no handle", () => {
+  it("spreads the pills over their rows and stands the harness mark apart as a label", () => {
     render(<ActionsRow general={[general()]} agent="claude" onRun={took} />);
-    const scroller = document.querySelector<HTMLElement>(".overflow-x-auto")!;
-    expect(scroller.style.paddingRight).toBe("");
-    expect(scroller.className).toMatch(/(?:^|\s)pr-3(?=\s|$)/);
-    expect(scroller.lastElementChild?.getAttribute("aria-hidden")).not.toBe("true");
+    // Every pill grows into the room its row has spare, inside groups that span their rows.
+    for (const name of ["Keys", "Model", "Resume"]) {
+      expect(screen.getByRole("button", { name }).className).toMatch(/(?:^|\s)grow(?=\s|$)/);
+    }
+    const controls = document.querySelector<HTMLElement>('[data-slot="composer-controls"]')!;
+    expect(controls.className).toMatch(/(?:^|\s)grow(?=\s|$)/);
+    // The harness section carries the row's gutter, and its mark keeps 12px of tint to itself.
+    const section = document.querySelector<HTMLElement>('[data-slot="harness-bar"]')!;
+    expect(section.className).toMatch(/(?:^|\s)pl-2(?=\s|$)/);
+    expect(section.querySelector('[aria-hidden="true"]')!.className).toMatch(/(?:^|\s)mr-3(?=\s|$)/);
+  });
+
+  it("folds the harness row shut, never drops it, when the pane's agent exits under it", () => {
+    // Claude exiting to its shell turns the SAME open pane into a shell (routes/detail.tsx does not
+    // remount it), and the second row is 40px of the belt: dropped, it would jump the controls and
+    // the mirror by a whole row. Collapse slides it shut first and unmounts it after.
+    vi.useFakeTimers();
+    const { rerender } = render(<ActionsRow general={[general()]} agent="claude" onRun={took} />);
+    rerender(<ActionsRow general={[general()]} agent={null} onRun={took} />);
+    expect(document.querySelector('[data-slot="collapse"]')).toHaveAttribute("data-state", "closed");
+    expect(document.querySelector('[data-slot="harness-bar"]')).not.toBeNull();
+    act(() => {
+      vi.advanceTimersByTime(COLLAPSE_MS);
+    });
+    expect(document.querySelector('[data-slot="harness-bar"]')).toBeNull();
+    expect(names()).toEqual(["Keys"]);
   });
 });
 

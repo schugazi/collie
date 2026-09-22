@@ -82,22 +82,26 @@ export const STRIP_SCROLLER =
  * this one, because it is appended after `${STRIP_TAP_TARGET}` below — so this is not a second,
  * competing rule left for the cascade to arbitrate; it is the one rule that survives.
  * `before:-inset-x-px` reaches the border edges rather than a neighbour, which is what
- * lets these sit at a 6px gap without two hit boxes overlapping. The caller adds its own colour and
+ * lets these sit at a 2px gap without two hit boxes overlapping. The caller adds its own colour and
  * typography; nothing about the box is a caller's to pick.
  *
- * `px-2` and not `px-2.5`: when the actions row's general half took its words back, five labelled
- * pills measured 416px against a 382px row, and the 10px came off here rather than off a label or
- * off the type size. It buys 5px a pill — 25px across the five general pills, 20px across a four-button
- * harness section — and it is ONE number for every pill in every strip on purpose, because the
- * actions row's two parts only read as one belt while their pills are the same box. The key rail wears
- * it too; its caps are mono and short, so it lost 5px a key and nothing else.
+ * `px-1`, a 2px pill gap (`gap-0.5` on the row and in {@link BELT_SECTION}) and 11px words at the
+ * call sites: the belt is two rows now (`actions-row.tsx`), and each row has to fit a 390px phone
+ * beside the Switch cell's 33px floor. Measured at a 390px belt in Aldrich: five general pills 322px and
+ * Claude's section 325px against 352px of row, where `px-2`, a 6px gap and 12px words measured 394px
+ * and 393px. It is ONE number for every pill on the belt on purpose, because the two rows only read
+ * as one belt while their pills are the same box.
  *
- * `has-[>svg]:px-2` is not decoration and may not be dropped: `ui/button.tsx`'s `sm` size sets
+ * `grow` spreads them: a row with room to spare widens every pill by an equal share of it, word
+ * centred, so the buttons cover the row rather than bunching at its left (operator, from the phone).
+ * A row with no room to spare is unchanged, and pans.
+ *
+ * `has-[>svg]:px-1` is not decoration and may not be dropped: `ui/button.tsx`'s `sm` size sets
  * `has-[>svg]:px-2.5`, and tailwind-merge does not read that as conflicting with a bare `px-*` —
  * different modifier, so both survive and the MODIFIED one wins on every pill that carries an icon,
  * which is all of them in the actions row. Measured: the bare number alone moved nothing at all.
  */
-export const STRIP_ROW_PILL = `${STRIP_TAP_TARGET} before:-inset-x-px before:inset-y-0 h-8 min-w-11 shrink-0 touch-manipulation px-2 has-[>svg]:px-2 select-none`;
+export const STRIP_ROW_PILL = `${STRIP_TAP_TARGET} before:-inset-x-px before:inset-y-0 h-8 min-w-11 shrink-0 grow touch-manipulation px-1 has-[>svg]:px-1 select-none`;
 
 /**
  * A SECTION OF THE BELT — the rectangle a group of {@link STRIP_ROW_PILL}s sits in when it needs a
@@ -124,9 +128,10 @@ export const STRIP_ROW_PILL = `${STRIP_TAP_TARGET} before:-inset-x-px before:ins
  *
  * Two numbers remain, each measured against {@link STRIP_SCROLLER}:
  *
- *  1. **`px-1.5` and `gap-1.5` are the belt's own pill gap, 6px**, the same number the scroller uses
- *     between the general pills and this section. One gap everywhere is what makes the belt read as
- *     one strip: the section is told apart by its TINT, not by a wider gap around it.
+ *  1. **`gap-0.5` is the belt's own pill gap, 2px**, the same number the general row uses between
+ *     its pills ({@link STRIP_ROW_PILL} says why it is that tight), and `px-1` pads the section's
+ *     ends. One gap everywhere is what makes the belt read as one strip: the section is told apart
+ *     by its TINT, not by a wider gap around it.
  *  2. **`border-x border-transparent`** is reserved, never drawn by default. It is the §2 recipe — a
  *     section that needs a hairline on one edge (see the black-branded fallback in
  *     `harness-bar.tsx`) colours the reserved width instead of adding one, so the tinted and the
@@ -138,7 +143,7 @@ export const STRIP_ROW_PILL = `${STRIP_TAP_TARGET} before:-inset-x-px before:ins
  * It owns the geometry and NOT the ground. The caller paints it.
  */
 export const BELT_SECTION =
-  "flex h-8 shrink-0 items-center gap-1.5 border-x border-transparent px-1.5 py-0";
+  "flex h-8 shrink-0 items-center gap-0.5 border-x border-transparent px-1 py-0";
 
 /**
  * Whether the strips in this subtree DRAW their names, or only expose them to a screen reader.

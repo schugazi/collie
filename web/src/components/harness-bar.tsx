@@ -15,8 +15,8 @@ import { canonicalAgent } from "@/lib/operator-scope";
 import type { OperatorCommand } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-// The harness section of the actions belt: the running agent's own slash commands, sitting inside
-// the one scrolling row above the input (components/actions-row.tsx). Model, Effort, Compact and
+// The harness section of the actions belt: the running agent's own slash commands, on the belt's
+// second row, directly above the input (components/actions-row.tsx). Model, Effort, Compact and
 // Resume on a Claude Code pane; Codex, pi and omp get their own. The table is lib/harness-bar.ts —
 // nothing here decides what the buttons are.
 //
@@ -52,9 +52,9 @@ import { cn } from "@/lib/utils";
 // gate, one place. The checkmark is the honest signal — it appears only when `send()` resolved true,
 // so a tap that was refused shows nothing and the label stays put.
 //
-// It does not collapse or animate. A section that appeared and disappeared would move the input
-// under the thumb, and DESIGN.md §2 says reserve, never reflow — so its presence is decided by the
-// pane's agent, which does not change while the pane is on screen.
+// Its presence is decided by the pane's agent and the Settings switch. Either can change under an
+// open pane — an agent exits to its shell — so the belt folds this section's row through `Collapse`
+// rather than letting it pop (actions-row.tsx); nothing in here animates.
 
 /**
  * A bar label is either an i18n key or literal text, and the prefix is the discriminator:
@@ -158,7 +158,11 @@ export function HarnessBar({ agent, mine, onRun, disabled }: HarnessBarProps) {
       // describes (`-my-1.5` paired with a padding-grown box, landing on the scroller's old `py-1.5`)
       // brought back at the belt's new numbers, and it is safe for the same reason that one was: the
       // scroller has real padding to land on again, so nothing overflows `clientHeight`.
-      className={cn(BELT_SECTION, "h-10 -my-1", accent === undefined && "border-l-border bg-muted")}
+      // The tint spans its whole row (actions-row.tsx gives that row no gutter): `grow` runs it to the
+      // Switch cell's hairline and lets the pills inside spread over it, and `pl-2` is the controls
+      // row's 4px gutter plus BELT_SECTION's own 4px, so the tint starts at the screen edge while
+      // the mark starts about where Keys does above it.
+      className={cn(BELT_SECTION, "h-10 -my-1 grow pl-2", accent === undefined && "border-l-border bg-muted")}
       style={
         accent === undefined
           ? undefined
@@ -170,10 +174,12 @@ export function HarnessBar({ agent, mine, onRun, disabled }: HarnessBarProps) {
       {/* The mark, not a button: `aria-hidden` on the wrapper drops AgentIcon's own `role="img"`
           and its label out of the tree, so a reader hears the group's name once and not a logo
           before every command. It carries no tap area either — it is the section's tag.
-          No `pl-0.5` any more: the capsule's own padding was 4px and the mark needed the extra 2px
-          to clear the rounded end. BELT_SECTION is square and pads 6px, so the mark already sits on
-          the belt's own pill gap and a nudge would only push it off it. */}
-      <span aria-hidden="true" className="flex shrink-0 items-center">
+          No `pl-0.5`: BELT_SECTION is square and pads its own ends, so the mark already sits where
+          a pill's icon would and a nudge would only push it off that line.
+          `mr-3` STANDS IT APART. At 2px from Model it read as one more button (operator, from the
+          phone); 12px of clear tint — wider than any pill-to-pill gap on a phone — says it labels
+          the row instead. */}
+      <span aria-hidden="true" className="mr-3 flex shrink-0 items-center">
         <AgentIcon agent={agent} className="size-4" />
       </span>
       {items.map((item) => {
@@ -194,7 +200,7 @@ export function HarnessBar({ agent, mine, onRun, disabled }: HarnessBarProps) {
                 : labelText(item.label)
             }
             className={cn(
-              `${STRIP_ROW_PILL} gap-1.5 text-xs`,
+              `${STRIP_ROW_PILL} gap-1 text-[11px]`,
               armed && "border border-destructive/40 bg-destructive/10 text-destructive",
               !armed &&
                 phase !== "idle" &&

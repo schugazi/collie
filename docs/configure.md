@@ -163,14 +163,15 @@ To verify, open a pane and tap **/**; your rows appear on the first screen.
 
 ### Putting a command on the actions row
 
-`bar = true` also puts the row on the actions row, the one row of buttons above the keyboard. A bar
+`bar = true` also puts the row on the actions row, the belt of buttons above the keyboard. A bar
 row is still an ordinary palette row, so it appears on both surfaces. `bar_label` is the button's
 text and defaults to the command name without its slash.
 
-The actions row is a belt, one full-bleed band above the keyboard. Collie's own controls sit
-directly on the band: Keys, Type, Quick, Agent and the display gear. The running harness's own
-commands sit beside them, in a section tinted with the harness's brand colour, so you can see at a
-glance which buttons type into the agent. A sideways drag scrolls the belt; nothing is dropped.
+The actions row is a belt, one full-bleed band of two rows above the keyboard. Collie's own
+controls sit on the top row: Keys, Type, Quick, Agent and the display gear. The running harness's
+own commands sit on the second row, in a section tinted with the harness's brand colour, so you can
+see at a glance which buttons type into the agent. On a 390px phone every button shows at once; a
+narrower screen scrolls a row sideways, and nothing is dropped.
 
 Each harness ships its own buttons, in this order:
 
@@ -203,12 +204,12 @@ not `true` or `false` drops that one row, the same way a bad `confirm` does.
 The row sends while the agent is busy, the same as the command palette. The checkmark appears only
 when the pane took the text.
 
-A Switch button sits at the belt's right end and opens the pane switcher. It draws the layers mark
-alone, behind a hairline, and carries no word. A drag up, anywhere on the belt, opens the same
-switcher. A sideways drag scrolls the belt instead.
+A Switch button sits at the belt's right end, as tall as both rows, and opens the pane switcher. It
+draws the layers mark alone, behind a hairline, and carries no word. A drag up, anywhere on the
+belt, opens the same switcher.
 
-To verify, open a pane running Claude Code, Codex, pi or omp; the tinted segment sits at the right
-of the row above the keyboard. Turn that segment off per device in **Settings → Harness shortcuts**;
+To verify, open a pane running Claude Code, Codex, pi or omp; the tinted segment is the second row
+above the keyboard. Turn that segment off per device in **Settings → Harness shortcuts**;
 Collie's own controls stay.
 
 ## Your own key presets

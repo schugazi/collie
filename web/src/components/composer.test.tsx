@@ -1576,14 +1576,12 @@ describe("Composer — the machine opens the actions belt, and no band stands ab
     expect(actions().className).toMatch(/(?:^|\s)-mx-3(?=\s|$)/);
     expect(actions().className).toMatch(/(?:^|\s)bg-foreground\/6(?=\s|$)/);
     expect(actions().className).not.toMatch(/rounded/);
-    // The 12px goes back on the SCROLLER, not on the OverflowEdges wrapper between them: that
-    // wrapper owns the flex sizing and the edge cues, and deliberately no padding of its own.
-    // `pl-3`/`pr-3` rather than one `px-3`: with a pinned Switch block the right half becomes a
-    // dynamic inline `paddingRight` instead (actions-row.tsx's `useSwitchBlockWidth`), so the two
-    // sides are separate classes even though this handle-less render keeps both at 12px.
+    // A gutter goes back on the SCROLLER, not on the OverflowEdges wrapper between them: that
+    // wrapper owns the flex sizing and the edge cues, and deliberately no padding of its own. It is
+    // 4px (`px-1`), not the dock's 12px: the pills spread over the row now, and the operator read
+    // the full 12px as a gap on the left (actions-row.tsx).
     const scrollerClass = actions().querySelector(".overflow-x-auto")!.className;
-    expect(scrollerClass).toMatch(/(?:^|\s)pl-3(?=\s|$)/);
-    expect(scrollerClass).toMatch(/(?:^|\s)pr-3(?=\s|$)/);
+    expect(scrollerClass).toMatch(/(?:^|\s)px-1(?=\s|$)/);
     // The group's GUTTER is the scroller's and nothing else: with the capsule gone, Collie's
     // controls stand on the belt's own ground and own no padding at all.
     expect(row().className).not.toMatch(/(?:^|\s)px-/);

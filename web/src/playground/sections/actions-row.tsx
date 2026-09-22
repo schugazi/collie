@@ -26,12 +26,14 @@ export const DEF: SectionDef = {
   id: "actions-row",
   title: "Actions row",
   intent:
-    "The one row above the keyboard, drawn as a BELT: one full-bleed band with a hairline above and below, no rounded ends, and a quiet ground of its own. Collie's own controls — Keys, Type, Quick, Agent, Display — stand directly on that ground; the running harness's own commands stand in a section of the same band, square-cornered, full height, tinted with the harness's colour and opening with its mark. Every pill is an icon and a word, in both parts. It scrolls sideways rather than wrapping, and nothing is ever dropped from it. Tapping a harness button really runs it; here that means a stub that says yes, so the checkmark is the real echo.",
+    "The two rows above the keyboard, drawn as a BELT: one full-bleed band with a hairline below, no rounded ends, and a quiet ground of its own. Collie's own controls — Keys, Type, Quick, Agent, Display — stand directly on that ground on the top row; the running harness's own commands stand on the second row in a section of the same band, square-cornered, full height, tinted with the harness's colour and opening with its mark. Every pill is an icon and a word, in both rows. At 390px neither row scrolls; a narrower phone pans a row sideways rather than wrapping it, and nothing is ever dropped. Tapping a harness button really runs it; here that means a stub that says yes, so the checkmark is the real echo.",
 };
 
-function Roomy({ agent }: { agent: string | null }) {
+const SWITCH = { ref: () => {}, onClick: () => {}, label: "Switch pane" };
+
+function Roomy({ agent, handle }: { agent: string | null; handle?: boolean }) {
   const general = useRoomyActions();
-  return <ActionsRow general={general} agent={agent} onRun={took} />;
+  return <ActionsRow general={general} agent={agent} onRun={took} handle={handle ? SWITCH : undefined} />;
 }
 
 export function ActionsRowSection() {
@@ -52,6 +54,16 @@ export function ActionsRowSection() {
           span={2}
         >
           <Roomy agent="claude" />
+        </Card>
+
+        <Card
+          state="roomy-claude-switch"
+          label="claude code with the Switch cell: both rows fit beside it"
+          reach="open a Claude Code pane in a tab that has another pane, a shell or a launcher."
+          note="The pane switcher's mark stands in a cell as tall as both rows, on the composer's own chrome behind a hairline, directly above Send, 44px wide at most and 32px at least. It is a sibling of the rows, not laid over them, so at a 390px phone neither row scrolls; the pills spread over the rest, the harness tint runs right up to its hairline, and Claude's mark stands apart as the row's label."
+          span={2}
+        >
+          <Roomy agent="claude" handle />
         </Card>
 
         <Card
@@ -111,9 +123,9 @@ export function ActionsRowSection() {
 
         <Card
           state="overflow"
-          label="a narrow phone: the row scrolls, it never wraps"
+          label="a narrow phone: each row scrolls on its own, it never wraps"
           reach="hold a 320px phone, or run a harness whose operator put ten rows on the bar."
-          note="The card below is clamped to 280px. Drag the row sideways: the fade and the chevron move to whichever end still hides something — right at rest, both in the middle, left at the far end — nothing wraps to a second line, and no button is dropped."
+          note="The card below is clamped to 280px. Drag a row sideways: its fade moves to whichever end still hides something — right at rest, both in the middle, left at the far end — nothing wraps to a third line, and no button is dropped."
         >
           <div className="w-[280px] overflow-hidden">
             <Roomy agent="claude" />

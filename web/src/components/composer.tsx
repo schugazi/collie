@@ -126,7 +126,7 @@ interface ComposerProps {
   onSent: () => void;
 
   /**
-   * The pane switcher, in two pieces: a Switch pill pinned at the actions belt's right end
+   * The pane switcher, in two pieces: the Switch cell at the actions belt's right end
    * (`onClick`, the tap) and the belt itself as a drag surface (`ref`, the finger-tracked pull).
    * Threaded straight through to {@link import("@/components/actions-row").ActionsRow} — this file
    * decides nothing about either and draws none of it.
@@ -1279,9 +1279,9 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
           mine={operatorCommands}
           onRun={(command) => send(command, false)}
           disabled={locked}
-          // The pane switcher: a Switch pill pinned at this belt's right end, above Send, and the
-          // belt itself as the drag surface behind it. The pane decides whether there is one
-          // (agent-chat.tsx); this row draws the pill, wires the drag, and costs no height.
+          // The pane switcher: a Switch cell at this belt's right end, as tall as both rows and above
+          // Send, and the belt itself as the drag surface behind it. The pane decides whether there
+          // is one (agent-chat.tsx); this row draws the cell, wires the drag, and costs no height.
           handle={pullHandle}
         />
         {/* ── THE FOOTER'S NOTICE STRIPS, SORTED BY KIND (DESIGN.md §1, §2) ─────────────────────
