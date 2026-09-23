@@ -15,9 +15,9 @@ describe("quickRepliesFor", () => {
     const shell = quickRepliesFor("shell", true);
     const items = shell.flatMap((g) => g.items);
     expect(items).toEqual(["y", "n"]);
-    // "commit and push" at a bare bash prompt is nonsense; "skip" is meaningless there.
+    // "commit and push" at a bare bash prompt is nonsense; "continue" is meaningless there.
     expect(items).not.toContain("commit and push");
-    expect(items).not.toContain("skip");
+    expect(items).not.toContain("continue");
   });
 
   it("isShell wins over the agent string — the caller knows the pane kind, the string may drift", () => {

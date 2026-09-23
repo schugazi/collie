@@ -9,7 +9,7 @@
 //
 // The split that actually matters TODAY is agent vs shell, not agent vs agent: "yes"/"continue" mean
 // the same thing to every LLM harness, but "commit and push" typed at a bare bash prompt is nonsense
-// and "skip" is meaningless there. Hence one shared agent set plus a distinct shell set. The catalog
+// and "propose the plan" is meaningless there. Hence one shared agent set plus a distinct shell set. The catalog
 // is keyed per agent anyway so a real divergence (a harness that wants "approve" over "yes") is a
 // one-line addition rather than a restructuring.
 
@@ -23,16 +23,26 @@ export interface QuickReplyGroup {
   items: readonly string[];
 }
 
-// Shared by every LLM harness. Deduped to distinct intents: no yes/ok/approve/go-ahead pile-up, and
-// no "stop" that just duplicates Esc in the Keys pad.
+// Shared by every LLM harness. The operator's own most-typed replies across a day of Herdr
+// sessions, deduped to distinct intents: no yes/ok/approve/go-ahead pile-up, and no "stop" that just
+// duplicates Esc in the Keys pad.
 const AGENT: readonly QuickReplyGroup[] = [
-  { title: "confirm", items: ["yes", "no"] },
-  { title: "common", items: ["continue", "commit and push", "retry", "skip"] },
+  { title: "confirm", items: ["yes", "continue"] },
+  {
+    title: "common",
+    items: [
+      "commit and push",
+      "stage the changes",
+      "have astra review",
+      "have fable review",
+      "propose the plan",
+    ],
+  },
 ];
 
 // A bare shell has no notion of continuing or skipping a turn — the only near-universal one-tap
 // replies are the classic Unix y/n confirmations, so that's all it gets. An almost-empty dock is the
-// honest answer here; padding it with agent phrases would just be four buttons that do nothing
+// honest answer here; padding it with agent phrases would just be buttons that do nothing
 // useful when tapped.
 const SHELL: readonly QuickReplyGroup[] = [{ title: "confirm", items: ["y", "n"] }];
 

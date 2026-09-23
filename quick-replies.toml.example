@@ -19,11 +19,11 @@
 # The shipped dock, restated — start here and edit the phrases.
 # [[replies]]
 # title = "confirm"
-# items = ["yes", "no"]
+# items = ["yes", "continue"]
 #
 # [[replies]]
 # title = "common"
-# items = ["continue", "commit and push", "retry", "skip"]
+# items = ["commit and push", "stage the changes", "have astra review", "have fable review", "propose the plan"]
 
 # Working in another language? Replace the phrases; the harness reads them as prose either way.
 # [[replies]]

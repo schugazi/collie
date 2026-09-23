@@ -48,6 +48,7 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 - **The installed icon shows a single large terminal prompt.** A centered `>_` replaces the window frame on Home Screen tiles and favicons.
 - **The terminal prompt gets more breathing room.** Shrink the centered `>_` on Home Screen tiles and favicons while keeping its teal and gold colors.
 - **The actions belt shows every button in two rows.** Collie's own controls stand on the top row and the harness's commands on a second row beneath them, with the Switch mark in a cell as tall as both, so a 390px phone no longer needs a sideways scroll. The buttons spread over the full width, the harness's tint runs the full length of its row, and its mark stands apart as the row's label. The pills are tighter and their words 11px to fit; a narrower phone still pans a row rather than wrapping it, and the harness row folds in or out rather than jumping when an agent starts or exits in an open pane.
+- **The Quick dock offers the replies you actually type.** Agent panes now get yes and continue, then commit and push, stage the changes, the astra and fable review asks and propose the plan, drawn from a day of Herdr transcripts; retry, skip and no are gone. A phrase too long for its button wraps to a second line instead of spilling out.
 
 
 ### Fixed

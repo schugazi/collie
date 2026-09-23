@@ -14,7 +14,7 @@ interface QuickActionsContentProps {
   /** Resolves true once the reply is verified sent — drives the ✓ and the deferred close. */
   onSend: (text: string) => Promise<boolean>;
   onClose: () => void;
-  /** The pane's agent + kind — pick the reply set (lib/quick-replies). A shell gets y/n, not "skip". */
+  /** The pane's agent + kind — pick the reply set (lib/quick-replies). A shell gets y/n, not "continue". */
   agent: string | undefined | null;
   isShell: boolean;
   disabled?: boolean;
@@ -67,7 +67,8 @@ function Group({
               disabled={disabled || busy}
               onClick={() => onFire(t)}
               className={cn(
-                "h-12 gap-1.5 text-sm font-medium",
+                // A long phrase wraps to a second line rather than spilling past its half-width cell.
+                "h-12 gap-1.5 whitespace-normal text-center text-sm font-medium leading-tight",
                 phase !== "idle" && "disabled:opacity-100",
               )}
             >

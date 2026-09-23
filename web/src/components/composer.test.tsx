@@ -2321,7 +2321,7 @@ describe("Composer — quick dock (in-flow, matches the keys dock)", () => {
 
     // The tapped reply is busy; an untapped sibling is locked out so a second send can't race it.
     await waitFor(() => expect(screen.getByRole("button", { name: "continue" })).toBeDisabled());
-    expect(screen.getByRole("button", { name: "skip" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "commit and push" })).toBeDisabled();
 
     release();
     // Once it settles the dock closes itself — proof the flight actually resolved.
@@ -2345,7 +2345,7 @@ describe("Composer — quick dock (in-flow, matches the keys dock)", () => {
 
     // No ✓, no close — the reply never landed, so the dock stays put for a retry.
     await waitFor(() => expect(screen.getByRole("button", { name: "continue" })).toBeEnabled());
-    expect(screen.getByRole("button", { name: "skip" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "commit and push" })).toBeEnabled();
   });
 });
 
