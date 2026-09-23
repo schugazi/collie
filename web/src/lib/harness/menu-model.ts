@@ -30,6 +30,10 @@ export interface MenuLeftRight {
    * label tracks it. Never compare it for menu identity (lib/menu-action.ts).
    */
   label: string;
+  /** Every value the arrows step through, in screen order — set only where the screen prints the
+   *  whole ladder (Claude's `/effort` slider), so the renderer can draw it natively. Like `label`,
+   *  never part of menu identity. */
+  scale?: string[];
 }
 
 /** The arrow affordances the screen advertises (absent = it showed no sign of them). Never assumed:

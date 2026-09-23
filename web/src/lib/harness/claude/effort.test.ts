@@ -47,6 +47,8 @@ const EXPECTED_ACTIONS = [
   { label: "This session only", keys: ["s"] },
   { label: "Cancel", keys: ["Escape"], cancel: true },
 ];
+// The label row, whole and in order — the ladder the phone draws in place of the off-screen slider.
+const SCALE = ["low", "medium", "high", "xhigh", "max", "ultracode"];
 
 describe("detectEffort — the /effort slider", () => {
   it("lifts the slider as a menu with all three footer keys and the arrow nav", () => {
@@ -57,7 +59,10 @@ describe("detectEffort — the /effort slider", () => {
     // "s for this session only" rather than "s to …".
     expect(model!.actions).toEqual(EXPECTED_ACTIONS);
     // No highlight on this screen, so Up/Down mean nothing; the arrows carry the value.
-    expect(model!.nav).toEqual({ upDown: false, leftRight: { verb: "adjust", label: "xhigh" } });
+    expect(model!.nav).toEqual({
+      upDown: false,
+      leftRight: { verb: "adjust", label: "xhigh", scale: SCALE },
+    });
     expect(model!.signature).not.toBe("");
   });
 
@@ -71,7 +76,7 @@ describe("detectEffort — the /effort slider", () => {
     // against the Effort model is what proves which arm ran.
     expect(block.menu).toEqual(detectEffort(paneLines)!);
     expect(block.menu.actions).toEqual(EXPECTED_ACTIONS);
-    expect(block.menu.nav.leftRight).toEqual({ verb: "adjust", label: "xhigh" });
+    expect(block.menu.nav.leftRight).toEqual({ verb: "adjust", label: "xhigh", scale: SCALE });
   });
 
   // The slider opens with Claude's notice in its top rule too (menu.test.ts has the /model case).
@@ -138,7 +143,7 @@ describe("detectEffort — a second capture width", () => {
     // What that screen showed: a fresh isolated config, `/effort` opened without touching the
     // arrows, marker over `high`. The 82-column capture reads `xhigh`, so the two files disagree on
     // the value and agree on everything else — which is the point of having both.
-    expect(model!.nav.leftRight).toEqual({ verb: "adjust", label: "high" });
+    expect(model!.nav.leftRight).toEqual({ verb: "adjust", label: "high", scale: SCALE });
     expect(model!.actions).toEqual(EXPECTED_ACTIONS);
 
     // Position-independence, stated as a fact about the two files rather than assumed: the labels

@@ -39,9 +39,8 @@ describe("MenuBlock", () => {
     expect(screen.getByRole("button", { name: /right — adjust/i })).toBeInTheDocument();
   });
 
-  // The arrows are unreadable on their own — the cluster has to say WHAT it adjusts, both visibly and
-  // in the accessible names, and that text is the row's live value.
-  it("labels the ←/→ cluster with the value it adjusts", () => {
+  // The mirror shows the value visibly; the accessible names still say WHAT ←/→ adjust.
+  it("names the ←/→ arrows with the value they adjust", () => {
     renderMenu();
     expect(
       screen.getByRole("button", { name: "Left — adjust (◐ Medium effort)" }),
@@ -49,8 +48,6 @@ describe("MenuBlock", () => {
     expect(
       screen.getByRole("button", { name: "Right — adjust (◐ Medium effort)" }),
     ).toBeInTheDocument();
-    // …and visibly, between them.
-    expect(screen.getAllByText("◐ Medium effort").length).toBeGreaterThan(0);
   });
 
   // The region stays visible because the grammar parsed the FOOTER, not the body: the options and
@@ -84,18 +81,107 @@ describe("MenuBlock", () => {
     expect(onAction).toHaveBeenCalledWith({ keys: ["Escape"], nav: true });
   });
 
-  it("gives the ←/→ value its own width, not a third of a third of the row", () => {
-    // Split three ways with ↑/↓, "◉ xHigh effort" drew as "x…". The arrows are a fixed 44px and the
-    // value keeps its natural width; ↑/↓ take the rest.
+  it("queues a Cancel tapped while an arrow is still in flight, rather than dropping it", async () => {
+    const user = userEvent.setup();
+    let finishArrow!: () => void;
+    const onAction = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise<void>((resolve) => (finishArrow = resolve)))
+      .mockResolvedValue(undefined);
+    renderMenu(onAction);
+
+    await user.click(screen.getByRole("button", { name: "Move up" }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    // The arrow still holds the row, so Cancel waits its turn…
+    expect(onAction).toHaveBeenCalledTimes(1);
+
+    finishArrow();
+    // …and goes out once it lands.
+    await vi.waitFor(() => expect(onAction).toHaveBeenCalledTimes(2));
+    expect(onAction).toHaveBeenLastCalledWith({ keys: ["Escape"], nav: true });
+  });
+
+  it("drops a queued tap once the picker is gone, rather than firing it at a pane left behind", async () => {
+    const user = userEvent.setup();
+    let finishArrow!: () => void;
+    const onAction = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise<void>((resolve) => (finishArrow = resolve)))
+      .mockResolvedValue(undefined);
+    const block = menuBlock();
+    const { unmount } = render(<MenuBlock menu={block.menu} lines={block.lines} onAction={onAction} />);
+
+    await user.click(screen.getByRole("button", { name: "Move up" }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    unmount();
+    finishArrow();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(onAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the committing keys disabled while an arrow is pending — a commit is never queued", async () => {
+    // Queued behind an arrow whose send failed, a commit would pass its signature check against the
+    // untouched highlight and commit the row the operator was moving away from.
+    const user = userEvent.setup();
+    let finishArrow!: () => void;
+    const onAction = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise<void>((resolve) => (finishArrow = resolve)))
+      .mockResolvedValue(undefined);
+    renderMenu(onAction);
+
+    await user.click(screen.getByRole("button", { name: "Move down" }));
+    const commit = screen.getByRole("button", { name: "Set as default" });
+    expect(commit).toBeDisabled();
+    await user.click(commit);
+    finishArrow();
+    await vi.waitFor(() => expect(commit).toBeEnabled());
+    expect(onAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("splits the arrow row into four equal buttons, with no value label to resize them", () => {
+    // A visible value between ←/→ changed width with the value and shifted every arrow.
     renderMenu();
-    const value = screen.getAllByText("◐ Medium effort").find((el) => el.tagName === "SPAN")!;
-    expect(value.className).not.toMatch(/(?:^|\s)flex-1(?=\s|$)/);
-    expect(value.parentElement!.className).not.toMatch(/(?:^|\s)flex-1(?=\s|$)/);
-    for (const name of [/^Left — adjust/, /^Right — adjust/]) {
-      const arrow = screen.getByRole("button", { name });
-      expect(arrow.className).toMatch(/(?:^|\s)w-11(?=\s|$)/);
-      expect(arrow.className).not.toMatch(/(?:^|\s)flex-1(?=\s|$)/);
-    }
+    const arrows = ["Move up", "Move down", /^Left — adjust/, /^Right — adjust/].map((name) =>
+      screen.getByRole("button", { name }),
+    );
+    const row = arrows[0].parentElement!;
+    expect([...row.children]).toEqual(arrows);
+    for (const arrow of arrows) expect(arrow.className).toMatch(/(?:^|\s)flex-1(?=\s|$)/);
+  });
+
+  it("draws the /effort slider's ladder natively, with the current step marked", () => {
+    const block = claudeBuildBlocks(
+      splitLines(
+        parseAnsi(
+          readFileSync(
+            join(import.meta.dirname, "..", "fixtures", "panes", "claude--menu-effort-slider.txt"),
+            "utf8",
+          ),
+        ),
+      ),
+    ).find((b) => b.kind === "menu");
+    if (!block || block.kind !== "menu") throw new Error("the effort fixture lifted no menu block");
+    const { container } = render(<MenuBlock menu={block.menu} lines={block.lines} onAction={vi.fn()} />);
+
+    // Its terminal rows sit off to the right of a full-width pane, so they are not mirrored at all.
+    expect(container.querySelector("pre")).toBeNull();
+    const steps = screen.getAllByRole("listitem");
+    expect(steps.map((s) => s.textContent)).toEqual(["low", "medium", "high", "xhigh", "max", "ultracode"]);
+    expect(steps.filter((s) => s.getAttribute("aria-current") === "true").map((s) => s.textContent)).toEqual([
+      "xhigh",
+    ]);
+  });
+
+  it("keeps a full-width button's label in place while its key is sending", async () => {
+    const user = userEvent.setup();
+    renderMenu(vi.fn(() => new Promise<void>(() => {})));
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+    await user.click(cancel);
+    // The spinner stands out of the flow, so the word does not slide over to make room for it.
+    const spinner = screen.getByLabelText("Sending");
+    expect(spinner.parentElement!.className).toMatch(/(?:^|\s)absolute(?=\s|$)/);
+    expect(cancel.className).not.toMatch(/(?:^|\s)gap-/);
   });
 
   it("renders but refuses taps when disabled", async () => {

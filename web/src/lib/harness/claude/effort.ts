@@ -202,7 +202,10 @@ export function detectEffortRegion(lines: StyledLine[]): MenuRegion | null {
     model: {
       title,
       actions: withSessionAction(footerActions, footer),
-      nav: { upDown: false, leftRight: { verb: arrows[1]!, label: value.text } },
+      nav: {
+        upDown: false,
+        leftRight: { verb: arrows[1]!, label: value.text, scale: labels.map((span) => span.text) },
+      },
       // The same helper, the same bounds as menu.ts — so the marker row is inside the signature and
       // an arrow tap changes it, which is what `menusEqual` needs to abort a stale confirm. From the
       // row under the rule, which carries Claude's notice for the modal's first seconds.
