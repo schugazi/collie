@@ -78,6 +78,7 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 - **A terminal row that wraps on the phone keeps its indent.** A row wider than the phone used to continue at the left edge, cutting through diff line numbers, tool results, bullets and indented lists; the rest of the row now lines up under its own text.
 - **Claude Code's ⎿, ⏺ and ⏵⏵ show on the phone instead of empty boxes.** Collie now ships the terminal symbols agents draw their chrome from, a 19 KB subset of JuliaMono the phone downloads only when one of them is on screen, so each fills one terminal cell like the rest of the mirror.
 - **Swiping back from a pane returns to its space view or the dashboard.** Back used to step through every tab you had switched to, return to the history page, or leave the app when a notification had opened the pane. A pane reached from a space view now backs out to that space view, and any other pane to the dashboard: switching tabs or opening a new tab inside the pane view replaces the history entry, closing the history page goes back to its pane instead of opening it again, and a pane opened straight from a link or a notification gets the dashboard placed behind it at your first tap.
+- **The dashboard and space views keep your scroll position.** Coming back from a pane, by a swipe or a tap, used to land at the top of the list; each list now returns to where you left it, per space and per host.
 
 ## [1.11.1] - 2026-09-20
 

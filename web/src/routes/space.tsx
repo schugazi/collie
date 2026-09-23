@@ -11,6 +11,7 @@ import { StatusArea } from "@/components/status-area";
 import { ToastViewport } from "@/components/ui/toast-viewport";
 import { BuildStamp } from "@/components/build-stamp";
 import { UpdateBanner } from "@/components/update-banner";
+import { useKeptScroll } from "@/hooks/use-kept-scroll";
 import { useSpaceActions } from "@/hooks/use-spaces";
 import { homePath, panePath, spacePath } from "@/lib/nav";
 import { ambientHost, paneScope } from "@/lib/hosts";
@@ -28,6 +29,7 @@ export function SpaceRoute() {
   const { spaceId = "" } = useParams();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
+  const scrollerRef = useKeptScroll();
   const { newTab, newSpace, creatingTab, creatingSpace } = useSpaceActions();
   const [newSpaceOpen, setNewSpaceOpen] = useState(false);
   // Either write gate refusing locks the tab strip's rename/close the same way (see ReadOnlyBanner).
@@ -92,7 +94,7 @@ export function SpaceRoute() {
       {/* Content region below the header: the viewport-clipped scroller, the same shell the
           dashboard uses — the two are one list screen at two depths. `relative` for the reason
           home.tsx gives: an `sr-only` descendant must resolve against this scroller. */}
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div ref={scrollerRef} className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
         {/* Below the header, so it is content, not viewport chrome: an inset box on this route's
             gutter, like the dashboard's. See read-only-banner.tsx. */}
         <ReadOnlyBanner device={data.device} />
