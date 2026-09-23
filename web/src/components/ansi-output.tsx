@@ -12,7 +12,7 @@ import {
   type StyledLine,
 } from "@/lib/blocks";
 import { tableRuns, type TableRun } from "@/lib/table-run";
-import { hangIndent } from "@/lib/hang-indent";
+import { hangIndents } from "@/lib/hang-indent";
 import {
   alignImagesFromEnd,
   blankPlaceholders,
@@ -477,7 +477,7 @@ export const AnsiOutput = memo(function AnsiOutput({
   // nothing to pan, so the table would be silently un-pannable, which is the exact failure this
   // change exists to fix. A frame row that is NOT in a run, a lone menu or panel border, keeps its clip
   // untouched: a detected table owns its own rows, and nothing beyond them.
-  const renderLine = (line: StyledLine, li: number, lead: boolean, inRun: boolean): ReactNode => {
+  const renderLine = (line: StyledLine, li: number, lead: boolean, inRun: boolean, rowHang = 0): ReactNode => {
     if (li > 0) offset += 1; // the "\n" separating this line from the previous
     const segNodes = line.segments.map((s, si) => {
       const segStart = offset;
@@ -491,7 +491,7 @@ export const AnsiOutput = memo(function AnsiOutput({
     // A run's own rows are never clipped; see `inRun` above. Outside a run this is unchanged: a
     // repeated rule, or a framed menu row, keeps the single-row clip it has always had. Only a row
     // that can wrap hangs: a clipped row and a run's row never wrap, and neither does Wrap off.
-    const hang = wrap && !inRun && !line.noWrap ? hangIndent(lineText(line)) : 0;
+    const hang = wrap && !inRun && !line.noWrap ? rowHang : 0;
     const content = line.noWrap && wrap && !inRun ? (
       <span className="inline-block max-w-full overflow-hidden align-bottom whitespace-pre break-normal [&_a]:break-normal">{segNodes}</span>
     ) : hang > 0 ? (
@@ -515,6 +515,8 @@ export const AnsiOutput = memo(function AnsiOutput({
     if (bi > 0) offset += 1; // the "\n" separating this block from the previous
     const runs = runsByBlock[bi] ?? NO_RUNS;
     const clusters = clustersByBlock[bi] ?? NO_CLUSTERS;
+    // Per block, not per row: a diff row Claude wrapped itself hangs by the numbered row above it.
+    const hangs = wrap ? hangIndents(block.lines.map((l) => lineText(blankPlaceholders(l)))) : [];
     const nodes: ReactNode[] = [];
     let ri = 0;
     let ci = 0;
@@ -536,7 +538,7 @@ export const AnsiOutput = memo(function AnsiOutput({
           }
           // A row carrying an image AND text keeps its text. The placeholder cells are blanked to
           // spaces of the same character count, so the row reads as written and no offset moves.
-          nodes.push(renderLine(blankPlaceholders(line), k, true, false));
+          nodes.push(renderLine(blankPlaceholders(line), k, true, false, hangs[k]));
         }
         nodes.push(renderImageCluster(url, `image:${bi}:${cluster.start}`, onImageError));
         li = cluster.end + 1;
@@ -544,7 +546,7 @@ export const AnsiOutput = memo(function AnsiOutput({
       }
       const run: TableRun | undefined = runs[ri];
       if (!run || run.start !== li) {
-        nodes.push(renderLine(block.lines[li]!, li, true, false));
+        nodes.push(renderLine(block.lines[li]!, li, true, false, hangs[li]));
         li++;
         continue;
       }

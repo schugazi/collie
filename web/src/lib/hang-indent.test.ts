@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { hangIndent } from "./hang-indent";
+import { hangIndent, hangIndents } from "./hang-indent";
 
 describe("hangIndent", () => {
   it.each([
@@ -21,5 +21,31 @@ describe("hangIndent", () => {
     ["a blank row", "    ", 0],
   ])("%s", (_name, text, want) => {
     expect(hangIndent(text)).toBe(want);
+  });
+});
+
+describe("hangIndents", () => {
+  it("hangs a diff line Claude wrapped itself under the text, not the sign", () => {
+    // Claude's own wrap of a long removed line: the sign repeats, the line number does not.
+    const rows = [
+      "⏺ Update(CLAUDE.md)",
+      "  ⎿  Added 1 line, removed 1 line",
+      "      53  ### Structured-hook internals",
+      "      55 -- **Structured hooks are authoritative and never touch a terminal.** pl",
+      "         -us the ORIGINAL `tool_input` with only `answers`",
+      "         - notification BEFORE publishing ANSWERED, because",
+      "          context line wrapped by Claude",
+      "      56 +  const pre = page.locator",
+      "         +locator(\"pre\")",
+      "",
+      "         -not a diff any more",
+    ];
+    // The blank row ends the diff, so the last row hangs by its own indent again.
+    expect(hangIndents(rows)).toEqual([2, 5, 10, 10, 10, 10, 10, 12, 10, 0, 9]);
+  });
+
+  it("ends the diff at the first row that does not fit its gutter", () => {
+    const rows = ["      55 -old", "⏺ Done", "         - a bullet at column 9"];
+    expect(hangIndents(rows)).toEqual([10, 2, 11]);
   });
 });

@@ -191,7 +191,8 @@ describe("mirror line wrapping", () => {
   });
 
   it("hangs an indented row's continuation under its text, and only while wrapping", () => {
-    const text = "prose\n  ⎿  Added 3 lines\n     2 +import x";
+    // The last row is Claude's own wrap of the diff line: sign, no line number.
+    const text = "prose\n  ⎿  Added 3 lines\n     2 +import x\n       + from y";
     const hung = (pre: HTMLElement) =>
       [...pre.querySelectorAll<HTMLElement>("span.inline-block")].map((s) => [
         s.textContent,
@@ -202,6 +203,7 @@ describe("mirror line wrapping", () => {
     expect(hung(pre)).toEqual([
       ["  ⎿  Added 3 lines", "5ch", "-5ch"],
       ["     2 +import x", "8ch", "-8ch"],
+      ["       + from y", "8ch", "-8ch"],
     ]);
     // The box adds no text: copy, find and link offsets all read the same characters.
     expect(pre.textContent).toBe(text);
