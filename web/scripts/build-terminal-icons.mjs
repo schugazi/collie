@@ -36,8 +36,9 @@ try {
       big.fillStyle = "#FDCD03";
       big.fillRect(0, 0, work, work);
       big.drawImage(img, Math.floor((work - art) / 2), Math.floor((work - art) / 2), art, art);
-      const sinc = (x) => (x === 0 ? 1 : Math.sin(Math.PI * x) / (Math.PI * x));
       // One separable Lanczos-3 pass over RGBA rows (or columns), clamped to bytes like Pillow's.
+      // The kernel sinc(x)·sinc(x/3) is written out inline: this function runs in the page, so it
+      // cannot call a helper from the script's own scope.
       const pass = (src, w, h, horizontal) => {
         const [dw, dh] = horizontal ? [size, h] : [w, size];
         const dst = new Uint8ClampedArray(dw * dh * 4);
@@ -49,7 +50,14 @@ try {
           const weights = [];
           for (let i = lo; i < hi; i++) {
             const x = (i - center + 0.5) / scale;
-            weights.push(Math.abs(x) < 3 ? sinc(x) * sinc(x / 3) : 0);
+            const third = x / 3;
+            weights.push(
+              x === 0
+                ? 1
+                : Math.abs(x) < 3
+                  ? (Math.sin(Math.PI * x) / (Math.PI * x)) * (Math.sin(Math.PI * third) / (Math.PI * third))
+                  : 0,
+            );
           }
           const total = weights.reduce((a, b) => a + b, 0);
           for (let k = 0; k < (horizontal ? h : w); k++) {

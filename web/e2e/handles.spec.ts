@@ -90,7 +90,7 @@ test.beforeEach(async ({ page }) => {
 test("the playground page has a title and a main landmark", async ({ page }) => {
   await page.goto("/playground.html");
 
-  await expect(page).toHaveTitle(/collie/i);
+  await expect(page).toHaveTitle(/mycroftxxx remote/i);
   await expect(page.getByRole("main").first()).toBeVisible();
 });
 
