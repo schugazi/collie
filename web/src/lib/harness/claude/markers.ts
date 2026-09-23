@@ -26,6 +26,24 @@ export function isHorizontalRule(text: string): boolean {
   return compact.length >= 3 && RULE_ONLY.test(compact);
 }
 
+// A modal's opening rule with Claude's notification slot painted INTO it. For its first few seconds
+// a `/model` or `/effort` modal opens on `▔▔…▔ ◉ xhigh · /effort ▔` (the notice right-aligned, one
+// glyph after it), then repaints the rule bare — observed 2026-09-22, Claude Code 2.1.280. Same glyph
+// on both flanks, the left one a rule by isHorizontalRule's own floor of 3.
+const NOTICE_RULE = new RegExp(`^([${CLAUDE_RULE_GLYPH_CLASS}])\\1{2,}\\s+(.+)\\s+\\1+$`);
+
+/**
+ * True when a line can open a modal's region: a box border, a bare rule, or a rule carrying the
+ * notification slot (NOTICE_RULE). menu.ts and effort.ts scan up from their footer for it; without
+ * the third arm both missed the modal until the notice cleared, and the phone showed the
+ * unread-dialog card for those seconds.
+ */
+export function isModalRule(text: string): boolean {
+  if (isBoxBorder(text) || isHorizontalRule(text)) return true;
+  const m = NOTICE_RULE.exec(text.trim());
+  return m !== null && !RULE_OR_SPACE_ONLY.test(m[2]!);
+}
+
 // A "bare" input-box border: the ONE glyph Claude actually draws its own input-box rules with — U+2500
 // (─) — repeated, nothing else, with NO interior whitespace stripped first (a real bare border has
 // none). Floor of 8 DISPLAY CELLS (terminal columns, via text-width.ts's `displayWidth`) —

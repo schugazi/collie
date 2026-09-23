@@ -68,7 +68,7 @@ describe("MenuBlock", () => {
     }
   });
 
-  it("sends a footer key as a committing action and an arrow as nav", async () => {
+  it("sends a footer key as a committing action, and an arrow or Cancel as nav", async () => {
     const user = userEvent.setup();
     const onAction = renderMenu();
 
@@ -77,6 +77,25 @@ describe("MenuBlock", () => {
 
     await user.click(screen.getByRole("button", { name: "Move down" }));
     expect(onAction).toHaveBeenCalledWith({ keys: ["Down"], nav: true });
+
+    // Esc commits nothing, so a Cancel right after an arrow must not be refused against the
+    // highlight that arrow just moved — it needed two taps on the phone while it compared commits.
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onAction).toHaveBeenCalledWith({ keys: ["Escape"], nav: true });
+  });
+
+  it("gives the ←/→ value its own width, not a third of a third of the row", () => {
+    // Split three ways with ↑/↓, "◉ xHigh effort" drew as "x…". The arrows are a fixed 44px and the
+    // value keeps its natural width; ↑/↓ take the rest.
+    renderMenu();
+    const value = screen.getAllByText("◐ Medium effort").find((el) => el.tagName === "SPAN")!;
+    expect(value.className).not.toMatch(/(?:^|\s)flex-1(?=\s|$)/);
+    expect(value.parentElement!.className).not.toMatch(/(?:^|\s)flex-1(?=\s|$)/);
+    for (const name of [/^Left — adjust/, /^Right — adjust/]) {
+      const arrow = screen.getByRole("button", { name });
+      expect(arrow.className).toMatch(/(?:^|\s)w-11(?=\s|$)/);
+      expect(arrow.className).not.toMatch(/(?:^|\s)flex-1(?=\s|$)/);
+    }
   });
 
   it("renders but refuses taps when disabled", async () => {

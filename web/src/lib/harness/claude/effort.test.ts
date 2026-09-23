@@ -74,6 +74,17 @@ describe("detectEffort — the /effort slider", () => {
     expect(block.menu.nav.leftRight).toEqual({ verb: "adjust", label: "xhigh" });
   });
 
+  // The slider opens with Claude's notice in its top rule too (menu.test.ts has the /model case).
+  it("lifts the slider while Claude's notice rides in its top rule, and signs it the same", () => {
+    const paneLines = load(FIXTURE);
+    const at = paneLines.findIndex((l) => /^─{20,}$/.test(textOf(l).trim()));
+    const rule = textOf(paneLines[at]!).trimEnd();
+    const notice = " ◉ xhigh · /effort ─";
+    const noticedLines = [...paneLines];
+    noticedLines[at] = lines(rule.slice(0, rule.length - notice.length) + notice)[0]!;
+    expect(detectEffort(noticedLines)).toEqual(detectEffort(paneLines));
+  });
+
   it("emits no digit key", () => {
     for (const fixture of [FIXTURE, WIDE_FIXTURE]) {
       const model = detectEffort(load(fixture))!;

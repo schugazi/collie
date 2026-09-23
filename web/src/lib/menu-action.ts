@@ -8,6 +8,8 @@
 //     the menu's IDENTITY (title + the keys it offers, and NOT the ←/→ row's live label) — because
 //     moving the highlight is precisely what changes the signature, so a signature check would make
 //     the second arrow tap in a row always fail. Nothing is committed, so identity is enough.
+//   - The footer's CANCEL (Esc) takes the nav path too: it commits nothing either, and a Cancel
+//     tapped right after an arrow would otherwise be refused against the highlight that arrow moved.
 //
 // Both semantics live in harness/menu-model.ts (menusEqual / menusSameIdentity) and are wired to this
 // kind by harness/dialog-contract.ts; `nav` just picks which one the guard runs.
@@ -33,7 +35,7 @@ export async function submitMenuKeys(args: {
   detectedRevision: number;
   menu: MenuModel;
   keys: string[];
-  /** True for Up/Down/Left/Right: compare identity only, since the tap's own effect is the change. */
+  /** True for Up/Down/Left/Right and the footer's Esc: compare identity only, since none commits. */
   nav?: boolean;
   /** Which machine + which named session the pane lives in — scopes the read + keystroke. */
   scope?: Scope;

@@ -1039,8 +1039,8 @@ export function AgentChat({
   );
 
   // Tap a generic-menu control (a footer-named key like Enter/s/Esc, or an arrow). Same guard-first
-  // shape as the handlers above; the arrow taps pass `nav`, which swaps the guard's signature check
-  // for an identity-only one (moving the highlight is the tap's own effect — see lib/menu-action.ts).
+  // shape as the handlers above; the arrow taps and Cancel pass `nav`, which swaps the guard's
+  // signature check for an identity-only one (neither commits — see lib/menu-action.ts).
   // gate: Claude's adapter is the only one that emits `menu` — omp's modals deliberately stay raw
   // (harness/omp/index.ts), so this handler cannot fire for another agent.
   const handleMenuAction = useCallback(

@@ -15,8 +15,8 @@ import { OptionGroupCaption, PromptPanel } from "@/components/option-button";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/hooks/use-locale";
 
-/** What a tap asks for: the keys to send, and whether it is a non-committal arrow (which takes the
- *  weaker identity-only guard in lib/menu-action.ts). */
+/** What a tap asks for: the keys to send, and whether it commits nothing — an arrow, or the footer's
+ *  Esc — which takes the weaker identity-only guard in lib/menu-action.ts. */
 export interface MenuBlockAction {
   keys: string[];
   nav: boolean;
@@ -69,14 +69,17 @@ export function MenuBlock({ menu, lines, onAction, disabled }: MenuBlockProps) {
     <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" aria-label={t("dialog.sendingAria")} />
   );
 
-  const navButton = (id: string, label: string, keys: string[], icon: ReactNode) => (
+  const navButton = (id: string, label: string, keys: string[], icon: ReactNode, className?: string) => (
     <button
       key={id}
       type="button"
       aria-label={label}
       disabled={locked}
       onClick={() => press(id, { keys, nav: true })}
-      className="flex h-9 flex-1 items-center justify-center rounded-lg border border-border bg-secondary text-muted-foreground shadow-sm transition-colors active:border-primary/50 active:bg-primary/5 disabled:opacity-60"
+      className={cn(
+        "flex h-9 flex-1 items-center justify-center rounded-lg border border-border bg-secondary text-muted-foreground shadow-sm transition-colors active:border-primary/50 active:bg-primary/5 disabled:opacity-60",
+        className,
+      )}
     >
       {sending === id ? spinner : icon}
     </button>
@@ -118,16 +121,20 @@ export function MenuBlock({ menu, lines, onAction, disabled }: MenuBlockProps) {
             navButton("down", t("dialog.menu.moveDown"), MENU_DOWN_KEYS, <ArrowDown className="size-4" />)}
           {/* The ←/→ pair sits AROUND the value it adjusts ("←  ◐ Medium effort  →"): the arrows are
               meaningless without it, and the row is re-derived every poll, so the label tracks the
-              live value. Rendered in app space, not mirror space — no `dark:` question arises. */}
+              live value. Rendered in app space, not mirror space — no `dark:` question arises.
+              THE VALUE GETS ITS OWN WIDTH, the arrows a fixed 44px, and ↑/↓ take what is left. Split
+              three ways with ↑/↓, the value had a third of a third and "◉ xHigh effort" drew as
+              "x…" (operator, from the phone); it still truncates, but only past the whole row. */}
           {menu.nav.leftRight !== undefined && (
-            <div className="flex min-w-0 flex-1 items-center gap-1.5">
+            <div className={cn("flex min-w-0 items-center gap-1.5", !menu.nav.upDown && "flex-1 justify-between")}>
               {navButton(
                 "left",
                 t("dialog.menu.leftAria", { verb: menu.nav.leftRight.verb, label: menu.nav.leftRight.label }),
                 MENU_LEFT_KEYS,
                 <ArrowLeft className="size-4" />,
+                "w-11 flex-none",
               )}
-              <span className="min-w-0 flex-1 truncate text-center font-mono text-[11px] text-muted-foreground">
+              <span className="min-w-0 truncate text-center font-mono text-[11px] text-muted-foreground">
                 {menu.nav.leftRight.label}
               </span>
               {navButton(
@@ -135,6 +142,7 @@ export function MenuBlock({ menu, lines, onAction, disabled }: MenuBlockProps) {
                 t("dialog.menu.rightAria", { verb: menu.nav.leftRight.verb, label: menu.nav.leftRight.label }),
                 MENU_RIGHT_KEYS,
                 <ArrowRight className="size-4" />,
+                "w-11 flex-none",
               )}
             </div>
           )}
@@ -142,7 +150,11 @@ export function MenuBlock({ menu, lines, onAction, disabled }: MenuBlockProps) {
       )}
 
       {/* The footer's own actions. Cancel (Esc) is de-emphasised like every other abort affordance in
-          the block family — it is not a peer of the things that commit. */}
+          the block family — it is not a peer of the things that commit.
+          Cancel goes out as `nav` too: Esc commits nothing, so it takes the arrows' identity-only
+          guard. On the full signature check, a Cancel tapped just after an arrow was refused as
+          "screen changed" whenever the phone's copy still showed the pre-arrow highlight or value,
+          and needed a second tap (operator, from the phone). */}
       <div className="flex flex-col gap-1">
         {menu.actions
           .filter((a) => !a.cancel)
@@ -170,7 +182,7 @@ export function MenuBlock({ menu, lines, onAction, disabled }: MenuBlockProps) {
                 key={id}
                 type="button"
                 disabled={locked}
-                onClick={() => press(id, { keys: action.keys, nav: false })}
+                onClick={() => press(id, { keys: action.keys, nav: true })}
                 className="font-content flex w-full items-center justify-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors active:bg-muted disabled:opacity-60"
               >
                 {sending === id ? spinner : null}

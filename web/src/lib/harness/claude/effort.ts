@@ -41,7 +41,7 @@
 import type { StyledLine } from "../../blocks";
 import { displayWidth } from "../../text-width";
 import { hasInputBox } from "./chrome";
-import { isBlank, isBoxBorder, isHorizontalRule, lineText } from "./markers";
+import { isBlank, isModalRule, lineText } from "./markers";
 import type { MenuRegion } from "./menu";
 import { regionSignature } from "./prompt-select";
 import type { MenuAction, MenuModel } from "../menu-model";
@@ -149,7 +149,7 @@ export function detectEffortRegion(lines: StyledLine[]): MenuRegion | null {
   const markerRows: number[] = [];
   for (let i = fi - 1, seen = 0; i >= 0 && seen < REGION_SCAN_WINDOW; i--, seen++) {
     const t = texts[i]!;
-    if (isBoxBorder(t) || isHorizontalRule(t)) {
+    if (isModalRule(t)) {
       top = i;
       break;
     }
@@ -203,9 +203,10 @@ export function detectEffortRegion(lines: StyledLine[]): MenuRegion | null {
       title,
       actions: withSessionAction(footerActions, footer),
       nav: { upDown: false, leftRight: { verb: arrows[1]!, label: value.text } },
-      // The same helper, the same bounds as menu.ts:116 — so the marker row is inside the signature
-      // and an arrow tap changes it, which is what `menusEqual` needs to abort a stale confirm.
-      signature: regionSignature(texts, top, fi),
+      // The same helper, the same bounds as menu.ts — so the marker row is inside the signature and
+      // an arrow tap changes it, which is what `menusEqual` needs to abort a stale confirm. From the
+      // row under the rule, which carries Claude's notice for the modal's first seconds.
+      signature: regionSignature(texts, top + 1, fi),
     },
     startLine: top,
   };

@@ -65,6 +65,18 @@ describe("detectMenuRegion — the /model picker", () => {
     expect(b.signature).not.toBe(a.signature);
   });
 
+  // For its first seconds the picker's top rule carries Claude's notice (`▔▔…▔ ◉ xhigh · /effort ▔`,
+  // observed 2026-09-22 on Claude Code 2.1.280), and for those seconds the phone showed the
+  // unread-dialog card instead of the picker. Spliced into the capture's own rule, length-preserving.
+  it("lifts the picker while Claude's notice rides in its top rule, and signs it the same", () => {
+    const capture = readFileSync(join(PANES_DIR, "claude--menu-model-picker.txt"), "utf8");
+    const noticed = capture.replace(/▔{20}(?!▔)/, " ◉ xhigh · /effort ▔");
+    expect(noticed).not.toBe(capture);
+    expect(claudeBuildBlocks(lines(noticed)).map((b) => b.kind)).toEqual(["raw", "menu"]);
+    // Same signature too, so a tap rendered before the notice cleared is not refused after it.
+    expect(detectMenu(lines(noticed))).toEqual(detectMenu(lines(capture)));
+  });
+
   it("is not detected once the picker is dismissed and the input box is back", () => {
     expect(detectMenu(load("claude--menu-model-picker-dismissed.txt"))).toBeNull();
   });

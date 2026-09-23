@@ -29,7 +29,7 @@
 
 import type { StyledLine } from "../../blocks";
 import { hasInputBox } from "./chrome";
-import { classifyFooter, isBlank, isBoxBorder, isHorizontalRule, lineText } from "./markers";
+import { classifyFooter, isBlank, isModalRule, lineText } from "./markers";
 import { regionSignature } from "./prompt-select";
 import type { MenuModel, MenuNav } from "../menu-model";
 import { MENU_ARROW_ROW, parseKeyHintFooter } from "../menu-hints";
@@ -82,7 +82,7 @@ export function detectMenuRegion(lines: StyledLine[]): MenuRegion | null {
   // across the screen where its modal begins, which is the only structural boundary it offers.
   let top = -1;
   for (let i = fi - 1, seen = 0; i >= 0 && seen < REGION_SCAN_WINDOW; i--, seen++) {
-    if (isBoxBorder(texts[i]!) || isHorizontalRule(texts[i]!)) {
+    if (isModalRule(texts[i]!)) {
       top = i;
       break;
     }
@@ -112,8 +112,10 @@ export function detectMenuRegion(lines: StyledLine[]): MenuRegion | null {
     }
   }
 
+  // Signed from the row UNDER the rule: the rule carries Claude's notice for the modal's first
+  // seconds (markers.ts isModalRule), and a tap must not be refused because that notice cleared.
   return {
-    model: { title, actions, nav, signature: regionSignature(texts, top, fi) },
+    model: { title, actions, nav, signature: regionSignature(texts, top + 1, fi) },
     startLine: top,
   };
 }

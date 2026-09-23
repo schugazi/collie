@@ -66,6 +66,8 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 - **Browser back swipes no longer replay the screen slide.** History navigation leaves animation to the browser, while in-app navigation keeps its existing transition.
 - **The personal logo has transparent space outside its ring.** Installed icons, favicons, notifications and in-app artwork retain the yellow interior without the yellow square surrounding the circle.
 - **The logo loading highlight follows its circular ring.** Navigation and loading feedback no longer flash a square border around the transparent logo.
+- **Menu Cancel works on the first tap and effort values fit.** Cancel sends Esc, which commits nothing, so it now takes the same same-menu check as the arrows; before, a Cancel tapped just after an arrow was refused as a changed screen and needed a second tap. In the `/model` picker the ←/→ value keeps its own width, so "xHigh effort" no longer shrinks to "x…".
+- **The `/model` and `/effort` pickers show their buttons as soon as they open.** For its first seconds each picker draws Claude's notification inside its top rule, and the menu grammars did not read that line as the rule, so the phone showed the "cannot read this dialog" card until the notice cleared. The pickers are also signed from the row under the rule, so a tap made before the notice clears is not refused after it.
 
 ## [1.11.1] - 2026-09-20
 
