@@ -29,6 +29,8 @@ Keep internal CLI, configuration, storage and protocol identifiers compatible wi
 Set `COLLIE_UPDATE_REPO=schugazi/collie` on deployments; origin is the personal fork and
 upstream is AltanS/collie. Deploy main with the existing full build, then restart the bridge.
 The logo is a local bitmap asset, not the upstream generated Collie mark.
+The host's `~/.bun/bin/bun` must stay at or above `MIN_BUN` (`cli/update-check.ts`); it matches the flake's pin, 1.4.1.
+Older Bun does not enforce the crew listener's pinned client certificate, so `bridge/crew/harness.test.ts` fails and the backend suite hangs.
 
 ## Decision records — read before reopening a settled question
 
