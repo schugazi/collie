@@ -85,6 +85,16 @@ row. That is an ordinary draft, not a dialog.
 | `codex--v0151-draft-indented-line.txt` | Two-line draft: the `› ` row, then a hard line break whose text starts with two spaces, painted as a four-space-indented continuation above the two-field status row. `composerReady` must be TRUE — `/^ {2}\S/` refused it, `locateComposer` returned null, and the pane refused every send with "the agent's input box isn't on screen" until the draft was cleared | `idle` |
 | `codex--v0154-submitted-fill.txt` | Codex 0.154.0, sandbox pane on 2026-09-15: one submitted user message, an assistant turn, a file edit with its unified diff, and the composer box. The message band and the composer are painted `rgb(240,240,240)` and run to the terminal edge; 0.154.0 paints its diff rows as plain text, with no fill at all. See *Codex light fills* below | `idle` |
 
+## Codex 0.156.1 fullscreen captures (2026-09-23, throwaway tmux server, Linux sandbox)
+
+Byte-faithful `tmux capture-pane -p -e -J` captures (LF endings, where Herdr's are CRLF) from one throwaway Codex 0.156.1 session at 165 × 42, run with `-c tui.fullscreen_transcript=true`, notify and hooks off, in a `/tmp/collie-codex-fs` git repo on `main`. The status line is the capture host's own field list minus `hostname`. No scrubbing was needed. **The headline: while the input box is empty, fullscreen mode paints `  ? for shortcuts` on the row directly UNDER the status row**, so the status row is no longer the last non-blank row. `locateComposer` steps over exactly that one row (`isShortcutsHint` in `lib/harness/codex/markers.ts`); a typed draft removes the hint. The right-aligned `Tip:` row above the prompt's blank separator is transcript to the locator and stays in the mirror.
+
+| Fixture | State / what's in it | Herdr status |
+|---|---|---|
+| `codex--v0156-fullscreen-idle.txt` | One finished turn, a `Tip:` row, the empty dim `› Ask Codex to do anything` prompt, the status row, and `? for shortcuts` under it. `composerReady` must be TRUE: before the step-over it was false, every send was refused, and the unread-dialog card covered the mirror | `idle` |
+| `codex--v0156-fullscreen-working.txt` | A second turn one second in: `• Working (1s • esc to interrupt)` above the same empty prompt, status row and hint | `working` |
+| `codex--v0156-fullscreen-draft.txt` | `hello there draft` typed into the idle prompt: the `Tip:` row goes blank and the hint row is gone, so the status row is the tail again | `idle` |
+
 ## Codex mobile chrome (reconstructed 2026-09-03)
 
 **Not a capture.** This one file is RECONSTRUCTED from the two rows reported in

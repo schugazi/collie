@@ -201,6 +201,16 @@ export function promptText(text: string): string | null {
 /** The empty composer's placeholder, captured verbatim; chrome also requires its dim renderer style. */
 export const PLACEHOLDER = "Ask Codex to do anything";
 
+// Fullscreen mode (`[tui] fullscreen_transcript = true`, captured on 0.156.1) paints this key hint on
+// the row directly UNDER the status row while the composer is empty; a typed draft removes it. Exact
+// text only: any other row there is not the captured shape, and the tail rule refuses it.
+const SHORTCUTS_HINT = "  ? for shortcuts";
+
+/** True for fullscreen mode's empty-composer `? for shortcuts` row. */
+export function isShortcutsHint(text: string): boolean {
+  return rstrip(text) === SHORTCUTS_HINT;
+}
+
 /** Index of the last non-blank row in `texts`, or -1 when the buffer is all blank. */
 export function lastNonBlankIndex(texts: string[]): number {
   let i = texts.length - 1;

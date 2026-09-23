@@ -4,8 +4,9 @@
 // locating the composer is also the composer-vs-modal discriminator. Pure; no pane access.
 //
 // THE COMPOSER IS FOUND BY ITS OWN MARKS, NOT BY COUNTING THE ROWS BETWEEN THEM (the rule ADR 0048
-// set for Claude's box, applied here). The two marks are the status row as the last non-blank row,
-// and the LOWEST column-0 `› ` row above it. A status row at the tail already proves a live
+// set for Claude's box, applied here). The two marks are the status row as the last non-blank row
+// (or the row directly above fullscreen mode's `? for shortcuts` hint, which the mirror strips with
+// the band and the status strip leaves out), and the LOWEST column-0 `› ` row above it. A status row at the tail already proves a live
 // composer, because every dialog replaces it. A submitted message echoes into the transcript with
 // the same `› ` prefix, but an echo always sits ABOVE the live prompt, so the lowest one is the
 // prompt. The walk used to refuse on the first blank or non-continuation row between the marks, and
@@ -19,6 +20,7 @@
 import { trimTrailingBlank, type StyledLine } from "../../blocks";
 import {
   isBlank,
+  isShortcutsHint,
   isStatusRow,
   lastNonBlankIndex,
   lineText,
@@ -34,7 +36,7 @@ export interface ComposerBox {
   top: number;
   /** The `› ` prompt row. */
   promptRow: number;
-  /** The status row under it (last non-blank row of the frame). */
+  /** The status row under it (last non-blank row of the frame, or the row above fullscreen's hint). */
   statusRow: number;
 }
 
@@ -86,7 +88,9 @@ function isEmptyPlaceholder(line: StyledLine): boolean {
 export function locateComposer(lines: StyledLine[]): ComposerBox | null {
   const clean = lines.map(withoutSparkles);
   const texts = clean.map((l) => rstrip(lineText(l)));
-  const statusRow = lastNonBlankIndex(texts);
+  let statusRow = lastNonBlankIndex(texts);
+  // Fullscreen mode's `? for shortcuts` row sits directly under the status row: step over that one row.
+  if (statusRow > 0 && isShortcutsHint(texts[statusRow]!)) statusRow--;
   if (statusRow < 0 || !isStatusRow(texts[statusRow]!, clean[statusRow])) return null;
 
   for (let i = statusRow - 1; i >= 0 && statusRow - 1 - i <= MAX_DRAFT_ROWS; i--) {

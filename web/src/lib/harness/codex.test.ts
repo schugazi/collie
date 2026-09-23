@@ -12,6 +12,7 @@ import { detectAskRegion } from "./codex/ask";
 import { detectTrustRegion } from "./codex/trust";
 import { decorateCodexDisplay } from "./codex/display";
 import { describeAdapterConformance } from "./conformance";
+import { withUnreadDialog } from "./index";
 
 const PANES_DIR = join(import.meta.dirname, "..", "..", "fixtures", "panes");
 
@@ -47,6 +48,9 @@ const PINNED = [
   "codex--v0150-paste-placeholder.txt",
   "codex--v0151-draft-indented-line.txt",
   "codex--v0154-submitted-fill.txt",
+  "codex--v0156-fullscreen-draft.txt",
+  "codex--v0156-fullscreen-idle.txt",
+  "codex--v0156-fullscreen-working.txt",
   "codex--working.txt",
 ];
 
@@ -91,6 +95,9 @@ describe("composerReady — the gate the reply path pre-flights on", () => {
     "codex--v0151-draft-indented-line.txt",
     "codex--working.txt",
     "codex--queue-context-inline.txt",
+    "codex--v0156-fullscreen-idle.txt",
+    "codex--v0156-fullscreen-working.txt",
+    "codex--v0156-fullscreen-draft.txt",
   ])(
     "%s: the composer is on screen ⇒ true",
     (name) => {
@@ -349,6 +356,66 @@ describe("the Astra starfield (issue #245)", () => {
   it("refuses when a second status row sits between the tail and the prompt", () => {
     const lines = screen(["› old", "", STATUS, "", "• something", "", STATUS]);
     expect(locateComposer(lines)).toBeNull();
+  });
+});
+
+// 0.156.1 with `[tui] fullscreen_transcript = true`. While the composer is empty, Codex paints a
+// `? for shortcuts` row directly UNDER the status row, so the status row is no longer the last
+// non-blank row. Before the locator stepped over that one row, an idle or working fullscreen pane
+// had no composer: every phone send was refused and the unread-dialog card covered the mirror.
+describe("fullscreen mode (0.156.1)", () => {
+  const STATUS = "  gpt-5.6-sol low · Context 7% used · main · /tmp/sandbox · weekly 91% left";
+  const HINT = "  ? for shortcuts";
+  const screen = (rows: string[]) => splitLines(parseAnsi(rows.join("\n")));
+
+  it("finds the idle composer above the shortcuts hint, and strips all three rows", () => {
+    const lines = fixtureLines("codex--v0156-fullscreen-idle.txt");
+    const box = locateComposer(lines)!;
+    expect(box).not.toBeNull();
+    expect(lineText(lines[box.statusRow + 1]!).trimEnd()).toBe(HINT);
+    expect(extractInputDraft(lines)).toBeNull();
+    expect(composerPrompt(lines)).toBe(`› ${PLACEHOLDER}`);
+
+    // The status strip re-surfaces the status row alone: the hint is a keyboard hint.
+    const status = codexAdapter.extractStatusLines(lines);
+    expect(status).toHaveLength(1);
+    expect(lineText(status[0]!)).toContain("Context 1% used");
+
+    const kept = stripChrome(lines).map(lineText).join("\n");
+    expect(kept).not.toContain(PLACEHOLDER);
+    expect(kept).not.toContain("for shortcuts");
+    expect(kept).not.toContain("weekly 90% left");
+    expect(kept).toContain("Reply with exactly: ok");
+  });
+
+  it("an idle fullscreen pane is raw with no unread-dialog card", () => {
+    const lines = fixtureLines("codex--v0156-fullscreen-idle.txt");
+    const blocks = withUnreadDialog(codexAdapter, lines, codexAdapter.buildBlocks(lines));
+    expect(blocks.map((b) => b.kind)).toEqual(["raw"]);
+  });
+
+  it("finds the composer under a working row, with no draft", () => {
+    const lines = fixtureLines("codex--v0156-fullscreen-working.txt");
+    expect(locateComposer(lines)).not.toBeNull();
+    expect(extractInputDraft(lines)).toBeNull();
+  });
+
+  it("reads a typed draft, where the hint row is gone", () => {
+    const lines = fixtureLines("codex--v0156-fullscreen-draft.txt");
+    expect(stripChrome(lines).map(lineText).join("\n")).not.toContain("for shortcuts");
+    expect(extractInputDraft(lines)).toBe("hello there draft");
+  });
+
+  it("steps over the hint only when it sits directly under a status row", () => {
+    expect(locateComposer(screen(["› draft", "", STATUS, HINT]))).not.toBeNull();
+    // A blank row between the two: not the measured shape.
+    expect(locateComposer(screen(["› draft", "", STATUS, "", HINT]))).toBeNull();
+    // No status row above it: a transcript echo is never a composer.
+    expect(locateComposer(screen(["› an earlier message", "", HINT]))).toBeNull();
+    expect(locateComposer(screen(["› an earlier message", "• ok", HINT]))).toBeNull();
+    // Only the one hint row: two of them, or other words on it, and the tail rule holds.
+    expect(locateComposer(screen(["› draft", "", STATUS, HINT, HINT]))).toBeNull();
+    expect(locateComposer(screen(["› draft", "", STATUS, `${HINT} and more`]))).toBeNull();
   });
 });
 
