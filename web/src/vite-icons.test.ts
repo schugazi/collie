@@ -48,7 +48,7 @@ describe("iconLinksFor", () => {
       "/favicon-32x32.png",
       "/favicon.svg",
       "/favicon.ico",
-      "/apple-touch-icon.png",
+      "/apple-touch-icon.png?v=thin-ring",
     ]);
   });
 
@@ -60,7 +60,7 @@ describe("iconLinksFor", () => {
       "/favicon-dev-32x32.png",
       "/favicon-dev.svg",
       "/favicon-dev.ico",
-      "/apple-touch-icon-dev.png",
+      "/apple-touch-icon-dev.png?v=thin-ring",
     ]);
     // rel/type/sizes travel unchanged — only the href moves.
     dev.forEach((l, i) => {
@@ -126,12 +126,12 @@ describe("transformIndexIcons — the release build stays byte-identical", () =>
     expect(out).toContain('href="/favicon-dev-32x32.png"');
     expect(out).toContain('href="/favicon-dev.svg"');
     expect(out).toContain('href="/favicon-dev.ico"');
-    expect(out).toContain('href="/apple-touch-icon-dev.png"');
+    expect(out).toContain('href="/apple-touch-icon-dev.png?v=thin-ring"');
     // The originals are gone, not merely joined by the dev ones.
     expect(out).not.toContain('href="/favicon-32x32.png"');
     expect(out).not.toContain('href="/favicon.svg"');
     expect(out).not.toContain('href="/favicon.ico"');
-    expect(out).not.toContain('href="/apple-touch-icon.png"');
+    expect(out).not.toContain('href="/apple-touch-icon.png?v=thin-ring"');
     // Everything past the four <link> tags is untouched (e.g. the title, the boot splash CSS).
     expect(out).toContain("<title>mycroftxxx remote</title>");
   });

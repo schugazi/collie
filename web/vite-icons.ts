@@ -44,14 +44,15 @@ const RELEASE_ICON_LINKS: readonly IconLink[] = [
   { rel: "icon", type: "image/png", href: "/favicon-32x32.png", sizes: "32x32" },
   { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
   { rel: "shortcut icon", href: "/favicon.ico" },
-  { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
+  // Bump ?v= when the icon changes: iOS caches the Home Screen icon by URL.
+  { rel: "apple-touch-icon", href: "/apple-touch-icon.png?v=thin-ring", sizes: "180x180" },
 ];
 
 const DEV_ICON_LINKS: readonly IconLink[] = [
   { rel: "icon", type: "image/png", href: "/favicon-dev-32x32.png", sizes: "32x32" },
   { rel: "icon", type: "image/svg+xml", href: "/favicon-dev.svg" },
   { rel: "shortcut icon", href: "/favicon-dev.ico" },
-  { rel: "apple-touch-icon", href: "/apple-touch-icon-dev.png", sizes: "180x180" },
+  { rel: "apple-touch-icon", href: "/apple-touch-icon-dev.png?v=thin-ring", sizes: "180x180" },
 ];
 
 /** The four `<link>` icon tags index.html should carry for this channel. */
