@@ -220,9 +220,12 @@ export function AgentList({
           each lit with the worst status inside. Tap a chip to see that workspace alone, tap it or
           All to see everything again. Long-press a chip to hide the workspace, and again to bring it
           back; a hidden chip stays in the strip, dimmed, with its dot, so hiding never silences a
-          workspace that needs you. One height always, so nothing below moves. */}
-      <nav aria-label={t("space.strip.title")} className="-mx-4">
-        <div className={cn(STRIP_SCROLLER, "px-4 py-0")}>
+          workspace that needs you. One height always, so nothing below moves.
+          The scroller keeps STRIP_SCROLLER's `py-1.5`, the room the chips' tap box reaches into; at
+          `py-0` that box overflowed and the strip scrolled vertically. `-my-1.5` gives the 12px back,
+          so the row still takes 34px of the page. */}
+      <nav aria-label={t("space.strip.title")} className="-mx-4 -my-1.5">
+        <div className={cn(STRIP_SCROLLER, "px-4")}>
           <Chip label={t("space.tabStrip.all")} active={!isolatedGroup} onClick={() => onIsolate?.(null)} />
           {groups.map((g) => (
             <Chip

@@ -74,6 +74,7 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 - **The `/effort` picker shows its whole ladder with the current step marked.** Claude draws the slider far to the right of a wide pane, so the phone's copy of it showed only the title and an empty strip; the levels it reads off the screen are now drawn natively above the buttons.
 - **A menu button's label no longer slides while its key is sending.** The spinner stands at the button's left edge instead of pushing the word aside.
 - **Opening the app no longer flashes the "Connecting" screen.** The splash now fades in only after a second, so a quick boot goes straight from the blank background to the app. The static splash and the app's own splash also draw the same logo file on one fade timeline, so the hand-off between them no longer blinks.
+- **The home screen's workspace strip scrolls sideways only.** The chips' invisible tap area reached past the strip's edge, so a thumb could also drag the row up and down; the tap area now sits inside the strip's own padding, and the row keeps its height.
 
 ## [1.11.1] - 2026-09-20
 
