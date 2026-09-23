@@ -75,6 +75,7 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 - **A menu button's label no longer slides while its key is sending.** The spinner stands at the button's left edge instead of pushing the word aside.
 - **Opening the app no longer flashes the "Connecting" screen.** The splash now fades in only after a second, so a quick boot goes straight from the blank background to the app. The static splash and the app's own splash also draw the same logo file on one fade timeline, so the hand-off between them no longer blinks.
 - **The home screen's workspace strip scrolls sideways only.** The chips' invisible tap area reached past the strip's edge, so a thumb could also drag the row up and down; the tap area now sits inside the strip's own padding, and the row keeps its height.
+- **A terminal row that wraps on the phone keeps its indent.** A row wider than the phone used to continue at the left edge, cutting through diff line numbers, tool results, bullets and indented lists; the rest of the row now lines up under its own text.
 
 ## [1.11.1] - 2026-09-20
 

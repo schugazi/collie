@@ -18,6 +18,7 @@ import {
   type WizardModel,
 } from "@/lib/blocks";
 import { tableRuns, type TableRun } from "@/lib/table-run";
+import { hangIndent } from "@/lib/hang-indent";
 import {
   alignImagesFromEnd,
   blankPlaceholders,
@@ -239,6 +240,12 @@ function preClass(
 //     it also means a run narrower than the phone simply does not scroll.
 const TABLE_RUN_CLASS =
   "inline-block w-full max-w-full align-bottom whitespace-pre break-normal overflow-x-auto overflow-y-hidden overscroll-x-contain [touch-action:pan-x_pan-y] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
+
+// An indented row that wraps continues under its own text (lib/hang-indent.ts), not at column 0.
+// The same in-flow box as a table run, for the same reasons: its "\n" text nodes stay where they
+// are, and `align-bottom` keeps it on the 1.25em grid. The hang itself is a padding the first line
+// cancels with a negative text-indent, so the row's leading spaces still render, and still copy.
+const HANG_CLASS = "inline-block w-full align-bottom";
 
 // Faithful, colored mirror of a pane's recent terminal output. Rendering flows through the Block AST
 // (blocks.ts): parseAnsi → styled lines → typed blocks → React. Text is always rendered as React
@@ -601,9 +608,15 @@ export const AnsiOutput = memo(function AnsiOutput({
       );
     });
     // A run's own rows are never clipped; see `inRun` above. Outside a run this is unchanged: a
-    // repeated rule, or a framed menu row, keeps the single-row clip it has always had.
+    // repeated rule, or a framed menu row, keeps the single-row clip it has always had. Only a row
+    // that can wrap hangs: a clipped row and a run's row never wrap, and neither does Wrap off.
+    const hang = wrap && !inRun && !line.noWrap ? hangIndent(lineText(line)) : 0;
     const content = line.noWrap && wrap && !inRun ? (
       <span className="inline-block max-w-full overflow-hidden align-bottom whitespace-pre break-normal [&_a]:break-normal">{segNodes}</span>
+    ) : hang > 0 ? (
+      <span className={HANG_CLASS} style={{ paddingLeft: `${hang}ch`, textIndent: `-${hang}ch` }}>
+        {segNodes}
+      </span>
     ) : (
       segNodes
     );

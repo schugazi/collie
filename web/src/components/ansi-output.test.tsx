@@ -190,6 +190,24 @@ describe("mirror line wrapping", () => {
     expect(cls).not.toContain("whitespace-pre-wrap");
   });
 
+  it("hangs an indented row's continuation under its text, and only while wrapping", () => {
+    const text = "prose\n  ⎿  Added 3 lines\n     2 +import x";
+    const hung = (pre: HTMLElement) =>
+      [...pre.querySelectorAll<HTMLElement>("span.inline-block")].map((s) => [
+        s.textContent,
+        s.style.paddingLeft,
+        s.style.textIndent,
+      ]);
+    const pre = preFor({ text });
+    expect(hung(pre)).toEqual([
+      ["  ⎿  Added 3 lines", "5ch", "-5ch"],
+      ["     2 +import x", "8ch", "-8ch"],
+    ]);
+    // The box adds no text: copy, find and link offsets all read the same characters.
+    expect(pre.textContent).toBe(text);
+    expect(hung(preFor({ text, wrap: false }))).toEqual([]);
+  });
+
   it("keeps a live-shaped ANSI labelled rule clipped while muting only its rule runs", () => {
     const purple = "rgb(209, 131, 232)";
     const leadBg = "rgb(24, 25, 26)";
@@ -313,8 +331,9 @@ describe("mirror line wrapping", () => {
     // inline background-color is gone on purpose: a class cannot beat one without `!important`.
     expect(userSpan.style.backgroundColor).toBe("");
     expect(userSpan.style.getPropertyValue("--terminal-seg-bg")).toBe("rgb(240,240,240)");
-    const diffSpan = [...container.querySelectorAll("span")].find((node) =>
-      node.textContent?.includes("semantic diff"),
+    // The leaf: the row itself now sits in a hang box (`+ ` is a marker), which carries no colour.
+    const diffSpan = [...container.querySelectorAll("span")].find(
+      (node) => node.children.length === 0 && node.textContent?.includes("semantic diff"),
     )!;
     expect(diffSpan.classList.contains("terminal-mobile-transparent-bg")).toBe(false);
     expect(diffSpan.getAttribute("style")).toContain("rgb(33, 58, 43)");
