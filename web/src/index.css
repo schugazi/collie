@@ -750,6 +750,14 @@
     opacity: 0.45;
   }
 }
+
+/* The boot splash's late reveal (routes/root.tsx BootSplash). web/index.html declares it too, for
+   the static splash that paints before this file loads; keep the two in step. */
+@keyframes boot-splash-in {
+  from {
+    opacity: 0;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .status-breathe {
     animation: none;

@@ -169,12 +169,19 @@
           -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       }
       .boot-splash__logo { width: 4rem; height: 4rem; }
+      /* Revealed late: a boot quicker than the delay goes straight from the plain background to
+         the app and never flashes "Connecting…". routes/root.tsx's BootSplash takes this same
+         timeline over at hand-off, so the fade never restarts. Keep the delay in step with
+         SPLASH_REVEAL_MS there, and the keyframes with index.css. */
+      .boot-splash > * { animation: boot-splash-in 200ms ease-out 1s both; }
+      @keyframes boot-splash-in { from { opacity: 0; } }
     </style>
   </head>
   <body>
     <div id="root">
       <div class="boot-splash" role="status" aria-label="Loading mycroftxxx remote">
-        <img class="boot-splash__logo" src="/notification-icon-192x192.png" alt="" />
+        <!-- The same file CollieMark draws, so the hand-off to React finds it already decoded. -->
+        <img class="boot-splash__logo" src="/src/assets/remote-logo.png" alt="" />
         <span>Connecting to mycroftxxx remote…</span>
       </div>
     </div>

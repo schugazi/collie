@@ -72,6 +72,7 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 - **A menu arrow or Cancel tapped while another key is still sending now waits instead of vanishing.** The picker used to lock every button until the last key landed, so a Cancel tapped right after an arrow was dropped and took a second tap. Arrow and Cancel taps now go out in order, each still checked against the screen, and are dropped if the picker closes or you leave the pane first. The committing buttons still wait for the row to settle.
 - **The `/effort` picker shows its whole ladder with the current step marked.** Claude draws the slider far to the right of a wide pane, so the phone's copy of it showed only the title and an empty strip; the levels it reads off the screen are now drawn natively above the buttons.
 - **A menu button's label no longer slides while its key is sending.** The spinner stands at the button's left edge instead of pushing the word aside.
+- **Opening the app no longer flashes the "Connecting" screen.** The splash now fades in only after a second, so a quick boot goes straight from the blank background to the app. The static splash and the app's own splash also draw the same logo file on one fade timeline, so the hand-off between them no longer blinks.
 
 ## [1.11.1] - 2026-09-20
 

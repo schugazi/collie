@@ -217,12 +217,28 @@ export function RootLayout() {
 // state: the mark stills, the copy says we can't reach Collie, and a Retry
 // re-runs the loaders from scratch (a full reload clears most transient failures). Below the
 // threshold it's unchanged.
+//
+// For its first SPLASH_REVEAL_MS the splash is invisible, so a quick boot never flashes it. The clock
+// is web/index.html's static splash fade, read off its running animation during the first render
+// (React only replaces that markup at commit), so this copy continues the fade instead of
+// restarting it. With no static splash (the playground) it counts from navigation start.
+const SPLASH_REVEAL_MS = 1000;
+
+function splashRevealDelay(): number {
+  const start = Number(document.querySelector(".boot-splash > *")?.getAnimations()[0]?.startTime ?? 0);
+  return (Number.isFinite(start) ? start : 0) + SPLASH_REVEAL_MS - performance.now();
+}
+
 export function BootSplash() {
   useLocale();
   const stuck = useConnectionLost(true);
+  const [revealDelay] = useState(splashRevealDelay);
   if (!stuck) {
     return (
-      <div className="flex h-[100dvh] flex-col items-center justify-center gap-3 text-muted-foreground">
+      <div
+        className="flex h-[100dvh] flex-col items-center justify-center gap-3 text-muted-foreground"
+        style={{ animation: `boot-splash-in 200ms ease-out ${revealDelay}ms both` }}
+      >
         {/* The loading border stays coloured with reduced motion. The text names the state. */}
         <CollieMark size={64} weight="header" loading paper="var(--background)" />
         <span className="text-sm">{t("error.boot.connecting")}</span>
