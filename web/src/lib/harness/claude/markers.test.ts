@@ -6,6 +6,7 @@ import { parseAnsi } from "../../ansi";
 import { splitLines } from "../../blocks";
 import {
   classifyFooter,
+  dialogTail,
   isBlank,
   isBoxBorder,
   isHorizontalRule,
@@ -25,6 +26,25 @@ describe("lineText / isBlank", () => {
     expect(isBlank(lineText(b!))).toBe(true); // the trailing blank line
     expect(isBlank("   ")).toBe(true);
     expect(isBlank("x")).toBe(false);
+  });
+});
+
+describe("dialogTail", () => {
+  const footer = "Enter to select · ↑/↓ to navigate · Esc to cancel";
+  const panel = ["  5 tasks (3 done, 1 in progress, 1 open)", "  ◼ Phase C", "  ◻ T2", "   … +3 completed"];
+
+  it("anchors on the footer above a task panel", () => {
+    expect(dialogTail([footer, "", ...panel, ""])).toBe(0);
+  });
+
+  it("leaves task rows with no panel header where they are", () => {
+    expect(dialogTail([footer, "  ✔ Phase A", "  ◻ T2"])).toBe(2);
+  });
+
+  // A stale footer with transcript text shaped like a task list under it must not come back to life.
+  it("leaves a list whose header count disagrees with its rows where it is", () => {
+    expect(dialogTail([footer, "  2 tasks (1 done, 1 open)", "  ✔ Phase A", "  ◻ T2", "  ◻ T3"])).toBe(4);
+    expect(dialogTail([footer, "  7 tasks (1 done, 6 open)", "  ◻ T2", "   … +3 pending"])).toBe(3);
   });
 });
 

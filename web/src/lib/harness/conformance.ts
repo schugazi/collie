@@ -40,6 +40,7 @@ import { describe, expect, it } from "vitest";
 import { parseAnsi } from "../ansi";
 import { lineText, splitLines, type Block, type StyledLine } from "../blocks";
 import type { HarnessAdapter } from "./types";
+import { taskPanelStart } from "./claude/markers";
 import {
   DIALOG_CONTRACT,
   dialogComparators,
@@ -82,6 +83,13 @@ function textLine(text: string): StyledLine {
 // text here, so the bridge's SGR strip has nothing left to do — what remains is its rstrip and its
 // "blank rows are not rows" rule, which is the counting the tail window is expressed in.
 const BRIDGE_PROMPT_TAIL_LINES = 6;
+
+/** Non-blank rows below a region's last line, counted as the bridge counts them: from above a
+ *  trailing Claude task panel (`trailingTaskPanelLines` in bridge/prompt-binding.ts). */
+function rowsBelow(fresh: string[], matchEnd: number): number {
+  const panel = taskPanelStart(fresh, fresh.length - 1);
+  return (panel < 0 ? fresh.length : panel) - 1 - matchEnd;
+}
 
 function normalizeRegion(text: string): string[] {
   return text
@@ -463,8 +471,8 @@ export function describeAdapterConformance(
             const matchEnd = lastMatchEnd(fresh, expected);
             expect(matchEnd, `${name}: the named region is not on its own screen`).toBeGreaterThan(-1);
             expect(
-              fresh.length - 1 - matchEnd,
-              `${name}: ${fresh.length - 1 - matchEnd} non-blank rows sit below the named region — ` +
+              rowsBelow(fresh, matchEnd),
+              `${name}: ${rowsBelow(fresh, matchEnd)} non-blank rows sit below the named region — ` +
                 `the bridge can only bind within the last ${BRIDGE_PROMPT_TAIL_LINES}`,
             ).toBeLessThan(BRIDGE_PROMPT_TAIL_LINES);
           });
@@ -595,8 +603,8 @@ export function describeAdapterConformance(
               const matchEnd = lastMatchEnd(fresh, expected);
               expect(matchEnd, `${name}: the ${kind} region is not on its own screen`).toBeGreaterThan(-1);
               expect(
-                fresh.length - 1 - matchEnd,
-                `${name}: ${fresh.length - 1 - matchEnd} non-blank rows sit below the ${kind} region — ` +
+                rowsBelow(fresh, matchEnd),
+                `${name}: ${rowsBelow(fresh, matchEnd)} non-blank rows sit below the ${kind} region — ` +
                   `the bridge can only bind within the last ${BRIDGE_PROMPT_TAIL_LINES}`,
               ).toBeLessThan(BRIDGE_PROMPT_TAIL_LINES);
             }

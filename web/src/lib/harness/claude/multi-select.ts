@@ -16,7 +16,7 @@
 // (web/src/fixtures/panes/claude--select-multiselect-*.txt), and never touches a pane or the network.
 
 import type { StyledLine } from "../../blocks";
-import { classifyFooter, isBlank, isHorizontalRule, lineText } from "./markers";
+import { classifyFooter, dialogTail, isBlank, isHorizontalRule, lineText, questionText } from "./markers";
 import { checkboxState, isFreeTextLabel, parseOptionRow, trailingMenuRows } from "./prompt-select";
 import { parseStepperLine } from "./wizard";
 import type { WizardStepChip } from "../wizard-model";
@@ -171,8 +171,7 @@ function pointerAt(texts: string[], from: number, to: number, advanceIdx: number
 export function detectMultiSelectRegion(lines: StyledLine[]): MultiSelectRegion | null {
   const texts = lines.map(lineText);
 
-  let fi = texts.length - 1;
-  while (fi >= 0 && isBlank(texts[fi]!)) fi--;
+  const fi = dialogTail(texts);
   if (fi < 0) return null;
 
   return detectCheckboxPhase(lines, texts, fi) ?? detectReviewPhase(lines, texts, fi);
@@ -245,7 +244,7 @@ function detectCheckboxPhase(
   // The question: every non-blank line between the stepper and the first option, joined.
   const questionLines: string[] = [];
   for (let i = stepperIdx + 1; i < firstOpt; i++) {
-    if (!isBlank(texts[i]!)) questionLines.push(texts[i]!.trim());
+    if (!isBlank(texts[i]!)) questionLines.push(questionText(texts[i]!));
   }
   if (questionLines.length === 0) return null;
   const question = questionLines.join(" ");

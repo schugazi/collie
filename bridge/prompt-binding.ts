@@ -25,6 +25,35 @@ export function normalizePromptRegion(text: string): string[] {
 // regions span 20 to 32 normalized lines, pushes a stale match outside the accepted tail.
 export const DEFAULT_PROMPT_TAIL_LINES = 6;
 
+// Claude Code parks its task panel UNDER an open dialog: "8 tasks (3 done, 1 in progress, 4 open)",
+// at most five `✔`/`◻`/`◼` rows, then an optional "… +3 completed" row counting the rest. The tail
+// window is measured above it, so only a real panel moves the window: the header's count must equal
+// the rows shown plus the overflow row's counts, which transcript text shaped like a list won't meet.
+// The client reads the same shape (`taskPanelStart`, web/src/lib/harness/claude/markers.ts).
+const TASK_PANEL_HEADER = /^(\d+) tasks? \(.+\)$/;
+const TASK_PANEL_ROW = /^[✔◻◼] /;
+const TASK_PANEL_OVERFLOW = /^… \+\d/;
+const TASK_PANEL_SHOWN = 5;
+export const TASK_PANEL_MAX_LINES = TASK_PANEL_SHOWN + 2;
+
+/** How many of `lines` (normalized: no blank rows) are a trailing task panel, or 0. */
+export function trailingTaskPanelLines(lines: string[]): number {
+  let i = lines.length - 1;
+  let hidden = 0;
+  if (i >= 0 && TASK_PANEL_OVERFLOW.test(lines[i]!.trim())) {
+    for (const n of lines[i]!.match(/\d+/g) ?? []) hidden += Number(n);
+    i--;
+  }
+  let shown = 0;
+  while (i >= 0 && TASK_PANEL_ROW.test(lines[i]!.trim())) {
+    shown++;
+    i--;
+  }
+  if (i < 0 || shown === 0 || shown > TASK_PANEL_SHOWN) return 0;
+  const header = TASK_PANEL_HEADER.exec(lines[i]!.trim());
+  return header !== null && Number(header[1]) === shown + hidden ? lines.length - i : 0;
+}
+
 export type PromptBindingResult =
   | { ok: true }
   | { ok: false; reason: "empty" | "not_found" | "not_in_tail" };
@@ -48,7 +77,8 @@ export function verifyExpectedPrompt(
   if (lastMatch === -1) return { ok: false, reason: "not_found" };
 
   const boundedTailLines = Math.max(0, Math.floor(tailLines));
-  const tailStart = Math.max(0, freshLines.length - boundedTailLines);
+  const tailEnd = freshLines.length - trailingTaskPanelLines(freshLines);
+  const tailStart = Math.max(0, tailEnd - boundedTailLines);
   const matchEnd = lastMatch + expectedLines.length - 1;
   if (matchEnd < tailStart) return { ok: false, reason: "not_in_tail" };
   return { ok: true };

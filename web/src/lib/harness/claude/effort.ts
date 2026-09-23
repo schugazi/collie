@@ -41,7 +41,7 @@
 import type { StyledLine } from "../../blocks";
 import { displayWidth } from "../../text-width";
 import { hasInputBox } from "./chrome";
-import { isBlank, isModalRule, lineText } from "./markers";
+import { dialogTail, isBlank, isModalRule, lineText } from "./markers";
 import type { MenuRegion } from "./menu";
 import { regionSignature } from "./prompt-select";
 import type { MenuAction, MenuModel } from "../menu-model";
@@ -131,8 +131,7 @@ function labelSpans(text: string): LabelSpan[] {
 export function detectEffortRegion(lines: StyledLine[]): MenuRegion | null {
   const texts = lines.map(lineText);
 
-  let fi = texts.length - 1;
-  while (fi >= 0 && isBlank(texts[fi]!)) fi--;
+  const fi = dialogTail(texts);
   if (fi < 0) return null;
 
   const footer = texts[fi]!;

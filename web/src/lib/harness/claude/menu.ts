@@ -29,7 +29,7 @@
 
 import type { StyledLine } from "../../blocks";
 import { hasInputBox } from "./chrome";
-import { classifyFooter, isBlank, isModalRule, lineText } from "./markers";
+import { classifyFooter, dialogTail, isBlank, isModalRule, lineText } from "./markers";
 import { regionSignature } from "./prompt-select";
 import type { MenuModel, MenuNav } from "../menu-model";
 import { MENU_ARROW_ROW, parseKeyHintFooter } from "../menu-hints";
@@ -68,8 +68,7 @@ const REGION_SCAN_WINDOW = 30;
 export function detectMenuRegion(lines: StyledLine[]): MenuRegion | null {
   const texts = lines.map(lineText);
 
-  let fi = texts.length - 1;
-  while (fi >= 0 && isBlank(texts[fi]!)) fi--;
+  const fi = dialogTail(texts);
   if (fi < 0) return null;
 
   const footer = texts[fi]!;

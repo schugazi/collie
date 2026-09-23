@@ -16,7 +16,7 @@
 // marked only by a background highlight, not by a distinct glyph.
 
 import type { StyledLine } from "../../blocks";
-import { classifyFooter, isBlank, isHorizontalRule, lineText } from "./markers";
+import { classifyFooter, dialogTail, isBlank, isHorizontalRule, lineText, questionText } from "./markers";
 import { checkboxState, isFreeTextLabel, parseOptionRow, trailingMenuRows } from "./prompt-select";
 import {
   WIZARD_BACK_KEYS,
@@ -139,8 +139,7 @@ const CHOSEN_SUFFIX = /\s*✔\s*$/;
 export function detectWizardRegion(lines: StyledLine[]): WizardRegion | null {
   const texts = lines.map(lineText);
 
-  let fi = texts.length - 1;
-  while (fi >= 0 && isBlank(texts[fi]!)) fi--;
+  const fi = dialogTail(texts);
   if (fi < 0) return null;
 
   return detectQuestionPhase(lines, texts, fi) ?? detectReviewPhase(lines, texts, fi);
@@ -194,7 +193,7 @@ function detectQuestionPhase(
   // questions wrap). There is always at least one.
   const questionLines: string[] = [];
   for (let i = stepperIdx + 1; i < firstOpt; i++) {
-    if (!isBlank(texts[i]!)) questionLines.push(texts[i]!.trim());
+    if (!isBlank(texts[i]!)) questionLines.push(questionText(texts[i]!));
   }
   if (questionLines.length === 0) return null;
   const question = questionLines.join(" ");

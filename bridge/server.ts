@@ -23,6 +23,7 @@ import { createOperatorFonts, resolveOperatorFont } from "./operator-fonts.ts";
 import { createOperatorLaunchers } from "./operator-launchers.ts";
 import {
   DEFAULT_PROMPT_TAIL_LINES,
+  TASK_PANEL_MAX_LINES,
   verifyExpectedPrompt,
   type PromptBindingResult,
 } from "./prompt-binding.ts";
@@ -116,7 +117,9 @@ export function requestBodyCap(cfg: Config): number {
 // Upper bound on the pane-read `lines` param — don't trust the client (or Herdr) to cap it.
 const MAX_READ_LINES = 10_000;
 const MAX_EXPECTED_PROMPT_CHARS = 8192;
-const PROMPT_BINDING_BLANK_LINE_HEADROOM = 6;
+// A screen of blank rows: when a dialog shrinks (a wizard's question step giving way to its shorter
+// review), Claude leaves the rows it vacated blank between the dialog and the task panel under it.
+const PROMPT_BINDING_BLANK_LINE_HEADROOM = 100;
 // How long `GET /api/update/check` waits for an on-demand poll before answering with what it has.
 // Only paid once per boot: it fires exactly while `latest` is still null (the monitor's deliberate
 // first-poll delay, so the bridge never probes the network mid-boot) and never again once a check has
@@ -2726,13 +2729,17 @@ async function checkPromptBinding(
       MAX_READ_LINES,
       Math.max(
         cfg.readLines,
-        expectedRawLines + DEFAULT_PROMPT_TAIL_LINES + PROMPT_BINDING_BLANK_LINE_HEADROOM,
+        expectedRawLines +
+          DEFAULT_PROMPT_TAIL_LINES +
+          TASK_PANEL_MAX_LINES +
+          PROMPT_BINDING_BLANK_LINE_HEADROOM,
       ),
     );
     // Keep this coupled to readPane(): use its recent scope and preserved styling so the bridge
     // verifies the same kind of pane data the GET handler serves. The line count deliberately does
     // not follow cfg.readLines alone because a small legal setting may not contain the expected
-    // region; include room for the accepted tail and for blank separator lines normalization drops.
+    // region; include room for the accepted tail, a task panel under it, and for blank separator
+    // lines normalization drops.
     const read = await herdr.readGrid(paneId, {
       scope: "recent",
       lines: bindingReadLines,

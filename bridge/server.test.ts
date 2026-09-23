@@ -513,6 +513,8 @@ describe("pane write prompt binding", () => {
 
   class FakePaneClient {
     text = "Approve this command?\n1. Yes\n2. No";
+    /** Return only the last `lines` rows, as Herdr's `recent` read does. */
+    honourDepth = false;
     readonly reads: ReadArgs[] = [];
     readonly texts: Array<[string, string]> = [];
     readonly keys: Array<[string, string[]]> = [];
@@ -526,7 +528,7 @@ describe("pane write prompt binding", () => {
       this.reads.push([paneId, source, lines, format]);
       return Promise.resolve({
         pane_id: paneId,
-        text: this.text,
+        text: this.honourDepth ? this.text.split("\n").slice(-lines).join("\n") : this.text,
         truncated: false,
         revision: 1,
       });
@@ -653,6 +655,33 @@ describe("pane write prompt binding", () => {
     expect(client.reads[0]?.[1]).toBe("recent");
     expect(client.reads[0]?.[2]).toBeGreaterThan(32);
     expect(client.reads[0]?.[3]).toBe("ansi");
+    expect(client.keys).toEqual([["w1:p1", ["1"]]]);
+  });
+
+  // A wizard's review step is shorter than the question it replaced, and Claude leaves the rows it
+  // vacated blank between the dialog and its task panel — 16 of them in this capture.
+  test("binding read depth reaches a dialog above a task panel and a run of blank rows", async () => {
+    const fixture = "claude--wizard-submit--task-panel.txt";
+    const fixtures = join(import.meta.dir, "..", "web", "src", "fixtures");
+    // SAFETY: the committed binding golden, whose shape bridge/prompt-binding.test.ts asserts.
+    const rows = JSON.parse(readFileSync(join(fixtures, "prompt-binding-regions.json"), "utf8")) as Array<{
+      fixture: string;
+      region: string;
+    }>;
+    const client = new FakePaneClient();
+    client.text = readFileSync(join(fixtures, "panes", fixture), "utf8");
+    client.honourDepth = true;
+    const { audit } = auditEntries();
+    const res = await keysPane(
+      asMux(client),
+      cfg({ readLines: 20 }),
+      "w1:p1",
+      request({ keys: ["1"], expected_prompt: rows.find((r) => r.fixture === fixture)!.region }),
+      audit,
+      null,
+      "default",
+    );
+    expect(res.status).toBe(200);
     expect(client.keys).toEqual([["w1:p1", ["1"]]]);
   });
 

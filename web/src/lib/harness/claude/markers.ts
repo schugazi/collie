@@ -193,6 +193,59 @@ export function isMultiStepHeader(text: string): boolean {
   return m !== null && m.length >= 2;
 }
 
+// A question that wraps is drawn with a `│ ` bar down its left edge (measured on 2.1.280); the bar
+// is chrome, not the question's words.
+const QUESTION_BAR = /^│\s?/;
+
+/** A question line's words: trimmed, with the wrap bar taken off. */
+export function questionText(text: string): string {
+  return text.trim().replace(QUESTION_BAR, "").trim();
+}
+
+// Claude's task panel. While a dialog is open Claude parks it BELOW the dialog's footer (measured on
+// 2.1.280 under a wizard, its review step and a permission prompt): an "8 tasks (3 done, 1 in
+// progress, 4 open)" header, at most five `✔`/`◻`/`◼` rows cut to one line each, and an optional
+// "… +3 completed" row counting the rest. The header's count must equal the rows shown plus the
+// overflow's counts, so transcript text shaped like a task list is not taken for the panel; and
+// with no dialog open Claude paints its input box at the bottom, so the panel is never the tail
+// then. bridge/prompt-binding.ts reads the same shape to measure its tail window above the panel.
+const TASK_PANEL_HEADER = /^(\d+) tasks? \(.+\)$/;
+const TASK_PANEL_ROW = /^[✔◻◼] /;
+const TASK_PANEL_OVERFLOW = /^… \+\d/;
+const TASK_PANEL_SHOWN = 5;
+
+/** The index of the header of a task panel whose last row is `texts[end]`, or -1. */
+export function taskPanelStart(texts: string[], end: number): number {
+  let i = end;
+  let hidden = 0;
+  if (i >= 0 && TASK_PANEL_OVERFLOW.test(texts[i]!.trim())) {
+    for (const n of texts[i]!.match(/\d+/g) ?? []) hidden += Number(n);
+    i--;
+  }
+  let shown = 0;
+  while (i >= 0 && TASK_PANEL_ROW.test(texts[i]!.trim())) {
+    shown++;
+    i--;
+  }
+  if (i < 0 || shown === 0 || shown > TASK_PANEL_SHOWN) return -1;
+  const header = TASK_PANEL_HEADER.exec(texts[i]!.trim());
+  return header !== null && Number(header[1]) === shown + hidden ? i : -1;
+}
+
+/**
+ * The index of the last non-blank line once a trailing task panel is set aside, or -1 — the line
+ * every Claude dialog grammar anchors its footer on.
+ */
+export function dialogTail(texts: string[]): number {
+  let end = texts.length - 1;
+  while (end >= 0 && isBlank(texts[end]!)) end--;
+  const panel = taskPanelStart(texts, end);
+  if (panel < 0) return end;
+  end = panel - 1;
+  while (end >= 0 && isBlank(texts[end]!)) end--;
+  return end;
+}
+
 // The dialog families are part of the NEUTRAL prompt-select contract (harness/prompt-model.ts) —
 // each family pins a keystroke recipe the renderer and the guard rely on. Re-exported here because
 // `classifyFooter`, the Claude-specific act of reading a footer, is what produces one.

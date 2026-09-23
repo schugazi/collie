@@ -119,6 +119,8 @@ Why incremental wins here:
 | `claude--wizard-q1-revisit.txt` | Navigated back to answered Q1: `2. UI ✔` row, pointer on row 1 |
 | `claude--wizard-submit.txt` | Review step, all answered — NO footer, bg chip on `✔ Submit` |
 | `claude--wizard-submit-unanswered.txt` | Review step reached via Right-skips: `⚠ You have not answered all questions` |
+| `claude--wizard-long-question--task-panel.txt` | Q1 with a wrapped question (`│ ` bar on each line) and Claude's task panel parked below the footer (2.1.280) |
+| `claude--wizard-submit--task-panel.txt` | Review step with the task panel below `2. Cancel` |
 
 Plus T2's `claude--select-multi.txt` (a mid-flight question phase) and `claude--select-menu.txt`
 (single-question — must keep detecting as prompt-select, never as wizard).

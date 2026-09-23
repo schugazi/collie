@@ -1,0 +1,50 @@
+
+
+[38;5;246m✻[39m [38;5;246mCooked for 10s · done 8:10 AM[39m
+
+[38;5;239m[48;5;237m❯ [38;5;231mDelete tasks T4 through T10 (TaskUpdate status deleted). Mark "Phase C: cutover" in_progress. Change T1 subject to "Investigate why the wizard grammar misses[39m
+  [38;5;231mdialogs when a long task list is rendered below the footer". Then run the Bash command: ls /tmp/wizard-todo-sandbox. Nothing else.[39m
+[49m
+  [38;5;246mThought for [1m3s[0m[38;5;246m, listed [1m1[0m[38;5;246m directory, ran [1m1[0m[38;5;246m shell command [39m
+
+[38;5;231m●[39m Done. Tasks T4–T10 deleted, Phase C: cutover marked in_progress, T1 subject updated, directory listing returned empty.
+
+[38;5;246m✻[39m [38;5;246mWorked for 8s · done 8:10 AM[39m
+
+[38;5;239m[48;5;237m❯ [38;5;231mRun the Bash command: touch /tmp/wizard-todo-sandbox/x.txt. Nothing else.[39m
+[49m
+  [38;5;246mThought for [1m1s[0m[38;5;246m, ran [1m1[0m[38;5;246m shell command [39m
+[38;5;246m  ⎿  Interrupted · What should Claude do instead?[39m
+
+[38;5;246m✻[39m [38;5;246mBaked for 2s · done 8:14 AM[39m
+
+[38;5;239m[48;5;237m❯ [38;5;231mUse AskUserQuestion to ask TWO questions in ONE call. Question 1 (header "Cutover"): "Proceed with Phase C (live cutover: link + enable the unit, run the [39m
+  [38;5;231mchecks from the plan, edit the avoid list as root, run smoke and --full which spend quota, then commit the docs and host wiring)?" options Go (Recommended) /[39m
+  [38;5;231mNot yet, each with a long one-line description over 150 characters. Question 2 (header "Push"): "Push now?" options Now / Later. Nothing else.[39m
+
+[49m  [38;5;246mThought for [1m7s[0m[38;5;246m [39m
+[38;5;246m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+← [38;5;16m[48;5;153m ☐ Cutover [39m[49m ☐ Push  ✔ Submit  →
+
+[2m│[0m [1m[38;5;231mProceed with Phase C (live cutover: link + enable the unit, run the checks from the plan, edit the avoid list as root, run smoke and --full which spend quota,
+[0;2m│[0m [1m[38;5;231mthen commit the docs and host wiring)?[0m
+
+[38;5;153m❯[39m [38;5;246m1.[39m [38;5;153mGo (Recommended)[39m
+     [38;5;246mExecute Phase C cutover immediately: establish live links, enable the production unit, run all verification checks from the plan, update the avoid list [39m
+     [38;5;246mwith root privileges, execute smoke and full test suites (spending quota), commit documentation and host configuration changes.[39m
+  [38;5;246m2.[39m Not yet
+     [38;5;246mDefer Phase C cutover execution until further verification, additional safety checks, or resource availability improves; do not proceed with live linking,
+[39m     [38;5;246mproduction unit enablement, or quota-spending test runs at this time.[39m
+  [38;5;246m3. Type something.[39m
+[38;5;246m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m  4. Chat about this
+
+[38;5;246mEnter to select · Tab/Arrow keys to navigate · Esc to cancel[39m
+
+  [1m[38;5;246m8[0m[38;5;246m tasks ([1m3[0m[38;5;246m done, [1m1[0m[38;5;246m in progress, [1m4[0m[38;5;246m open)[39m
+  [38;5;174m◼ [1m[39mPhase C: cutover[0m
+  ◻ Final: review
+  ◻ Investigate why the wizard grammar misses dialogs when a long task list is rendered below the footer
+  ◻ T2
+  ◻ T3
+  [38;5;246m … +3 completed[39m

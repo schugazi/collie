@@ -118,6 +118,25 @@ describe("verifyExpectedPrompt", () => {
     });
   });
 
+  describe("under Claude's task panel", () => {
+    const expected = "Approve?\n1. Yes\n2. No";
+    const panel = ["  8 tasks (3 done, 1 in progress, 4 open)", "  ◼ C", "  ◻ D", "  ◻ E", "  ◻ F", "  ◻ G", "   … +3 completed"];
+
+    test("measures the tail window above a real panel", () => {
+      expect(verifyExpectedPrompt([expected, "Esc to cancel", "", ...panel].join("\n"), expected)).toEqual({ ok: true });
+    });
+
+    test("does not stretch the window for rows whose header count disagrees", () => {
+      const fake = ["  9 tasks (3 done, 6 open)", ...panel.slice(1)];
+      expect(verifyExpectedPrompt([expected, ...fake].join("\n"), expected)).toEqual({ ok: false, reason: "not_in_tail" });
+    });
+
+    test("still refuses a stale region with a short replacement prompt below it", () => {
+      const replacement = ["Ready to submit?", "1. Submit answers", "2. Cancel", "  ● Q1", "    → A", "  ● Q2", "    → B"];
+      expect(verifyExpectedPrompt([expected, ...replacement].join("\n"), expected)).toEqual({ ok: false, reason: "not_in_tail" });
+    });
+  });
+
   test("returns empty when expected normalizes to no lines", () => {
     expect(verifyExpectedPrompt("Approve?\n1. Yes", " \r\n\t\n")).toEqual({
       ok: false,

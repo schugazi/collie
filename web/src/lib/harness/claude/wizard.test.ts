@@ -77,6 +77,15 @@ describe("detectWizard — question phase", () => {
     expect(model!.options.filter((o) => o.chosen)).toHaveLength(1);
   });
 
+  // Claude parks its task panel under an open dialog, and draws a `│` bar beside a wrapped question.
+  it("a task panel under the footer is set aside, and a wrapped question loses its bar", () => {
+    const model = detectWizard(fixtureLines("claude--wizard-long-question--task-panel.txt"));
+    if (model?.phase !== "question") throw new Error("expected question phase");
+    expect(model.question).toMatch(/^Proceed with Phase C .* host wiring\)\?$/);
+    expect(model.question).not.toContain("│");
+    expect(model.options.map((o) => o.label)).toEqual(["Go (Recommended)", "Not yet", "Chat about this"]);
+  });
+
   it("T2's original multi-question capture (select-multi) now detects as a wizard", () => {
     const model = detectWizard(fixtureLines("claude--select-multi.txt"));
     expect(model).not.toBeNull();
@@ -104,6 +113,12 @@ describe("detectWizard — review (Submit) phase", () => {
       { question: "What scope should this work have?", answer: "Medium" },
       { question: "How should we approach the work?", answer: "Plan first" },
     ]);
+  });
+
+  it("a task panel under the review step is set aside", () => {
+    const model = detectWizard(fixtureLines("claude--wizard-submit--task-panel.txt"));
+    if (model?.phase !== "review") throw new Error("expected review phase");
+    expect(model.answers.map((a) => a.answer)).toEqual(["Go", "Keep", "Now"]);
   });
 
   it("unanswered questions: the ⚠ warning becomes `incomplete`, no answers listed", () => {
