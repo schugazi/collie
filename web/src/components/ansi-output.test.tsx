@@ -210,6 +210,23 @@ describe("mirror line wrapping", () => {
     expect(hung(preFor({ text, wrap: false }))).toEqual([]);
   });
 
+  it("paints a wrapped diff row's background as one band from the column it starts at", () => {
+    // Live Claude shape: plain indent, then gutter and code on the row's fill, padded to the width.
+    const row = (gutter: string, code: string) =>
+      `     \x1b[38;2;80;200;80m\x1b[48;2;2;40;0m${gutter}\x1b[38;2;248;248;242m${code}   \x1b[0m`;
+    // The last row is plain text between two inverse-video cells: a band would paint behind it.
+    const mixed = "  - \x1b[7mA\x1b[27m normal text \x1b[7mB\x1b[0m";
+    const pre = preFor({ text: `${row(" 3 +", "added code")}\n${row(" 4 +", "")}\n     5  context\n${mixed}` });
+    const bands = [...pre.querySelectorAll<HTMLElement>("span.inline-block")].map((s) => s.style.backgroundImage);
+    // The empty added row has nothing to hang and still gets its band; the others hang with none.
+    expect(bands).toEqual([
+      "linear-gradient(to right, transparent 5ch, rgb(2, 40, 0) 5ch)",
+      "linear-gradient(to right, transparent 5ch, rgb(2, 40, 0) 5ch)",
+      "",
+      "",
+    ]);
+  });
+
   it("keeps a live-shaped ANSI labelled rule clipped while muting only its rule runs", () => {
     const purple = "rgb(209, 131, 232)";
     const leadBg = "rgb(24, 25, 26)";

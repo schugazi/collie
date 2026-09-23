@@ -203,7 +203,26 @@ const TABLE_RUN_CLASS =
 // The same in-flow box as a table run, for the same reasons: its "\n" text nodes stay where they
 // are, and `align-bottom` keeps it on the 1.25em grid. The hang itself is a padding the first line
 // cancels with a negative text-indent, so the row's leading spaces still render, and still copy.
-const HANG_CLASS = "inline-block w-full align-bottom";
+const HANG_CLASS = "inline-block w-full align-bottom overflow-x-clip";
+
+// A row whose background runs unbroken to its end, as a diff row's does, is one solid band in the
+// terminal. Wrapped on the phone, the spans paint it only behind their own characters, so the band
+// would start at the line number on the first line and at the code on the rest, end raggedly, and
+// show the mirror between rows. The hang box paints the row's trailing background instead, edge to
+// edge, from the column where that unbroken fill starts. Only an unbroken fill: under a row with
+// plain text between two highlights, a band would paint behind the plain text and could hide it. A
+// fill the adapter marked for the phone to drop stays dropped. The box clips x, or the row's padding
+// spaces, which hang past the line's end rather than wrap, would paint on into the mirror's own
+// padding on some lines and not others.
+function rowBand(line: StyledLine): string | undefined {
+  const last = line.segments.at(-1);
+  const bg = last?.style.backgroundColor;
+  if (!bg || last.mobileTransparentBg) return undefined;
+  const first = line.segments.findIndex((s) => s.style.backgroundColor);
+  if (line.segments.slice(first).some((s) => !s.style.backgroundColor)) return undefined;
+  const start = line.segments.slice(0, first).reduce((n, s) => n + s.text.length, 0);
+  return `linear-gradient(to right, transparent ${start}ch, ${bg} ${start}ch)`;
+}
 
 // Faithful, colored mirror of a pane's recent terminal output. Rendering flows through the Block AST
 // (blocks.ts): parseAnsi → styled lines → typed blocks → React. Text is always rendered as React
@@ -491,11 +510,16 @@ export const AnsiOutput = memo(function AnsiOutput({
     // A run's own rows are never clipped; see `inRun` above. Outside a run this is unchanged: a
     // repeated rule, or a framed menu row, keeps the single-row clip it has always had. Only a row
     // that can wrap hangs: a clipped row and a run's row never wrap, and neither does Wrap off.
-    const hang = wrap && !inRun && !line.noWrap ? rowHang : 0;
+    const wraps = wrap && !inRun && !line.noWrap;
+    const hang = wraps ? rowHang : 0;
+    const band = wraps ? rowBand(line) : undefined;
     const content = line.noWrap && wrap && !inRun ? (
       <span className="inline-block max-w-full overflow-hidden align-bottom whitespace-pre break-normal [&_a]:break-normal">{segNodes}</span>
-    ) : hang > 0 ? (
-      <span className={HANG_CLASS} style={{ paddingLeft: `${hang}ch`, textIndent: `-${hang}ch` }}>
+    ) : hang > 0 || band ? (
+      <span
+        className={HANG_CLASS}
+        style={{ paddingLeft: `${hang}ch`, textIndent: `-${hang}ch`, backgroundImage: band }}
+      >
         {segNodes}
       </span>
     ) : (
