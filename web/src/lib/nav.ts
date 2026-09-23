@@ -6,10 +6,20 @@
 //
 // The host stays in the QUERY, never in the path: a `/host/:h/pane/:paneId` shape would fork every
 // route, break every existing deep link, and force the loaders' isPaneUrl() to grow a parser.
+import { basePath } from "./base-path";
 import { scopeSearch, type Scope } from "./scope";
 
 export function panePath(paneId: string, scope?: Scope): string {
   return `/pane/${encodeURIComponent(paneId)}${scopeSearch(scope)}`;
+}
+
+/**
+ * Whether the address bar is on a pane or its history page, under the mount (ADR 0052). The
+ * address bar and not a router location, so it is still true of the screen on show when the
+ * component that asked is gone.
+ */
+export function atPane(): boolean {
+  return window.location.pathname.slice(basePath().length - 1).startsWith(panePath(""));
 }
 
 /**

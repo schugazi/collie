@@ -1,6 +1,7 @@
 import { createBrowserRouter, replace } from "react-router";
 
-import { basePath } from "@/lib/base-path";
+import { basePath, mounted } from "@/lib/base-path";
+import { atPane } from "@/lib/nav";
 
 import { BootSplash, RootError, RootLayout } from "@/routes/root";
 import { HomeRoute } from "@/routes/home";
@@ -90,3 +91,27 @@ export const router = createBrowserRouter([
   // the mount in front of them and takes it off what it reads from the address bar.
   basename: basePath(),
 });
+
+// BACK OUT OF A PANE LANDS ON THE DASHBOARD OR THE SPACE VIEW IT WAS OPENED FROM, because nothing
+// else stacks under one: a pane switch replaces (routes/detail.tsx) and the history page returns by
+// going back (routes/history.tsx). A cold pane has nothing of the app behind it, so the dashboard is
+// seeded underneath, on the first tap or key rather than at boot: WebKit's Back gesture skips, for
+// good, an entry pushed without a user activation, so a seed pushed at boot would send the swipe
+// straight out of the app. A swipe before any tap still leaves; no page can stop that.
+//
+// Cold means React Router's FIRST entry (`idx` 0, numbered when the router above was created): a
+// pane is never there once anything of the app is behind it. A reload keeps the number, so a pane
+// reloaded before its first tap (the service worker's update reload among them) is still cold.
+function seed() {
+  window.removeEventListener("click", seed, true);
+  window.removeEventListener("keydown", seed, true);
+  const state = window.history.state;
+  if (state?.idx !== 0 || !atPane()) return;
+  const pane = window.location.href;
+  window.history.replaceState({ usr: null, key: "seed", idx: 0 }, "", mounted(`/${window.location.search}`));
+  window.history.pushState({ ...state, idx: 1 }, "", pane);
+}
+if (atPane() && window.history.state?.idx === 0) {
+  window.addEventListener("click", seed, true);
+  window.addEventListener("keydown", seed, true);
+}

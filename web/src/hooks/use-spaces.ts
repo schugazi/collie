@@ -6,7 +6,7 @@ import { describeApiError, describeThrownError } from "@/lib/api-error-message";
 import { t } from "@/lib/i18n";
 import { setStatus } from "@/lib/status";
 import { stampTopology } from "@/lib/poll-intent";
-import { panePath } from "@/lib/nav";
+import { atPane, panePath } from "@/lib/nav";
 import { isReadOnly, type AgentView, type CreateResponse } from "@/lib/types";
 import { usePairing } from "@/lib/pairing";
 import type { Scope } from "@/lib/scope";
@@ -75,7 +75,14 @@ export function useSpaceActions() {
       // the dashboard behind it) should not wait out an idle-timed gap to show the new pane.
       stampTopology();
       revalidatorRef.current.revalidate();
-      navigate(panePath(p.paneId, at ?? scopeRef.current), { state: { freshPane: fresh } });
+      // Landing on a pane, the new one replaces it in history, like a pane switch does
+      // (routes/detail.tsx), so the back swipe still returns to where the pane view was opened from.
+      // Asked when the create lands, not when it started: a Back taken mid-launch has left the pane,
+      // and replacing the screen it went back to would drop that screen from history.
+      navigate(panePath(p.paneId, at ?? scopeRef.current), {
+        state: { freshPane: fresh },
+        replace: atPane(),
+      });
     },
     [navigate],
   );

@@ -161,3 +161,24 @@ describe("useSpaceActions — creating busy state", () => {
     expect(mockCreateWorkspace).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("useSpaceActions — history entry", () => {
+  afterEach(() => window.history.replaceState(null, "", "/"));
+
+  // The address bar, not the router the hook was rendered under: a Back taken mid-launch leaves
+  // the hook's own screen behind, and the screen on show is the one a replace would drop.
+  it.each([
+    ["/pane/w9%3Ap1", "REPLACE"],
+    ["/space/w9", "PUSH"],
+  ])("a create landing with the address bar on %s navigates with %s", async (at, action) => {
+    window.history.replaceState(null, "", at);
+    mockCreateTab.mockResolvedValueOnce(pane("w1"));
+    const router = makeRouter();
+    const user = userEvent.setup();
+    render(<RouterProvider router={router} />);
+
+    await user.click(await screen.findByRole("button", { name: "new-tab-w1" }));
+    await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/pane\//));
+    expect(router.state.historyAction).toBe(action);
+  });
+});

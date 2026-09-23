@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useLoaderData, useNavigate, useParams } from "react-router";
+import { useLoaderData, useLocation, useNavigate, useParams } from "react-router";
 import { ArrowUpToLine, ChevronDown, ChevronUp, Loader2, ScrollText, Search, X } from "lucide-react";
 
 import { RouteHeader } from "@/components/app-header";
@@ -59,6 +59,7 @@ export function HistoryRoute() {
   const root = useRootData();
   const { paneId = "" } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const scope = data.scope;
   // Whether an agent session log can exist here at all — a property of the multiplexer THIS PANE's
   // machine runs (M22/03), not of the pane. See the empty-state branch below for what it changes.
@@ -202,6 +203,15 @@ export function HistoryRoute() {
     listRef.current?.scrollToBottom();
   }, []);
 
+  // Back to the pane by GOING back when the pane opened this page, so no second copy of it lands in
+  // history and a swipe from the pane still reaches the screen it was opened from. Opened any other
+  // way (a deep link), the page is swapped for the pane instead.
+  // SAFETY: `location.state` is whatever the navigation that got here attached — `unknown` by
+  // definition. The only shape put there for this route is `{ fromPane }` (components/agent-chat),
+  // and the optional chain means any other state reads as "not opened from the pane".
+  const fromPane = (location.state as { fromPane?: boolean } | null)?.fromPane === true;
+  const toPane = () => (fromPane ? navigate(-1) : navigate(panePath(paneId, scope), { replace: true }));
+
   const title = agent?.paneLabel ?? agent?.sessionName ?? agent?.workspaceLabel ?? paneId;
   const matchCursor = matches.indexOf(cursor);
 
@@ -215,7 +225,7 @@ export function HistoryRoute() {
     // where it is never the wider of the two.
     <div className="mx-auto flex min-h-0 w-full min-w-0 max-w-[100dvw] flex-1 flex-col md:max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl 2xl:max-w-[1400px]">
       <RouteHeader
-        onHome={() => navigate(panePath(paneId, scope))}
+        onHome={toPane}
         width="wide"
         override={
           findOpen ? (
@@ -255,7 +265,7 @@ export function HistoryRoute() {
         rightTrail={
           <button
             type="button"
-            onClick={() => navigate(panePath(paneId, scope))}
+            onClick={toPane}
             aria-label={t("history.closeAria")}
             className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors active:bg-muted/60"
           >

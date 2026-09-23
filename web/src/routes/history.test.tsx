@@ -1,7 +1,9 @@
-import { render, screen } from "@testing-library/react";
-import { createMemoryRouter, Outlet, RouterProvider } from "react-router";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { createMemoryRouter, Outlet, RouterProvider, type InitialEntry } from "react-router";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
+import { t } from "@/lib/i18n";
 import { ROOT_ROUTE_ID, type HistoryData, type HomeData } from "@/lib/loaders";
 import { withHeaderHost } from "@/test/header-host";
 import { HistoryRoute } from "./history";
@@ -35,7 +37,7 @@ function emptyHistory(): HistoryData {
   return { paneId: "p1", scope: {}, entries: [], hasMore: false, total: 0, fileTruncated: false };
 }
 
-function makeRouter() {
+function makeRouter(initialEntries: InitialEntry[] = ["/pane/p1/history"]) {
   return createMemoryRouter(
     [
       {
@@ -45,6 +47,7 @@ function makeRouter() {
         element: withHeaderHost(<Outlet />),
         children: [
           { index: true, element: <div /> },
+          { path: "pane/:paneId", element: <div /> },
           {
             path: "pane/:paneId/history",
             loader: () => emptyHistory(),
@@ -53,7 +56,7 @@ function makeRouter() {
         ],
       },
     ],
-    { initialEntries: ["/pane/p1/history"] },
+    { initialEntries },
   );
 }
 
@@ -89,5 +92,25 @@ describe("HistoryRoute — terminal font", () => {
     expect(wrapper.getAttribute("style")).toMatch(/Courier/);
     // The layout classes stay put — the font is added, not swapped in for them.
     expect(wrapper.className).toMatch(/(?:^|\s)flex-1(?=\s|$)/);
+  });
+});
+
+describe("HistoryRoute — Close", () => {
+  it("goes back to the pane that opened it, so no second copy lands in history", async () => {
+    const router = makeRouter(["/pane/p1", { pathname: "/pane/p1/history", state: { fromPane: true } }]);
+    render(<RouterProvider router={router} />);
+    await userEvent.click(await screen.findByRole("button", { name: t("history.closeAria") }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe("/pane/p1"));
+    expect(router.state.historyAction).toBe("POP");
+  });
+
+  it("opened any other way, swaps itself for the pane", async () => {
+    const router = makeRouter();
+    render(<RouterProvider router={router} />);
+    await userEvent.click(await screen.findByRole("button", { name: t("history.closeAria") }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe("/pane/p1"));
+    expect(router.state.historyAction).toBe("REPLACE");
   });
 });

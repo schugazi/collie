@@ -97,6 +97,8 @@ export function DetailRoute() {
       error={root.error}
       stalled={stalled}
       onBack={() => navigate(homePath(scope))}
+      // Replace, never push: a pane switch is a lateral move, so the back swipe skips every tab you
+      // visited and returns to the screen the pane view was opened from.
       onSelect={(id) =>
         navigate(
           panePath(
@@ -108,6 +110,7 @@ export function DetailRoute() {
               root.sessions,
             ),
           ),
+          { replace: true },
         )
       }
     />
