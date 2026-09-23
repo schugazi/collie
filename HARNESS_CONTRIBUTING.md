@@ -154,12 +154,36 @@ What your adapter must satisfy (all pinned by `describeAdapterConformance`):
    `revision` is a stub, so it is the entire race guard (the generic one — see the next section).
 4. Menu detection runs **last**, after every specific grammar you have, and must decline a screen with
    a live input box; your `composerReady` must answer `false` while the modal is up.
-5. **A footer phrase may never be the whole reason a grammar declines.** Menu detection stands down
+5. **When the screen prints the WHOLE scale the arrows move along, put it in
+   `nav.leftRight.values`** — the values in the order the screen printed them on one row, with
+   `label` one of them. The card then renders one tappable chip per value and sends a tap as the
+   delta in presses of the arrow the footer named, so the operator sees every option and reaches one
+   in a single tap. Set it only where the screen really printed the scale: a row that shows the
+   current value alone (Claude's `/model` picker) leaves it undefined and keeps the plain arrows.
+   The scale is part of menu identity, so it must be stable across polls
+   ([ADR 0054](./.adr/0054-a-printed-scale-is-tappable.md)). **A narrow pane wraps that scale**, so
+   read the footer as the rows the terminal wrapped it onto (`readKeyHintFooter` in
+   `web/src/lib/harness/menu-hints.ts`, which joins them) and rebuild each value from its head and
+   the fragment printed under it, in the same column; merge only when every fragment lines up, and
+   decline the screen when a merge makes anything but one word.
+6. **A footer phrase may never be the whole reason a grammar declines.** Menu detection stands down
    when a family classifier says another grammar owns the screen, so that classifier must be
    answerable from the dialog it names, its title or its body, not from one line any screen may
    print. Claude's `/effort` slider prints "Enter to confirm", was filed as the folder-trust prompt
    on that phrase alone, and lost every button it had
    ([ADR 0053](./.adr/0053-an-unread-dialog-still-has-a-way-out.md)).
+7. **A POINTED list is walked, not numbered.** The same arithmetic covers a modal that prints a
+   column of unnumbered rows with a `❯` on one of them and a commit key in its footer: a tap is the
+   arrow walk from the pointed row to the target row, then that commit key, sent as one batch.
+   Claude's folder-trust prompt is the reference case since 2.1.278 — it prints no digit, so none may
+   be synthesised, and ADR 0009 holds here exactly as it does above
+   ([ADR 0055](./.adr/0055-a-pointed-list-is-walked-then-confirmed.md)). Two things are load-bearing.
+   The arrow COUNT is a claim about where the pointer was, so the kind's committing comparator must
+   see the pointer row, or a highlight moved by a second device sends the wrong number of arrows.
+   And the row a bare commit key would take is the DEFAULT, which on the trust prompt quits the
+   agent, so the card has to show which row it is. This lift lives in Claude's prompt-select grammar
+   rather than in the generic menu, because a walk is only safe when the dialog is one you have
+   modelled; the menu's own bar (only the keys the footer named) is unchanged.
 
 ## Every dialog model is a contract, and the race guard is generic
 

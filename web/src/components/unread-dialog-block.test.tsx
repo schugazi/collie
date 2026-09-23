@@ -38,23 +38,51 @@ function renderCard(onAction = vi.fn(), disabled = false) {
 }
 
 describe("UnreadDialogBlock", () => {
-  it("renders the caption and exactly one control", () => {
+  it("renders the caption and exactly two controls: the declared key and Put away", () => {
     renderCard();
     expect(screen.getByText("mycroftxxx remote cannot read this dialog")).toBeInTheDocument();
-    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(screen.getAllByRole("button")).toHaveLength(2);
     // The key, named the way the Keys keypad names it — and NEVER a verb: on Muse this key steps
     // back rather than dismisses, so a label promising "cancel" would be a lie on a real harness.
     expect(screen.getByRole("button", { name: "Esc" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /cancel/i })).toBeNull();
+    // ADR 0056, counsel fix: this card shows its mirror by default, so the control's job is
+    // putting the key control away, never a claimed swap — "Put away" / its aria-label.
+    expect(
+      screen.getByRole("button", { name: "Hide this card's buttons, keep the terminal" }),
+    ).toBeInTheDocument();
   });
 
-  it("mirrors the whole screen under the control, so nothing is hidden", () => {
+  it("mirrors the whole screen under the control by default, so nothing is hidden", () => {
     const { container, block } = renderCard();
     const pre = container.querySelector("pre")!;
     for (const line of block.lines.slice(0, 5)) {
       const text = line.segments.map((s) => s.text).join("").trim();
       if (text !== "") expect(pre.textContent).toContain(text);
     }
+  });
+
+  // ADR 0056, counsel fix: the control puts the key control away for a decluttered, mirror-only
+  // view, and "Show the buttons" restores it. The rows themselves stay on screen throughout (same
+  // `lines`, same RawMirror) — this card never claims a swap.
+  it("declutters to the mirror alone when Put away is tapped, and restores on Show the buttons", async () => {
+    const user = userEvent.setup();
+    const { container, block } = renderCard();
+
+    await user.click(
+      screen.getByRole("button", { name: "Hide this card's buttons, keep the terminal" }),
+    );
+
+    expect(screen.queryByRole("button", { name: "Esc" })).toBeNull();
+    const pre = container.querySelector("pre")!;
+    for (const line of block.lines.slice(0, 5)) {
+      const text = line.segments.map((s) => s.text).join("").trim();
+      if (text !== "") expect(pre.textContent).toContain(text);
+    }
+    expect(screen.getByRole("button", { name: "Show the buttons" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Show the buttons" }));
+    expect(screen.getByRole("button", { name: "Esc" })).toBeInTheDocument();
   });
 
   it("fires the declared key on a tap", async () => {

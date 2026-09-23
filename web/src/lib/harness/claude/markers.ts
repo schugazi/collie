@@ -37,9 +37,13 @@ const NOTICE_RULE = new RegExp(`^([${CLAUDE_RULE_GLYPH_CLASS}])\\1{2,}\\s+(.+)\\
  * notification slot (NOTICE_RULE). menu.ts and effort.ts scan up from their footer for it; without
  * the third arm both missed the modal until the notice cleared, and the phone showed the
  * unread-dialog card for those seconds.
+ *
+ * The bare rule is one UNBROKEN run. isHorizontalRule compacts interior spaces away, so the `/effort`
+ * slider's wrapped track (`─   ────┆   ──`) passes it, and a modal opened there loses the marker row
+ * that sits above it; both callers sign from the row under the rule.
  */
 export function isModalRule(text: string): boolean {
-  if (isBoxBorder(text) || isHorizontalRule(text)) return true;
+  if (isBoxBorder(text) || (isHorizontalRule(text) && !/\S\s+\S/.test(text.trim()))) return true;
   const m = NOTICE_RULE.exec(text.trim());
   return m !== null && !RULE_OR_SPACE_ONLY.test(m[2]!);
 }

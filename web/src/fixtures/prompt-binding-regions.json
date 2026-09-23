@@ -30,6 +30,76 @@
     "region": "   Effort\n\n                             Faster                                                 Smarter\n                             ────────────────────▲──────────────────────┆──────────────────\n                             low     medium     high     xhigh      max       ultracode\n                                                                          xhigh + workflows\n\n   ←/→ to adjust · Enter to confirm · s for this session only · Esc to cancel"
   },
   {
+    "fixture": "claude--menu-effort-slider--w132.txt",
+    "detector": "menu",
+    "region": "   Effort\n\n                                   Faster                                                 Smarter\n                                   ──────────▲────────────────────────────────┆──────────────────\n                                   low     medium     high     xhigh      max       ultracode\n                                                                                xhigh + workflows\n\n   ←/→ to adjust · Enter to confirm · s for this session only · Esc to cancel"
+  },
+  {
+    "fixture": "claude--menu-effort-slider--w60.txt",
+    "detector": "menu",
+    "region": "   Effort\n\n   Faste                                           Smarte\n   r                                               r\n   ─────────▲────────────────────────────────────────────\n   ─         ────┆                       ──\n   low    mediu     hig    xhigh     max      ultracod\n          m         h                         e\n                                          xhigh +\n                                          workflows\n\n   ←/→ to adjust · Enter to confirm · s for this session\n   only · Esc to cancel"
+  },
+  {
+    "fixture": "claude--menu-effort-slider--w80.txt",
+    "detector": "menu",
+    "region": "   Effort\n\n         Faster                                                 Smarter\n         ──────────▲────────────────────────────────┆──────────────────\n         low     medium     high     xhigh      max       ultracode\n                                                      xhigh + workflows\n\n   ←/→ to adjust · Enter to confirm · s for this session only · Esc to cancel"
+  },
+  {
+    "fixture": "claude--menu-effort-slider--w60-low.txt",
+    "detector": "menu",
+    "region": "   Effort\n\n   Faste                                           Smarte\n   r                                               r\n   ─▲────────────────────────────────────────────────────\n     ─────┆                              ──\n   low    mediu     hig    xhigh     max      ultracod\n          m         h                         e\n                                          xhigh + \n                                          workflows\n\n   ←/→ to adjust · Enter to confirm · s for this session \n   only · Esc to cancel"
+  },
+  {
+    "fixture": "claude--menu-effort-slider--w80-low.txt",
+    "detector": "menu",
+    "region": "   Effort\n\n         Faster                                                 Smarter\n         ─▲─────────────────────────────────────────┆──────────────────\n         low     medium     high     xhigh      max       ultracode\n                                                      xhigh + workflows\n\n   ←/→ to adjust · Enter to confirm · s for this session only · Esc to cancel"
+  },
+  {
+    "fixture": "claude--menu-effort-slider--w80-ultracode.txt",
+    "detector": "menu",
+    "region": "   Effort                                                                       \n                                                                                \n         Faster                                                 Smarter         \n         ───────────────────────────────────────────┆─────────▲────────         \n         low     medium     high     xhigh      max       ultracode             \n                                                      xhigh + workflows         \n                                                                                \n   ←/→ to adjust · Enter to confirm · s for this session only · Esc to cancel   "
+  },
+  {
+    "fixture": "claude--menu-effort-slider--w60-ultracode.txt",
+    "detector": "menu",
+    "region": "   Effort                                                   \n                                                            \nFaster                                                 \n───────────────────────────────────────────┆─────────▲──────\nlow     medium     high     xhigh      max       ultracode  \n                                             xhigh +       \n                                                            \n   ←/→ to adjust · Enter to confirm · s for this session \nonly · Esc to cancel"
+  },
+  {
+    "fixture": "claude--menu-effort-slider--w40-ultracode.txt",
+    "detector": "menu",
+    "region": "low     medium     high     xhigh      m\n                                        \n                                        \n   ←/→ to adjust · Enter to confirm · s \nfor this session only · Esc to cancel"
+  },
+  {
+    "fixture": "claude--menu-resume-picker--w120-first.txt",
+    "detector": "prompt-select",
+    "region": "   Resume session\n   ╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮\n   │ ⌕ Search…                                                                                                      │\n   ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\n     resume-lab\n\n   ❯ Count to three\n     44 seconds ago · master · 177.4KB\n\n     Name a colour\n     1 minute ago · master · 177.5KB\n\n     say ok\n     1 minute ago · master · 176.8KB\n\n     Say hi in one word\n     2 minutes ago · master · 177.5KB\n     \n     Ctrl+A to show all projects · Ctrl+B to only show current branch · Space to preview · Ctrl+R to rename · Type to\n     search · Esc to cancel"
+  },
+  {
+    "fixture": "claude--menu-resume-picker--w120-third.txt",
+    "detector": "prompt-select",
+    "region": "   Resume session\n   ╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮\n   │ ⌕ Search…                                                                                                      │\n   ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\n     resume-lab\n\n     Count to three\n     1 minute ago · master · 177.4KB\n\n     Name a colour\n     1 minute ago · master · 177.5KB\n\n   ❯ say ok\n     2 minutes ago · master · 176.8KB\n\n     Say hi in one word\n     2 minutes ago · master · 177.5KB\n     \n     Ctrl+A to show all projects · Ctrl+B to only show current branch · Space to preview · Ctrl+R to rename · Type to\n     search · Esc to cancel"
+  },
+  {
+    "fixture": "claude--menu-resume-picker--w120-search.txt",
+    "detector": "prompt-select",
+    "region": "   Resume session\n   ╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮\n   │ ⌕ hi                                                                                                           │\n   ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\n\n     Say hi in one word\n     4 minutes ago · master · 177.5KB\n\n     Type to Search · Enter to select · Esc to clear"
+  },
+  {
+    "fixture": "claude--menu-resume-picker--w60-first.txt",
+    "detector": "prompt-select",
+    "region": "   Resume session\n   ╭────────────────────────────────────────────────────╮\n   │ ⌕ Search…                                          │\n   ╰────────────────────────────────────────────────────╯\n     resume-lab\n\n   ❯ Count to three\n     3 minutes ago · master · 177.4KB\n\n     Name a colour\n     3 minutes ago · master · 177.5KB\n\n     say ok\n     3 minutes ago · master · 176.8KB\n\n     Say hi in one word\n     4 minutes ago · master · 177.5KB\n     \n     Ctrl+A to show all projects · Ctrl+B to only show \n     current branch · Space to preview · Ctrl+R to rename\n     · Type to search · Esc to cancel"
+  },
+  {
+    "fixture": "claude--menu-resume-picker--w80-second.txt",
+    "detector": "prompt-select",
+    "region": "   Resume session\n   ╭────────────────────────────────────────────────────────────────────────╮\n   │ ⌕ Search…                                                              │\n   ╰────────────────────────────────────────────────────────────────────────╯\n     resume-lab\n\n     Count to three\n     3 minutes ago · master · 177.4KB\n\n   ❯ Name a colour\n     3 minutes ago · master · 177.5KB\n\n     say ok\n     4 minutes ago · master · 176.8KB\n\n     Say hi in one word\n     4 minutes ago · master · 177.5KB\n     \n     Ctrl+A to show all projects · Ctrl+B to only show current branch · Space\n     to preview · Ctrl+R to rename · Type to search · Esc to cancel"
+  },
+  {
+    "fixture": "claude--menu-resume-picker--w120-all-sanitized.txt",
+    "detector": "prompt-select",
+    "region": "   Resume session (1 of 50)\n   ╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮\n   │ ⌕ Search…                                                                                                      │\n   ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\n\n   ❯ Correct the licence field in form\n     now · main · 1.1MB · /home/user/projects/example-company-platform\n\n     tidy the backlog\n     2 seconds ago · main · 79.3MB · /home/user/projects/demo-analytics\n\n     emails\n     7 seconds ago · main · 10MB · /home/user/projects/example-company-platform\n\n     Product detail page layout overhaul\n     19 seconds ago · main · 8.3MB · /home/user/projects/example-company-platform\n\n     Count to three\n     1 minute ago · master · 177.4KB · /tmp/resume-lab\n\n     Name a colour\n     2 minutes ago · master · 177.5KB · /tmp/resume-lab\n\n     say ok\n     2 minutes ago · master · 176.8KB · /tmp/resume-lab\n\n     Say hi in one word\n     3 minutes ago · master · 177.5KB · /tmp/resume-lab\n\n   ↓ classifier milestone m09\n     4 minutes ago · main · 45.8MB · example/demo#1234 · /home/user/projects/notes-and-experiments\n     \n     Ctrl+A to only show current repo · Ctrl+B to only show current branch · Space to preview · Ctrl+R to rename · \n     Type to search · Esc to cancel"
+  },
+  {
     "fixture": "claude--menu-model-picker-moved.txt",
     "detector": "menu",
     "region": "   Select model\n   Switch between Claude models. Your pick becomes the default for new sessions. For other/previous model names, specify with --model.\n\n     1. Default (recommended) ✔  Opus 5 with 1M context · Best for everyday, complex tasks\n     2. Opus (1M context)        Opus 5 with 1M context · Best for everyday, complex tasks\n   ❯ 3. Fable                    Fable 5 · Most capable for your hardest and longest-running tasks\n     4. Sonnet                   Sonnet 5 · Efficient for routine tasks\n     5. Haiku                    Haiku 4.5 · Fastest for quick answers\n\n   ◐ Medium effort ←/→ to adjust\n\n   Enter to set as default · s to use this session only · Esc to cancel"
@@ -145,6 +215,11 @@
     "region": "←  ☐ Cutover  ☐ Push  ✔ Submit  →\n\n│ Proceed with Phase C (live cutover: link + enable the unit, run the checks from the plan, edit the avoid list as root, run smoke and --full which spend quota,\n│ then commit the docs and host wiring)?\n\n❯ 1. Go (Recommended)\n     Execute Phase C cutover immediately: establish live links, enable the production unit, run all verification checks from the plan, update the avoid list \n     with root privileges, execute smoke and full test suites (spending quota), commit documentation and host configuration changes.\n  2. Not yet\n     Defer Phase C cutover execution until further verification, additional safety checks, or resource availability improves; do not proceed with live linking,\n     production unit enablement, or quota-spending test runs at this time.\n  3. Type something.\n────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n  4. Chat about this\n\nEnter to select · Tab/Arrow keys to navigate · Esc to cancel"
   },
   {
+    "fixture": "claude--trust-prompt-unnumbered.txt",
+    "detector": "prompt-select",
+    "region": "\n   󱍢 Welcome to Bluefin                                                                                               \n                                                                                                                      \n  󱋩  ghcr.io/ublue-os/bluefin-dx:stable                                                                               \n                                                                                                                      \n    Command                                               │ Description                                              \n  ─────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────  \n    ujust --choose                                         │ Show available commands                                  \n    ujust toggle-user-motd                                 │ Toggle this banner on/off                                \n    ujust bluefin-cli                                      │ Enable terminal bling                                    \n    brew help                                              │ Manage command line packages                             \n                                                                                                                      \n  Switch shells safely: change your shell in Terminal settings instead of system-wide                                 \n                                                                                                                      \n  • 󰊤 Issues https://issues.projectbluefin.io                                                                         \n  • 󰊤 Ask Bluefin https://ask.projectbluefin.io                                                                       \n  • 󰈙 Documentation https://docs.projectbluefin.io                                                                    \n\n\ndemo1 in 🌐 machine in /tmp/m34-lab-untrusted \n❯ claude\n\n────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n Accessing workspace:\n\n /tmp/m34-lab-untrusted\n\n Quick safety check: Is this a project you created or one you trust? (Like your own code, a well-known open source\n project, or work from your team). If not, take a moment to review what's in this folder first.\n\n Claude Code'll be able to read, edit, and execute files here.\n\n Security guide\n\n ❯ No, exit\n   Yes, I trust this folder\n\n Enter to confirm · Esc to cancel"
+  },
+  {
     "fixture": "claude--wizard-multiselect-checked.txt",
     "detector": "multi-select",
     "region": "←  ☒ Toppings  ☐ Crust  ✔ Submit  →\n\nWhich toppings would you like on your pizza?\n\n❯ 1. [✔] Pepperoni\n  Classic cured pork-and-beef slices that crisp at the edges.\n  2. [ ] Mushrooms\n  Earthy sliced creminis that soften into the cheese.\n  3. [✔] Bell peppers\n  Sweet, slightly crunchy strips of red and green pepper.\n  4. [ ] Extra cheese\n  A double layer of mozzarella for a richer, stretchier bite.\n  5. [ ] Type something\n     Next\n───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n  6. Chat about this"
@@ -226,8 +301,8 @@
   },
   {
     "fixture": "claude-lab--menu-resume-picker--w83.txt",
-    "detector": "menu",
-    "region": "     project\n\n   ❯ Read README.md\n     1 minute ago · main · 539.1KB\n\n     README review\n     26 minutes ago · main · 244.4KB\n\n     Ctrl+A to show all projects · Ctrl+B to only show current branch · Space to\n     preview · Ctrl+R to rename · Type to search · Esc to cancel"
+    "detector": "prompt-select",
+    "region": "   Resume session\n   ╭───────────────────────────────────────────────────────────────────────────╮\n   │ ⌕ Search…                                                                 │\n   ╰───────────────────────────────────────────────────────────────────────────╯\n     project\n\n   ❯ Read README.md\n     1 minute ago · main · 539.1KB\n\n     README review\n     26 minutes ago · main · 244.4KB\n\n     Ctrl+A to show all projects · Ctrl+B to only show current branch · Space to\n     preview · Ctrl+R to rename · Type to search · Esc to cancel"
   },
   {
     "fixture": "claude-lab--menu-rewind--w82.txt",
