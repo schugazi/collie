@@ -116,6 +116,7 @@ export const UI_FONT_URLS = ["/fonts/ui-space-grotesk-2.000-latin.woff2", DEFAUL
 export const FONT_URLS = [
   "/fonts/nerd-symbols-3.5.0-pua.woff2",
   "/fonts/nerd-symbols-3.5.0-spua.woff2",
+  "/fonts/terminal-symbols-0.63.2.woff2",
   ...UI_FONT_URLS,
 ] as const;
 

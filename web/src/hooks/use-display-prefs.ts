@@ -96,6 +96,7 @@ export function isFontFamily(value: string): value is FontFamily {
 //      long comment above them in index.css. It can never be consulted for a letter, a digit or a
 //      box-drawing character, so the real monospace face still sets the metrics. Drop it from a
 //      stack and every Powerline separator and devicon in that agent's output becomes tofu.
+//      `"Terminal Symbols"` follows it on the same terms (Claude Code's ⎿ ⏺ ⏵⏵, index.css).
 //   2. Each stack ENDS in the generic `monospace`, via the same tail the app's own `--font-mono`
 //      ends in. A stack that fell through to a proportional face would destroy the mirror's column
 //      alignment, which is the one thing the mirror exists to preserve. So an absent family
@@ -104,7 +105,7 @@ export function isFontFamily(value: string): value is FontFamily {
 // TAIL is the non-Nerd remainder of `--font-mono` (index.css). Kept in sync by hand, deliberately:
 // "system" below resolves to `undefined` and writes nothing, so the DEFAULT path reads the CSS and
 // this constant can never drift the untouched case.
-const NERD = '"Nerd Font Symbols"';
+const NERD = '"Nerd Font Symbols", "Terminal Symbols"';
 const TAIL =
   'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace';
 

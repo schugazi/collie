@@ -11,10 +11,11 @@ import {
 import { acceptOperatorFonts, operatorFontCss, operatorFontUrl } from "@/lib/operator-fonts";
 import { DEFAULT_UI_FONT_URL, FONT_URLS, UI_FONT_URLS } from "@/lib/sw-routes";
 
-// Collie ships four webfonts — two Nerd Font symbol subsets and two UI typefaces — and the design
-// rests on facts that are silent when broken: the stylesheet, the service worker and the disk agree
-// on which files exist; the symbol faces stay range-restricted so they stay lazy; the UI face is
-// preloaded and metric-matched so its swap moves nothing; and none of them re-enters the precache.
+// Collie ships five webfonts — two Nerd Font symbol subsets, one terminal-symbol subset and two UI
+// typefaces — and the design rests on facts that are silent when broken: the stylesheet, the service
+// worker and the disk agree on which files exist; the symbol faces stay range-restricted so they stay
+// lazy; the UI face is preloaded and metric-matched so its swap moves nothing; and none of them
+// re-enters the precache.
 // A renamed file is a tofu box again (#70); a woff2 back in `globPatterns` charges every install
 // ~1.2 MB; a URL the SW doesn't know gets swept out of the font cache on activate; a UI face without
 // its `size-adjust` twin reflows the whole app when it lands.
@@ -35,6 +36,21 @@ describe("bundled fonts", () => {
   it("declares one symbol face per private-use plane", () => {
     expect(css).toContain("unicode-range: U+E000-F8FF");
     expect(css).toContain("unicode-range: U+F0000-F1AFF");
+  });
+
+  // Off the space, so it never sets the line; off the two-cell emoji, so the phone draws those.
+  it("keeps the terminal-symbol face to one-cell symbols", () => {
+    const range = /font-family: "Terminal Symbols";[\s\S]*?unicode-range: ([^;]+);/.exec(css)?.[1];
+    const inRange = (cp: number) =>
+      range!.split(",").some((r) => {
+        const [lo, hi = lo] = r.trim().slice(2).split("-").map((h) => Number.parseInt(h, 16));
+        return cp >= lo! && cp <= hi!;
+      });
+    expect(inRange(0x23bf)).toBe(true); // ⎿
+    expect(inRange(0x29c9)).toBe(true); // ⧉
+    for (const cp of [0x20, 0x231a, 0x231b, 0x2329, 0x232a, 0x23e9, 0x23ec, 0x23f0, 0x23f3]) {
+      expect(inRange(cp)).toBe(false);
+    }
   });
 
   // Drift here is the whole failure mode: the SW sweeps every font-cache entry it can't name, so a

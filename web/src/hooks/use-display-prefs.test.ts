@@ -95,14 +95,14 @@ describe("useDisplayPrefs", () => {
   // other test would notice: a lost Nerd entry turns every Powerline glyph into tofu, and a stack
   // that does not end in a monospace generic can fall through to a proportional face and destroy
   // the mirror's column alignment.
-  it("every non-default font stack leads with Nerd Font Symbols and ends in monospace", () => {
+  it("every non-default font stack leads with the symbol faces and ends in monospace", () => {
     for (const [family, stack] of Object.entries(FONT_STACKS)) {
       if (family === "system") {
         expect(stack).toBeUndefined();
         continue;
       }
       expect(stack).toBeDefined();
-      expect(stack!.startsWith('"Nerd Font Symbols", ')).toBe(true);
+      expect(stack!.startsWith('"Nerd Font Symbols", "Terminal Symbols", ')).toBe(true);
       expect(stack!.endsWith(", monospace")).toBe(true);
     }
   });
