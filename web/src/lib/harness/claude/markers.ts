@@ -236,18 +236,26 @@ export function taskPanelStart(texts: string[], end: number): number {
   return header !== null && Number(header[1]) === shown + hidden ? i : -1;
 }
 
+// A background agent's message that arrives while a dialog is open is parked under the footer too
+// (measured on 2.1.280 under a wizard), one collapsed row each.
+const QUEUED_MESSAGE_ROW = /^› Message from @\S+ \(ctrl\+o to expand\)$/;
+
 /**
- * The index of the last non-blank line once a trailing task panel is set aside, or -1 — the line
- * every Claude dialog grammar anchors its footer on.
+ * The index of the last non-blank line once a trailing task panel and any queued-message rows are
+ * set aside, or -1 — the line every Claude dialog grammar anchors its footer on.
  */
 export function dialogTail(texts: string[]): number {
   let end = texts.length - 1;
-  while (end >= 0 && isBlank(texts[end]!)) end--;
-  const panel = taskPanelStart(texts, end);
-  if (panel < 0) return end;
-  end = panel - 1;
-  while (end >= 0 && isBlank(texts[end]!)) end--;
-  return end;
+  for (;;) {
+    while (end >= 0 && isBlank(texts[end]!)) end--;
+    if (end >= 0 && QUEUED_MESSAGE_ROW.test(texts[end]!.trim())) {
+      end--;
+      continue;
+    }
+    const panel = taskPanelStart(texts, end);
+    if (panel < 0) return end;
+    end = panel - 1;
+  }
 }
 
 // The dialog families are part of the NEUTRAL prompt-select contract (harness/prompt-model.ts) —

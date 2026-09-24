@@ -86,6 +86,22 @@ describe("detectWizard — question phase", () => {
     expect(model.options.map((o) => o.label)).toEqual(["Go (Recommended)", "Not yet", "Chat about this"]);
   });
 
+  it("background-agent message rows under the footer are set aside", () => {
+    const model = detectWizard(fixtureLines("claude--wizard--queued-messages.txt"));
+    if (model?.phase !== "question") throw new Error("expected question phase");
+    expect(model.steps.map((s) => s.label)).toEqual(["Theme text", "Link search", "Case rename"]);
+    expect(model.options.map((o) => o.label)).toEqual(["Delete them (Recommended)", "Use them", "Chat about this"]);
+  });
+
+  it("a message under the task panel is set aside with it", () => {
+    const lines = fixtureLines("claude--wizard-long-question--task-panel.txt");
+    const message = fixtureLines("claude--wizard--queued-messages.txt").at(-1)!;
+    expect(lineText(message)).toMatch(/^› Message from @/);
+    const base = detectWizard(lines);
+    expect(base).not.toBeNull();
+    expect(detectWizard([...lines, message])?.signature).toBe(base?.signature);
+  });
+
   it("T2's original multi-question capture (select-multi) now detects as a wizard", () => {
     const model = detectWizard(fixtureLines("claude--select-multi.txt"));
     expect(model).not.toBeNull();

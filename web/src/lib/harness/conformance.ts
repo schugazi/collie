@@ -40,7 +40,7 @@ import { describe, expect, it } from "vitest";
 import { parseAnsi } from "../ansi";
 import { lineText, splitLines, type Block, type StyledLine } from "../blocks";
 import type { HarnessAdapter } from "./types";
-import { taskPanelStart } from "./claude/markers";
+import { dialogTail } from "./claude/markers";
 import {
   DIALOG_CONTRACT,
   dialogComparators,
@@ -86,10 +86,10 @@ function textLine(text: string): StyledLine {
 const BRIDGE_PROMPT_TAIL_LINES = 6;
 
 /** Non-blank rows below a region's last line, counted as the bridge counts them: from above a
- *  trailing Claude task panel (`trailingTaskPanelLines` in bridge/prompt-binding.ts). */
+ *  trailing Claude task panel and queued-message rows (`trailingDialogChromeLines` in
+ *  bridge/prompt-binding.ts). */
 function rowsBelow(fresh: string[], matchEnd: number): number {
-  const panel = taskPanelStart(fresh, fresh.length - 1);
-  return (panel < 0 ? fresh.length : panel) - 1 - matchEnd;
+  return dialogTail(fresh) - matchEnd;
 }
 
 function normalizeRegion(text: string): string[] {

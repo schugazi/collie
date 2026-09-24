@@ -1,0 +1,22 @@
+[0m[38;2;153;153;153m› Message from @ab1e87a7b651e2925 (ctrl+o to expand)[0m
+
+  [0m[38;2;153;153;153mRan [0m[1m[38;2;153;153;153m1[0m[38;2;153;153;153m shell command [0m
+[0m[38;2;153;153;153m  ⎿  Found [0m[1m[38;2;153;153;153m30[0m[38;2;153;153;153m new diagnostic issues in 6 files (ctrl+o to expand)[0m
+[0m[38;2;153;153;153m───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[0m[38;2;153;153;153m← [0m[38;2;0;0;0m[48;2;177;185;249m ☐ Theme text [0m ☐ Link search  ☐ Case rename  ✔ Submit  →
+
+[0m[2m│ [0m[1m[38;2;255;255;255mTask text style in each theme: every theme sets its own color and size for task-card text (Retro: green 15px, Jazz Cup: lavender 14px, etc.), but the app ignores them and always [0m
+[0m[2m│[0m [0m[1m[38;2;255;255;255muses normal text. What should happen?[0m
+
+[0m[38;2;177;185;249m❯ [0m[38;2;153;153;153m1. [0m[38;2;177;185;249mDelete them (Recommended)[0m
+     [0m[38;2;153;153;153mCards look exactly as they do today; less code.[0m
+  [0m[38;2;153;153;153m2. [0mUse them
+     [0m[38;2;153;153;153mRetro, Jazz Cup and Seahawks themes would show task text in their own color and a slightly larger size.[0m
+  [0m[38;2;153;153;153m3. Type something.[0m
+[0m[38;2;153;153;153m───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+  4. Chat about this
+  
+[0m[38;2;153;153;153mEnter to select · Tab/Arrow keys to navigate · Esc to cancel[0m
+
+[0m[38;2;153;153;153m› Message from @ae174a21edfb32c84 (ctrl+o to expand)[0m
+[0m[38;2;153;153;153m› Message from @aae484133e46a3e6b (ctrl+o to expand)[0m

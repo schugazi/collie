@@ -54,6 +54,26 @@ export function trailingTaskPanelLines(lines: string[]): number {
   return header !== null && Number(header[1]) === shown + hidden ? lines.length - i : 0;
 }
 
+// A background agent's message that arrives while a dialog is open is parked under the footer too,
+// one collapsed row each, before or after the task panel. The client reads the same shape
+// (`dialogTail`, web/src/lib/harness/claude/markers.ts).
+const QUEUED_MESSAGE_ROW = /^› Message from @\S+ \(ctrl\+o to expand\)$/;
+
+/** How many of `lines` (normalized: no blank rows) are trailing queued-message rows and task
+ *  panels, in any order, or 0. */
+export function trailingDialogChromeLines(lines: string[]): number {
+  let end = lines.length;
+  for (;;) {
+    if (end > 0 && QUEUED_MESSAGE_ROW.test(lines[end - 1]!.trim())) {
+      end--;
+      continue;
+    }
+    const panel = trailingTaskPanelLines(lines.slice(0, end));
+    if (panel === 0) return lines.length - end;
+    end -= panel;
+  }
+}
+
 export type PromptBindingResult =
   | { ok: true }
   | { ok: false; reason: "empty" | "not_found" | "not_in_tail" };
@@ -77,7 +97,7 @@ export function verifyExpectedPrompt(
   if (lastMatch === -1) return { ok: false, reason: "not_found" };
 
   const boundedTailLines = Math.max(0, Math.floor(tailLines));
-  const tailEnd = freshLines.length - trailingTaskPanelLines(freshLines);
+  const tailEnd = freshLines.length - trailingDialogChromeLines(freshLines);
   const tailStart = Math.max(0, tailEnd - boundedTailLines);
   const matchEnd = lastMatch + expectedLines.length - 1;
   if (matchEnd < tailStart) return { ok: false, reason: "not_in_tail" };

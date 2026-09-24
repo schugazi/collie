@@ -137,6 +137,27 @@ describe("verifyExpectedPrompt", () => {
     });
   });
 
+  describe("under queued background-agent messages", () => {
+    const expected = "Approve?\n1. Yes\n2. No";
+    const panel = ["  8 tasks (3 done, 1 in progress, 4 open)", "  ◼ C", "  ◻ D", "  ◻ E", "  ◻ F", "  ◻ G", "   … +3 completed"];
+    const message = (n: number) => `› Message from @a${n}b2c3d4e5f6 (ctrl+o to expand)`;
+    const six = Array.from({ length: 6 }, (_, i) => message(i));
+
+    test("measures the tail window above six queued rows", () => {
+      expect(verifyExpectedPrompt([expected, "Esc to cancel", "", ...six].join("\n"), expected)).toEqual({ ok: true });
+    });
+
+    test("sets aside a message under the task panel, and a panel under messages", () => {
+      expect(verifyExpectedPrompt([expected, ...panel, message(0)].join("\n"), expected)).toEqual({ ok: true });
+      expect(verifyExpectedPrompt([expected, message(0), ...panel].join("\n"), expected)).toEqual({ ok: true });
+    });
+
+    test("still refuses a stale region with a replacement prompt above the messages", () => {
+      const replacement = ["Ready to submit?", "1. Submit answers", "2. Cancel", "  ● Q1", "    → A", "  ● Q2", "    → B"];
+      expect(verifyExpectedPrompt([expected, ...replacement, ...six].join("\n"), expected)).toEqual({ ok: false, reason: "not_in_tail" });
+    });
+  });
+
   test("returns empty when expected normalizes to no lines", () => {
     expect(verifyExpectedPrompt("Approve?\n1. Yes", " \r\n\t\n")).toEqual({
       ok: false,
