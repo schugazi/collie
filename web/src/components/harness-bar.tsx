@@ -1,5 +1,6 @@
 import { Check, Cpu, Gauge, History, ListTree, Shrink, Slash } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { AgentIcon } from "@/components/agent-icon";
 import { AGENT_BRANDS } from "@/components/agent-icon-data";
@@ -122,17 +123,56 @@ export function HarnessBar({ agent, mine, onRun, disabled }: HarnessBarProps) {
   useLocale();
   const echo = useActionEcho();
   const { pending, confirm, reset } = usePendingConfirm();
+  // Compact throws the context away, so it asks "Compact now?" in place of the buttons first. No
+  // timeout, unlike the two-tap confirm: the question stays until Yes or No. Yes IS the confirm, so
+  // a Compact row the operator marked `confirm = true` does not also take the two-tap.
+  const [asking, setAsking] = useState<string | null>(null);
   const items = useHarnessBarItems(agent, mine);
+  const questionId = useId();
+  // Which button takes focus when it mounts: No when the question opens, the asked button when it
+  // closes, so a keyboard or screen-reader user keeps their place across the swap.
+  const focusOnMount = useRef<string | null>(null);
+
+  // A question about a bar that has since changed — another agent, or commands.toml edited — is
+  // dropped rather than answered. Keyed on the rows' values, since `mine` is a new array every poll.
+  const barKey = `${agent ?? ""}\n${items.map((i) => `${i.id} ${i.command}`).join("\n")}`;
+  useEffect(() => {
+    focusOnMount.current = null;
+    setAsking(null);
+  }, [barKey]);
 
   // Off, or no items for this agent, and it renders nothing and costs no width.
   if (items.length === 0) return null;
 
   const accent = accentFor(agent);
+  const asked = asking === null ? undefined : items.find((i) => i.id === asking);
+
+  function takeFocus(key: string) {
+    return (el: HTMLButtonElement | null) => {
+      if (el === null || focusOnMount.current !== key) return;
+      focusOnMount.current = null;
+      el.focus();
+    };
+  }
+
+  function send(item: HarnessBarItem) {
+    void echo.run(item.id, () => onRun(item.command));
+  }
+
+  function close(item: HarnessBarItem) {
+    focusOnMount.current = item.id;
+    setAsking(null);
+  }
 
   function fire(item: HarnessBarItem) {
-    if (item.confirm === true && !confirm(item.id)) return; // first tap arms the confirm
     reset();
-    void echo.run(item.id, () => onRun(item.command));
+    if (item.command === "/compact") {
+      focusOnMount.current = "?no";
+      setAsking(item.id);
+      return;
+    }
+    if (item.confirm === true && !confirm(item.id)) return; // first tap arms the confirm
+    send(item);
   }
 
   return (
@@ -182,13 +222,45 @@ export function HarnessBar({ agent, mine, onRun, disabled }: HarnessBarProps) {
       <span aria-hidden="true" className="mr-3 flex shrink-0 items-center">
         <AgentIcon agent={agent} className="size-4" />
       </span>
-      {items.map((item) => {
+      {asked !== undefined && (
+        // `contents` keeps the belt's own layout; the group only names Yes and No by the question.
+        <div role="group" aria-labelledby={questionId} className="contents">
+          <span id={questionId} className="shrink-0 text-[11px] text-foreground">
+            {translate("harnessBar.compactAsk")}
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={disabled}
+            onClick={() => {
+              close(asked);
+              send(asked);
+            }}
+            className={`${STRIP_ROW_PILL} text-[11px] text-foreground`}
+          >
+            {translate("harnessBar.yes")}
+          </Button>
+          <Button
+            ref={takeFocus("?no")}
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => close(asked)}
+            className={`${STRIP_ROW_PILL} text-[11px] text-foreground`}
+          >
+            {translate("harnessBar.no")}
+          </Button>
+        </div>
+      )}
+      {asked === undefined && items.map((item) => {
         const phase = echo.phaseOf(item.id);
         const armed = pending === item.id;
         const Icon = iconFor(item.id);
         return (
           <Button
             key={item.id}
+            ref={takeFocus(item.id)}
             type="button"
             variant="ghost"
             size="sm"

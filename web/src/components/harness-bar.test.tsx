@@ -57,31 +57,78 @@ describe("HarnessBar", () => {
   it("fires a command item straight away and echoes a checkmark", async () => {
     const onRun = took();
     render(<HarnessBar agent="claude" onRun={onRun} />);
-    await userEvent.click(screen.getByRole("button", { name: "Compact" }));
-    expect(onRun).toHaveBeenCalledWith("/compact");
-    // The ✓ replaces only the icon for ECHO_DONE_MS; the word "Compact" stays put.
-    const button = screen.getByRole("button", { name: "Compact" });
+    await userEvent.click(screen.getByRole("button", { name: "Resume" }));
+    expect(onRun).toHaveBeenCalledWith("/resume");
+    // The ✓ replaces only the icon for ECHO_DONE_MS; the word "Resume" stays put.
+    const button = screen.getByRole("button", { name: "Resume" });
     await waitFor(() => expect(button.querySelector("svg.lucide-check")).toBeInTheDocument());
-    expect(button).toHaveTextContent("Compact");
+    expect(button).toHaveTextContent("Resume");
+  });
+
+  it("asks before Compact, and sends only on Yes", async () => {
+    const onRun = took();
+    render(<HarnessBar agent="claude" onRun={onRun} />);
+    await userEvent.click(screen.getByRole("button", { name: "Compact" }));
+    expect(onRun).not.toHaveBeenCalled();
+    expect(screen.getByText("Compact now?")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "No" }));
+    expect(onRun).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Compact" }));
+    await userEvent.click(screen.getByRole("button", { name: "Yes" }));
+    expect(onRun).toHaveBeenCalledWith("/compact");
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Compact" }).querySelector("svg.lucide-check"),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it("sends an operator's confirm=true Compact on Yes, without a second tap", async () => {
+    const onRun = took();
+    const mine = [op({ agent: "claude", command: "/compact", bar: true, confirm: true })];
+    render(<HarnessBar agent="claude" mine={mine} onRun={onRun} />);
+    await userEvent.click(screen.getByRole("button", { name: "compact" }));
+    await userEvent.click(screen.getByRole("button", { name: "Yes" }));
+    expect(onRun).toHaveBeenCalledWith("/compact");
+  });
+
+  it("drops the question when the bar under it changes", async () => {
+    const onRun = took();
+    const { rerender } = render(<HarnessBar agent="claude" onRun={onRun} />);
+    await userEvent.click(screen.getByRole("button", { name: "Compact" }));
+    expect(screen.getByText("Compact now?")).toBeInTheDocument();
+    rerender(<HarnessBar agent="codex" onRun={onRun} />);
+    expect(screen.queryByText("Compact now?")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Compact" })).toBeInTheDocument();
+  });
+
+  it("hands focus to No inside a named question, and back to Compact on close", async () => {
+    render(<HarnessBar agent="claude" onRun={took()} />);
+    screen.getByRole("button", { name: "Compact" }).focus();
+    await userEvent.keyboard("{Enter}");
+    expect(screen.getByRole("group", { name: "Compact now?" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "No" })).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+    expect(screen.getByRole("button", { name: "Compact" })).toHaveFocus();
   });
 
   it("keeps the word under the ✓ so the belt does not move", async () => {
     const onRun = took();
     render(<HarnessBar agent="claude" onRun={onRun} />);
-    const button = screen.getByRole("button", { name: "Compact" });
+    const button = screen.getByRole("button", { name: "Resume" });
     const before = button.textContent;
     await userEvent.click(button);
-    expect(onRun).toHaveBeenCalledWith("/compact");
+    expect(onRun).toHaveBeenCalledWith("/resume");
     await waitFor(() => expect(button.querySelector("svg.lucide-check")).toBeInTheDocument());
     // Same box, same word: only the icon swapped for the check.
     expect(button.textContent).toBe(before);
-    expect(button).toHaveTextContent("Compact");
+    expect(button).toHaveTextContent("Resume");
   });
 
   it("draws the done chip white with the harness accent on its border and word", async () => {
     const onRun = took();
     render(<HarnessBar agent="claude" onRun={onRun} />);
-    const button = screen.getByRole("button", { name: "Compact" });
+    const button = screen.getByRole("button", { name: "Resume" });
     await userEvent.click(button);
     await waitFor(() => expect(button.querySelector("svg.lucide-check")).toBeInTheDocument());
     expect(button).toHaveClass("bg-white");
@@ -141,10 +188,10 @@ describe("HarnessBar", () => {
   it("shows no checkmark on a working pane whose send was refused, and keeps the label", async () => {
     const onRun = refused();
     render(<HarnessBar agent="claude" onRun={onRun} />);
-    await userEvent.click(screen.getByRole("button", { name: "Compact" }));
-    expect(onRun).toHaveBeenCalledWith("/compact");
+    await userEvent.click(screen.getByRole("button", { name: "Resume" }));
+    expect(onRun).toHaveBeenCalledWith("/resume");
     // Back to idle with its word, never a ✓: the echo only lands when `send()` resolved true.
-    await waitFor(() => expect(screen.getByRole("button", { name: "Compact" })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Resume" })).toBeInTheDocument());
   });
 
   it("is accessible: a named group and a labelled button each, and nothing pops up", () => {

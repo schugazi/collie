@@ -486,6 +486,9 @@ export const zhTW: Dictionary = {
   "harnessBar.resume": "Resume",
   "harnessBar.tree": "Tree",
   "harnessBar.confirmAria": "Tap again to confirm {command}",
+  "harnessBar.compactAsk": "Compact now?",
+  "harnessBar.yes": "Yes",
+  "harnessBar.no": "No",
 
   // --- quickActions (one-tap reply dock) ---
   "quickActions.group.confirm": "確認",
