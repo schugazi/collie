@@ -484,14 +484,36 @@ function steppedMarksAreStatusline(
  *  `statusline` tail as well as an `unknown` one: a dialog under a stale box can fit the statusline
  *  walk (its footer split off by a blank, like the background-agents footer), and only these rows
  *  tell it apart. A popup tail is exempt, because its grammar named every row. */
-function tailNamesAMenu(text: string): boolean {
-  return NUMBERED_OPTION_ROW.test(text) || namesAMenuKey(text.replace(TASK_PILL_HINT, " "));
+export function tailNamesAMenu(text: string): boolean {
+  if (NUMBERED_OPTION_ROW.test(text)) return true;
+  const segments = text.trim().split(/\s+·\s+/);
+  return segments.some((s, i) => !isComposerFooterHint(s, i === segments.length - 1) && namesAMenuKey(s));
 }
 
-// The background-task pill's own hint on Claude's mode row ("⏵⏵ auto mode on · 1 shell · ↓ to
-// manage"): Down opens the task list FROM the composer, so the segment is statusline, not a modal's
-// footer. Only this exact segment is dropped; any other hint on the row still refuses the box.
-const TASK_PILL_HINT = /(?:^|\s+·)\s*↓ to manage\s*(?=·|$)/;
+// The hints Claude's prompt footer prints beside the mode pill while the composer is LIVE, read off
+// Claude Code 2.1.283's footer source (it paints them only when no statusline is configured):
+// "⏵⏵ auto mode on · 1 shell · esc to interrupt · ctrl+t to hide tasks · ↓ to manage". They name
+// composer shortcuts, not a modal's keys (claude--footer-hints-*.txt). "Enter to view tasks" is
+// deliberately absent: it means the pill is selected, and the pill then swallows typed text.
+const COMPOSER_FOOTER_HINTS = [
+  "↓ to manage",
+  "esc to interrupt",
+  "esc to return to team lead",
+  "ctrl+t to hide tasks",
+  "ctrl+t to show tasks",
+  "shift+tab to cycle",
+  "ctrl+c to copy",
+];
+
+/** Whether a footer segment is one of COMPOSER_FOOTER_HINTS. The row's LAST segment may be cut to
+ *  the pane width with "…" (`ctrl+t to hi…`), so there a prefix of a hint counts too. */
+function isComposerFooterHint(segment: string, last: boolean): boolean {
+  const s = segment.trim().toLowerCase();
+  if (COMPOSER_FOOTER_HINTS.includes(s)) return true;
+  if (!last || !s.endsWith("…")) return false;
+  const head = s.slice(0, -1).trimEnd();
+  return head !== "" && COMPOSER_FOOTER_HINTS.some((h) => h.startsWith(head));
+}
 
 /**
  * Whether a row of an `unknown` tail carries something else a modal paints: a pointer glyph anywhere,

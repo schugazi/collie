@@ -199,6 +199,9 @@ const CARD_FIXTURES = {
       // the marker would sit leftmost (Claude marks `low` by colour only), so the Effort grammar and
       // the generic menu both decline and the card is the honest answer.
       "claude--menu-effort-slider--w40-low.txt",
+      // README: the footer's task pill selected (`Enter to view tasks`) swallows typed text, so the
+      // box is not safe to type into; the card's Esc deselects it
+      "claude--footer-pill-selected.txt",
     ],
     notModals: [
       // corpus knownStall: a wrapped draft holding an interior rule, which stops walkFrame's up-scan

@@ -201,14 +201,19 @@ export function promptText(text: string): string | null {
 /** The empty composer's placeholder, captured verbatim; chrome also requires its dim renderer style. */
 export const PLACEHOLDER = "Ask Codex to do anything";
 
-// Fullscreen mode (`[tui] fullscreen_transcript = true`, captured on 0.156.1) paints this key hint on
-// the row directly UNDER the status row while the composer is empty; a typed draft removes it. Exact
-// text only: any other row there is not the captured shape, and the tail rule refuses it.
-const SHORTCUTS_HINT = "  ? for shortcuts";
+// The footer row Codex paints directly UNDER the status row while the composer is live: fullscreen
+// mode's `? for shortcuts` (0.156.1), 0.157's `← for agents · ? for shortcuts` on every empty
+// composer, `tab to queue message` under a mid-turn draft, and the rest of the composer footer's
+// hints (codex-rs tui/src/bottom_pane/footer.rs). Every ` · ` segment must be one of these, at the
+// two-space gutter: any other row there is not the composer footer, and the tail rule refuses it.
+const FOOTER_HINT_SEGMENT =
+  /^(?:\? for shortcuts|← for agents|tab to queue(?: message)?|shift\+tab to cycle|\? \/ esc close|esc(?: again| esc) to edit previous message|ctrl\+c again to quit|\d+% context left|[\d.]+[km]? used)$/i;
 
-/** True for fullscreen mode's empty-composer `? for shortcuts` row. */
+/** True for the composer's own footer hint row (FOOTER_HINT_SEGMENT). */
 export function isShortcutsHint(text: string): boolean {
-  return rstrip(text) === SHORTCUTS_HINT;
+  const row = rstrip(text);
+  if (!/^ {2}\S/.test(row)) return false;
+  return row.trim().split(/\s+·\s+/).every((s) => FOOTER_HINT_SEGMENT.test(s));
 }
 
 /** Index of the last non-blank row in `texts`, or -1 when the buffer is all blank. */

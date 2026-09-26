@@ -5,8 +5,8 @@
 //
 // THE COMPOSER IS FOUND BY ITS OWN MARKS, NOT BY COUNTING THE ROWS BETWEEN THEM (the rule ADR 0048
 // set for Claude's box, applied here). The two marks are the status row as the last non-blank row
-// (or the row directly above fullscreen mode's `? for shortcuts` hint, which the mirror strips with
-// the band and the status strip leaves out), and the LOWEST column-0 `› ` row above it. A status row at the tail already proves a live
+// (or the row directly above the composer's footer hint row, `← for agents · ? for shortcuts` and
+// kin, which the mirror strips with the band and the status strip leaves out), and the LOWEST column-0 `› ` row above it. A status row at the tail already proves a live
 // composer, because every dialog replaces it. A submitted message echoes into the transcript with
 // the same `› ` prefix, but an echo always sits ABOVE the live prompt, so the lowest one is the
 // prompt. The walk used to refuse on the first blank or non-continuation row between the marks, and
@@ -89,7 +89,7 @@ export function locateComposer(lines: StyledLine[]): ComposerBox | null {
   const clean = lines.map(withoutSparkles);
   const texts = clean.map((l) => rstrip(lineText(l)));
   let statusRow = lastNonBlankIndex(texts);
-  // Fullscreen mode's `? for shortcuts` row sits directly under the status row: step over that one row.
+  // The composer's footer hint row sits directly under the status row: step over that one row.
   if (statusRow > 0 && isShortcutsHint(texts[statusRow]!)) statusRow--;
   if (statusRow < 0 || !isStatusRow(texts[statusRow]!, clean[statusRow])) return null;
 

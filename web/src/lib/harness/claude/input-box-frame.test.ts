@@ -5,8 +5,7 @@ import { describe, expect, it } from "vitest";
 import { parseAnsi } from "../../ansi";
 import { splitLines, type StyledLine } from "../../blocks";
 import { detectAutocompleteRegion } from "./autocomplete";
-import { namesAMenuKey } from "../menu-hints";
-import { extractInputDraft, extractStatusLines, hasInputBox, inputBoxTail } from "./chrome";
+import { extractInputDraft, extractStatusLines, hasInputBox, inputBoxTail, tailNamesAMenu } from "./chrome";
 import { claudeBuildBlocks } from "./index";
 import { lineText } from "./markers";
 import { detectMenuRegion } from "./menu";
@@ -69,6 +68,10 @@ describe("parity with the old walk on the real corpus", () => {
     "claude--draft-paste-split-partial.txt",
     "claude--draft-paste-split-tail.txt",
     "claude--draft-wrapped.txt",
+    // Not the old walk's: its footer hints refused these live boxes (tailNamesAMenu's exemptions).
+    "claude--footer-hints-idle--w45.txt",
+    "claude--footer-hints-working--w60.txt",
+    "claude--footer-hints-working.txt",
     "claude--fresh-idle.txt",
     "claude--ghost-suggestion.txt",
     "claude--ghost-typed-over.txt",
@@ -260,8 +263,8 @@ describe("a statusline-shaped tail still carries no menu", () => {
       if (inputBoxTail(lines) !== "statusline") continue;
       for (const row of extractStatusLines(lines).map(lineText)) {
         rows++;
-        expect(namesAMenuKey(row), `${name}: ${row}`).toBe(false);
-        expect(/^\s*(?:❯\s*)?\d+\.\s+\S/.test(row), `${name}: ${row}`).toBe(false);
+        // A footer's own composer hints (`esc to interrupt`, `↓ to manage`) are exempt; any other key.
+        expect(tailNamesAMenu(row), `${name}: ${row}`).toBe(false);
       }
     }
     expect(rows).toBeGreaterThan(10);

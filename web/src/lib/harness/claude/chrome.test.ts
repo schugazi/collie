@@ -818,6 +818,12 @@ describe("real corpus — pinned so any change to the walk shows up as a diff", 
     // Before the box was found by its own frame, the clipped row hid the box: draft null, stripped 1.
     { fixture: "autocomplete-slash-clipped", statusRows: 0, draft: "/model", stripped: 32 },
     { fixture: "done", statusRows: 2, draft: null, stripped: 28 },
+    // The footer's own composer hints (no statusline configured) used to refuse the box: stripped 1.
+    { fixture: "footer-hints-idle--w45", statusRows: 1, draft: null, stripped: 6 },
+    { fixture: "footer-hints-working--w60", statusRows: 1, draft: null, stripped: 6 },
+    { fixture: "footer-hints-working", statusRows: 1, draft: null, stripped: 6 },
+    // The task pill selected: typed text goes to the pill, so the box is refused.
+    { fixture: "footer-pill-selected", statusRows: 0, draft: null, stripped: 1 },
     { fixture: "ghost-suggestion", statusRows: 4, draft: null, stripped: 21 },
     { fixture: "ghost-typed-over", statusRows: 4, draft: "hello real draft text", stripped: 21 },
     { fixture: "draft-footer-empty", statusRows: 2, draft: null, stripped: 9 },

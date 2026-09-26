@@ -51,6 +51,9 @@ const PINNED = [
   "codex--v0156-fullscreen-draft.txt",
   "codex--v0156-fullscreen-idle.txt",
   "codex--v0156-fullscreen-working.txt",
+  "codex--v0157-idle.txt",
+  "codex--v0157-queue-hint.txt",
+  "codex--v0157-working.txt",
   "codex--working.txt",
 ];
 
@@ -98,6 +101,9 @@ describe("composerReady — the gate the reply path pre-flights on", () => {
     "codex--v0156-fullscreen-idle.txt",
     "codex--v0156-fullscreen-working.txt",
     "codex--v0156-fullscreen-draft.txt",
+    "codex--v0157-idle.txt",
+    "codex--v0157-working.txt",
+    "codex--v0157-queue-hint.txt",
   ])(
     "%s: the composer is on screen ⇒ true",
     (name) => {

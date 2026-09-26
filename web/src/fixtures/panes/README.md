@@ -95,6 +95,16 @@ Byte-faithful `tmux capture-pane -p -e -J` captures (LF endings, where Herdr's a
 | `codex--v0156-fullscreen-working.txt` | A second turn one second in: `• Working (1s • esc to interrupt)` above the same empty prompt, status row and hint | `working` |
 | `codex--v0156-fullscreen-draft.txt` | `hello there draft` typed into the idle prompt: the `Tip:` row goes blank and the hint row is gone, so the status row is the tail again | `idle` |
 
+## Codex 0.157.0 footer captures (2026-09-26, throwaway tmux server, Linux sandbox)
+
+`tmux capture-pane -p -e` captures (LF endings) from one throwaway Codex 0.157.0 session at 130 × 45 in a `/tmp/ud-sandbox` git repo on `master`, default (non-fullscreen) mode. One length-preserving substitution: the status row's hostname field became `collie-box`. **The headline: 0.157 paints a footer hint row under the status row on every empty composer, `← for agents · ? for shortcuts`, and `tab to queue message` under a mid-turn draft.** `locateComposer` steps over that one row when every ` · ` segment is a composer-footer hint (`isShortcutsHint` in `lib/harness/codex/markers.ts`); before, `composerReady` was false on every idle and working screen and the unread-dialog card covered the mirror.
+
+| Fixture | State / what's in it | Herdr status |
+|---|---|---|
+| `codex--v0157-idle.txt` | Welcome box, a `Tip:` row, the empty prompt, the status row, and `← for agents · ? for shortcuts` under it | `idle` |
+| `codex--v0157-working.txt` | A turn nine seconds in: `• Working (9s • esc to interrupt) · 1 background terminal running · …` above the same empty prompt, status row and hint row | `working` |
+| `codex--v0157-queue-hint.txt` | `queued` typed into the prompt mid-turn: the hint row reads `tab to queue message` | `working` |
+
 ## Codex mobile chrome (reconstructed 2026-09-03)
 
 **Not a capture.** This one file is RECONSTRUCTED from the two rows reported in
@@ -324,6 +334,17 @@ hostname, home path, email, session id or credential-shaped string appears in th
 **Running this capture changes the operator's saved default.** Claude's own sentence says so, and the
 `model` key in `~/.claude/settings.json` really moved. Put it back by hand after capturing, or capture
 with an isolated `CLAUDE_CONFIG_DIR`.
+
+## Footer-hint captures (2026-09-26, Claude Code v2.1.283, throwaway tmux server)
+
+`tmux capture-pane -p -e` captures (LF endings) from one throwaway session in `/tmp/ud-sandbox`, run with `--settings '{"disableAllHooks":true}'`. That setting also drops the statusline, and **with no statusline Claude's footer prints its own key hints beside the mode pill**: `esc to interrupt` while working, `ctrl+t to hide tasks` with tasks, `↓ to manage` with a background shell, and at a narrow pane the last one is cut with `…`. Those name composer shortcuts, so `tailNamesAMenu` exempts them (`COMPOSER_FOOTER_HINTS` in `lib/harness/claude/chrome.ts`); before, every one of these screens lost its box and showed the unread-dialog card. One length-preserving substitution: the banner's plan name became `Claude Pro`.
+
+| Fixture | State / what's in it | Herdr status |
+|---|---|---|
+| `claude--footer-hints-working.txt` | 130 columns, mid-turn, two open tasks and a background shell: `⏵⏵ auto mode on · 1 shell · esc to interrupt · ctrl+t to hide tasks · ↓ to manage` | `working` |
+| `claude--footer-hints-working--w60.txt` | The same state at 60 columns, the row cut to `… · esc to interrupt · ctrl+t t…` | `working` |
+| `claude--footer-hints-idle--w45.txt` | Idle at 45 columns, cut to `⏵⏵ auto mode on · 1 shell · ctrl+t to hi…` | `idle` |
+| `claude--footer-pill-selected.txt` | Down pressed into the task pill: `… · Enter to view tasks`. Typed text goes to the pill, not the box, so the box is refused and the card (Esc deselects the pill) is right | `idle` |
 
 ## Capture lab corpus (captured 2026-09-17, re-verified 2026-09-22 against Claude Code 2.1.278, throwaway Herdr session)
 

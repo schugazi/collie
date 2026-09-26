@@ -1,0 +1,45 @@
+[2m╭────────────────────────────────────────────────╮[0m
+[2m│ >_ [0;1mOpenAI Codex[0;2m (v0.157.0)                     │[0m
+[2m│                                                │[0m
+[2m│ model:     [0mGPT-6-Sol medium[2m   [0m[38;2;99;168;248m/model[2m[39m to change │[0m
+[2m│ directory: [0m/tmp/ud-sandbox[2m                     │[0m
+[2m╰────────────────────────────────────────────────╯[0m
+
+
+[1;2m› [0mRun the shell command: timeout 20 tail -f /dev/null ; then reply ok
+
+
+[2m↳ Hook · [0mPONYTAIL:FULL
+
+[2m• [0mI’ll run the command, then reply ok.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1m[38;2;128;128;128m•[0m [2mWorking[0m [2m(9s • [0;1mesc[0;2m to interrupt) · 1 background terminal running · /ps to view · /stop to close[0m
+
+
+[1m›[0m [2mAsk Codex to do anything[0m
+
+  [38;2;246;226;183mGPT-6-Sol medium[39m · [38;2;242;181;144mContext 2% used[39m · [38;2;143;179;239mmaster[39m · [38;2;171;223;167m/tmp/ud-sandbox[39m · [38;2;233;144;169mweekly 97% left[39m · [38;2;200;169;238mFast off[39m · [38;2;148;153;174mcollie-box[39m
+  [1m←[0m for agents · [1m?[0m for shortcuts
