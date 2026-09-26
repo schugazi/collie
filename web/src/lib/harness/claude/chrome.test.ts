@@ -696,6 +696,17 @@ describe("the statusline run — as tall as a real statusline", () => {
   });
 });
 
+describe("the background-task pill's hint is statusline, not a menu footer", () => {
+  it("finds the box under a mode row that ends in '↓ to manage'", () => {
+    expect(hasInputBox(boxWithStatusRows("❯ ", ["  ⏵⏵ auto mode on · 1 shell · ↓ to manage"]))).toBe(true);
+    expect(hasInputBox(boxWithStatusRows("❯ ", ["  2 shells · ↓ to manage"]))).toBe(true);
+  });
+
+  it("still refuses a row carrying another key hint beside it", () => {
+    expect(hasInputBox(boxWithStatusRows("❯ ", ["  1 shell · ↓ to manage · Esc to cancel"]))).toBe(false);
+  });
+});
+
 describe("dialogs are refused by the border and blank checks — not by the row bound", () => {
   const DIALOG_FIXTURES = [
     "claude--permission-bash.txt",

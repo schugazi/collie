@@ -485,8 +485,13 @@ function steppedMarksAreStatusline(
  *  walk (its footer split off by a blank, like the background-agents footer), and only these rows
  *  tell it apart. A popup tail is exempt, because its grammar named every row. */
 function tailNamesAMenu(text: string): boolean {
-  return NUMBERED_OPTION_ROW.test(text) || namesAMenuKey(text);
+  return NUMBERED_OPTION_ROW.test(text) || namesAMenuKey(text.replace(TASK_PILL_HINT, " "));
 }
+
+// The background-task pill's own hint on Claude's mode row ("⏵⏵ auto mode on · 1 shell · ↓ to
+// manage"): Down opens the task list FROM the composer, so the segment is statusline, not a modal's
+// footer. Only this exact segment is dropped; any other hint on the row still refuses the box.
+const TASK_PILL_HINT = /(?:^|\s+·)\s*↓ to manage\s*(?=·|$)/;
 
 /**
  * Whether a row of an `unknown` tail carries something else a modal paints: a pointer glyph anywhere,
