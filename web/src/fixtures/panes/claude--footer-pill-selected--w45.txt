@@ -1,0 +1,40 @@
+
+           [1mClaude Code[0m [38;5;246mv2.1.283[39m
+[38;5;174m ▐[48;5;16m▛███▛█[39m[49m   [38;5;246mOpus 5.5 (1M context) with hi…[39m
+[38;5;174m▝▜[48;5;16m█████[49m█▀[39m  [38;5;246mClaude Pro[39m
+[38;5;174m ▝▝   ▝▝ [39m  [38;5;246m/tmp/ud-sandbox[39m
+
+
+[38;5;239m[48;5;237m❯ [38;5;231mCreate 2 tasks x and y with TaskCreate, [39m
+  [38;5;231mthen run the Bash command timeout 900 tail[39m
+  [38;5;231m-f /dev/null with run_in_background, then[39m
+  [38;5;231mreply ok.[39m
+
+[49m  [38;5;246mRan [1m1[0m[38;5;246m shell command [39m
+
+[38;5;231m●[39m ok
+
+[38;5;246m✻[39m [38;5;246mCooked for 6s · done 2:44 PM · 1 shell [39m
+  [38;5;246mstill running[39m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  [1m[38;5;246m2[0m[38;5;246m tasks ([1m0[0m[38;5;246m done, [1m2[0m[38;5;246m open)[39m
+  ◻ x
+  ◻ y
+
+[38;5;244m─────────────────────────────────────────────
+[39m❯ 
+[38;5;244m─────────────────────────────────────────────
+[39m  [38;5;220m⏵⏵ auto mode on[38;5;246m · [7m[38;5;44m1 shell[0m[38;5;246m · ctrl+t to hi…[39m

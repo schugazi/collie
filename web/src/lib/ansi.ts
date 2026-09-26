@@ -18,6 +18,8 @@ export interface AnsiSegment {
   italic?: boolean;
   underline?: boolean;
   strike?: boolean;
+  /** SGR 7 was on. `fg`/`bg` above are already swapped for it; this keeps the fact itself. */
+  inverse?: boolean;
   // Pre-computed presentation — consumed by AnsiOutput to avoid per-render allocation.
   style: CSSProperties;
   /** True when this text is decorative terminal rule glyphs; the renderer mutes it. The parser
@@ -186,6 +188,7 @@ export function parseAnsi(input: string): AnsiSegment[] {
       italic: state.italic,
       underline: state.underline,
       strike: state.strike,
+      inverse: state.inverse,
       style: buildStyle(state, fg, bg),
       muted: checkMuted(buf),
     });

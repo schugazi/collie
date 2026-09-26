@@ -207,7 +207,7 @@ export const PLACEHOLDER = "Ask Codex to do anything";
 // hints (codex-rs tui/src/bottom_pane/footer.rs). Every ` · ` segment must be one of these, at the
 // two-space gutter: any other row there is not the composer footer, and the tail rule refuses it.
 const FOOTER_HINT_SEGMENT =
-  /^(?:\? for shortcuts|← for agents|tab to queue(?: message)?|shift\+tab to cycle|\? \/ esc close|esc(?: again| esc) to edit previous message|ctrl\+c again to quit|\d+% context left|[\d.]+[km]? used)$/i;
+  /^(?:\? for shortcuts|← for agents|tab to queue(?: message)?|plan mode(?: \(shift\+tab to cycle\))?|\? \/ esc close|esc(?: again| esc) to edit previous message|ctrl\+c again to quit|\d+% context left|[\d.]+[km]? used)$/i;
 
 /** True for the composer's own footer hint row (FOOTER_HINT_SEGMENT). */
 export function isShortcutsHint(text: string): boolean {

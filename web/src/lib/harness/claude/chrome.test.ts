@@ -705,6 +705,11 @@ describe("the background-task pill's hint is statusline, not a menu footer", () 
   it("still refuses a row carrying another key hint beside it", () => {
     expect(hasInputBox(boxWithStatusRows("❯ ", ["  1 shell · ↓ to manage · Esc to cancel"]))).toBe(false);
   });
+
+  it("exempts a cut-off hint only once the cut reaches its verb", () => {
+    expect(hasInputBox(boxWithStatusRows("❯ ", ["  1 shell · esc to inter…"]))).toBe(true);
+    expect(hasInputBox(boxWithStatusRows("❯ ", ["  1 shell · Esc to …"]))).toBe(false);
+  });
 });
 
 describe("dialogs are refused by the border and blank checks — not by the row bound", () => {
@@ -824,6 +829,9 @@ describe("real corpus — pinned so any change to the walk shows up as a diff", 
     { fixture: "footer-hints-working", statusRows: 1, draft: null, stripped: 6 },
     // The task pill selected: typed text goes to the pill, so the box is refused.
     { fixture: "footer-pill-selected", statusRows: 0, draft: null, stripped: 1 },
+    // The same with the `Enter to view tasks` hint cut off: the pill's inverse paint refuses it.
+    { fixture: "footer-pill-selected--w45", statusRows: 0, draft: null, stripped: 1 },
+    { fixture: "footer-pill-selected--w60", statusRows: 0, draft: null, stripped: 1 },
     { fixture: "ghost-suggestion", statusRows: 4, draft: null, stripped: 21 },
     { fixture: "ghost-typed-over", statusRows: 4, draft: "hello real draft text", stripped: 21 },
     { fixture: "draft-footer-empty", statusRows: 2, draft: null, stripped: 9 },

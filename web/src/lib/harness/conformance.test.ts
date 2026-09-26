@@ -72,6 +72,8 @@ const NEUTRAL = new Set([
   "claude--footer-hints-working--w60.txt",
   "claude--footer-hints-idle--w45.txt",
   "claude--footer-pill-selected.txt",
+  "claude--footer-pill-selected--w45.txt",
+  "claude--footer-pill-selected--w60.txt",
 ]);
 
 const allClaudeFixtures = readdirSync(PANES_DIR)

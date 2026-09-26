@@ -202,6 +202,9 @@ const CARD_FIXTURES = {
       // README: the footer's task pill selected (`Enter to view tasks`) swallows typed text, so the
       // box is not safe to type into; the card's Esc deselects it
       "claude--footer-pill-selected.txt",
+      // the same at 45 and 60 columns, where that hint is cut off: the pill's inverse paint refuses
+      "claude--footer-pill-selected--w45.txt",
+      "claude--footer-pill-selected--w60.txt",
     ],
     notModals: [
       // corpus knownStall: a wrapped draft holding an interior rule, which stops walkFrame's up-scan

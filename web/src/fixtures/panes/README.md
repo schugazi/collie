@@ -345,6 +345,8 @@ with an isolated `CLAUDE_CONFIG_DIR`.
 | `claude--footer-hints-working--w60.txt` | The same state at 60 columns, the row cut to `… · esc to interrupt · ctrl+t t…` | `working` |
 | `claude--footer-hints-idle--w45.txt` | Idle at 45 columns, cut to `⏵⏵ auto mode on · 1 shell · ctrl+t to hi…` | `idle` |
 | `claude--footer-pill-selected.txt` | Down pressed into the task pill: `… · Enter to view tasks`. Typed text goes to the pill, not the box, so the box is refused and the card (Esc deselects the pill) is right | `idle` |
+| `claude--footer-pill-selected--w45.txt` | The same selection at 45 columns: the row reads `… · ctrl+t to hi…`, word for word the unselected row, so only the pill's inverse paint (`1 shell`, SGR 7) tells them apart (`footerPillSelected`) | `idle` |
+| `claude--footer-pill-selected--w60.txt` | The same at 60 columns, the hint cut to `Ente…` | `idle` |
 
 ## Capture lab corpus (captured 2026-09-17, re-verified 2026-09-22 against Claude Code 2.1.278, throwaway Herdr session)
 

@@ -419,6 +419,7 @@ function locateInputBox(lines: StyledLine[], texts: string[], end: number): Inpu
     if (tail !== "autocomplete" && tailNamesAMenu(texts[j]!)) return null;
     if (tail === "unknown" && tailLooksModal(texts[j]!)) return null;
   }
+  if (tail !== "autocomplete" && footerPillSelected(lines[statusEnd - 1])) return null;
   if (dialogOnScreen(lines)) return null;
 
   return { top: frame.top, prompt: frame.prompt, bottomBorder: b, tail, statusEnd, agentsStart };
@@ -506,13 +507,22 @@ const COMPOSER_FOOTER_HINTS = [
 ];
 
 /** Whether a footer segment is one of COMPOSER_FOOTER_HINTS. The row's LAST segment may be cut to
- *  the pane width with "…" (`ctrl+t to hi…`), so there a prefix of a hint counts too. */
+ *  the pane width with "…" (`ctrl+t to hi…`), so there a prefix of a hint counts too, but only one
+ *  that reaches into the verb: a bare `Esc to …` could be any dialog's footer. */
 function isComposerFooterHint(segment: string, last: boolean): boolean {
   const s = segment.trim().toLowerCase();
   if (COMPOSER_FOOTER_HINTS.includes(s)) return true;
   if (!last || !s.endsWith("…")) return false;
   const head = s.slice(0, -1).trimEnd();
-  return head !== "" && COMPOSER_FOOTER_HINTS.some((h) => h.startsWith(head));
+  return / to \S/.test(head) && COMPOSER_FOOTER_HINTS.some((h) => h.startsWith(head));
+}
+
+/** Whether the footer row (the statusline run's last row) paints its task pill in inverse video:
+ *  Down moved focus onto the pill, and typed text now goes to the pill, not the box. The row's
+ *  `Enter to view tasks` says so too, but a narrow pane cuts that hint off (`ctrl+t to hi…`), so the
+ *  paint is the evidence that survives (claude--footer-pill-selected--w45.txt). */
+function footerPillSelected(row: StyledLine | undefined): boolean {
+  return row !== undefined && row.segments.some((s) => s.inverse === true && s.text.trim() !== "");
 }
 
 /**
