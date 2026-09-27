@@ -79,6 +79,17 @@ describe("a real unread modal gets the card", () => {
     expect(card.lines.length).toBeGreaterThan(0);
   });
 
+  // Claude parks a task panel or a background agent's message under an open dialog; the card must
+  // still see the dialog's footer above it.
+  it.each([
+    ["a task panel", ["7 tasks (2 done, 5 open)", "✔ a", "✔ b", "◻ c", "◻ d", "◻ e", "… +2 open"]],
+    ["a queued message", ["› Message from @worker (ctrl+o to expand)"]],
+  ])("claude gets the card with %s under the dialog", (_, tail) => {
+    const raw = readFileSync(join(PANES_DIR, "claude-lab--menu-status-screen--w82.txt"), "utf8");
+    const blocks = pass("claude", linesOf(`${raw.trimEnd()}\n${tail.join("\n")}\n`));
+    expect(blocks.map((b) => b.kind)).toEqual(["unread-dialog"]);
+  });
+
   it.each([["agy"], ["antigravity"]])(
     "%s gets the card on a hand-built modal (no corpus capture lands raw-only)",
     (agent) => {
@@ -186,12 +197,9 @@ const CARD_FIXTURES = {
       "claude-lab--agents-screen--w82.txt",
       // corpus: `/status` screen, `Esc to cancel` footer — the M34 reference capture
       "claude-lab--menu-status-screen--w82.txt",
-      // corpus: WebFetch permission dialog, no separate footer row
-      "claude-lab--permission-webfetch--w82.txt",
-      // corpus: plan approval, three numbered options, path footer
-      "claude-lab--plan-approval--w82--h30.txt",
-      "claude-lab--plan-approval--w82.txt",
-      "claude-lab--plan-approval-feedback-typed--w82.txt",
+      // README: a multiSelect with the pointer on its "Type something" field. Declined on purpose,
+      // since every toggle digit would be typed into the field, so the card is the honest answer.
+      "claude--v2283-multiselect-type-something-focused.txt",
       // corpus: `/tasks` panel, `Esc to close` footer; raw only at 40 columns, where its
       // footer wraps and the menu grammar declines. The w82 capture lifts `menu`, so no card.
       "claude-lab--tasks-panel--w40.txt",
@@ -207,13 +215,6 @@ const CARD_FIXTURES = {
       "claude--footer-pill-selected--w60.txt",
     ],
     notModals: [
-      // corpus knownStall: a wrapped draft holding an interior rule, which stops walkFrame's up-scan
-      // before the real prompt row. Declined in M34 spec 06: the only discriminator is the two
-      // borders' widths, and that is false on three real labelled-border captures. The box is LIVE
-      // and holds the operator's own multi-line draft.
-      "claude-lab--draft-adversarial--w120.txt",
-      "claude-lab--draft-adversarial--w40.txt",
-      "claude-lab--draft-adversarial--w82.txt",
       // corpus, DELIBERATE: a statusline printing numbered rows is refused by ADR 0048 step 4
       // because it cannot be told from a live menu. Box live.
       "claude-lab--statusline-numbered-rows--w82.txt",
@@ -330,7 +331,9 @@ describe("the signature", () => {
     if (first.kind !== "unread-dialog" || second.kind !== "unread-dialog") return;
     expect(second.cancel.signature).toBe(first.cancel.signature);
 
-    const moved = [...base.slice(0, -1), ...linesOf("something else entirely")];
+    // A row added under the footer, which stays within the last rows: Claude's `modalOnScreen`
+    // needs a key hint there (ADR 0053 addendum 2026-09-26), so replacing the footer would drop the card.
+    const moved = [...base, ...linesOf("something else entirely")];
     const third = cardOf(pass("claude", moved))!;
     if (third.kind !== "unread-dialog") return;
     expect(third.cancel.signature).not.toBe(first.cancel.signature);
@@ -341,13 +344,13 @@ describe("the signature", () => {
 });
 
 describe("known live-box gaps the card inherits", () => {
-  // This is the #261 stall wearing the card: locateTail walks up from the bottom rule over
-  // continuation rows and stops at the first blank row, so a draft holding a blank row (a
-  // two-paragraph message) yields prompt: null. composerReady is then a definite false, and the
-  // M34 post-pass draws the unread-dialog card over a LIVE box holding the operator's own draft.
-  // When locateTail tolerates a bounded blank run inside the draft, this test must be INVERTED
-  // (card null, composerReady true), not deleted.
-  it("muse: a draft with a blank row inside it still gets the card (#261)", () => {
+  // INVERTED per the note this replaces (#274 supersedes the #261 bargain): locateTail now steps
+  // over the blank rows a paragraph break leaves inside the draft, so a two-paragraph message
+  // binds its prompt, composerReady answers true, and no card draws over the live box. The old
+  // bargain (card + two-tap escape hatch) proved actively harmful live: the hatch types without
+  // the pre-clear sweep, so each tap appended a full duplicate and verify — reading null forever
+  // — withheld every submit.
+  it("muse: a draft with a blank row inside it no longer gets the card (#274)", () => {
     const base = fixtureLines("muse--draft-single.txt");
     const texts = base.map(lineText);
     let boxRow = -1;
@@ -365,7 +368,7 @@ describe("known live-box gaps the card inherits", () => {
       ...base.slice(boxRow + 1),
     ];
 
-    expect(museAdapter.composerReady!(lines)).toBe(false);
-    expect(cardOf(pass("muse", lines))).not.toBeNull();
+    expect(museAdapter.composerReady!(lines)).toBe(true);
+    expect(cardOf(pass("muse", lines))).toBeNull();
   });
 });

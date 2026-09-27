@@ -245,12 +245,19 @@ describe("client/bridge binding contract", () => {
       return text;
     };
 
+    // ONE SCREEN, TWO PAINTS OF ITS TOP EDGE. Both captures are the `/effort` slider at 120 columns on
+    // `high`; the v2283 one still carries Claude's `● high · /effort` notice in its `▔` edge. The
+    // menu grammars sign from the row UNDER that edge (menu.ts, effort.ts), so a tap made while the
+    // notice shows is not refused once it clears: these two accepting each other is that working.
+    const SAME_PICKER = new Set(["claude--menu-effort-slider--w120.txt", "claude--v2283-slash-effort.txt"]);
+
     let compared = 0;
     let identicalPairs = 0;
     for (const a of REGIONS) {
       const raw = rawOf(a.fixture);
       for (const b of REGIONS) {
         if (a.fixture === b.fixture) continue;
+        if (SAME_PICKER.has(a.fixture) && SAME_PICKER.has(b.fixture)) continue;
         // Two fixtures can be the same screen, byte for byte: the /effort slider sits in the corpus
         // twice, once as `claude--menu-effort-slider.txt` and once as the capture-lab original it
         // was copied from. A match between those two is the contract working, not a collision. The

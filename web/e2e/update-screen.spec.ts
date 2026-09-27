@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { expect, test, type Page } from "@playwright/test";
 
 import { en } from "@/lib/i18n/messages/en";
@@ -11,8 +13,10 @@ import {
   clearDelay,
   clearFail,
   clearThrottle,
+  holdSwapServer,
   readBuildStamp,
   readEntryScript,
+  releaseSwapServer,
   serveBuild,
   setThrottle,
 } from "./fixtures/builds";
@@ -46,9 +50,15 @@ const PHONE_PROJECTS = new Set(["app-phone", "phone"]);
 const NO_SHIFT_PROJECTS = new Set([...PHONE_PROJECTS, "app-phone-webkit"]);
 const NO_SHIFT_TITLE = "every state of update mode keeps the panel's boxes where they were";
 
-/** The versions the fake run moves between. Above this bundle's own, so this phone has a step 6. */
-const FROM = "1.12.0";
-const TO = "1.13.0";
+/** This bundle's own version, read from the manifest the release bumps. */
+// SAFETY: web/package.json always carries a string `version`; scripts/check-version.sh enforces it.
+const OWN = (JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string }).version;
+const [OWN_MAJOR = 1, OWN_MINOR = 0] = OWN.split(".").map(Number);
+/** The versions the fake run moves between. Derived from this bundle's own, never written down: a
+ *  target above it gives this phone a step 6, and a release that bumps the version can never make
+ *  the fake run a no-op (1.13.0's release commit did exactly that to a hard-coded "1.13.0"). */
+const FROM = `${OWN_MAJOR}.${Math.max(OWN_MINOR - 1, 0)}.0`;
+const TO = `${OWN_MAJOR}.${OWN_MINOR + 1}.0`;
 /** The card's action button, and "Start update" on update mode's first screen (ADR 0064). */
 const UPDATE_ACTION = fill(en["settings.updateCard.action"], { version: TO });
 const CONFIRM = en["updateScreen.action.start"];
@@ -65,7 +75,8 @@ const RELOADS_KEY = "e2e:reloads";
 test.use({ baseURL: SWAP_BASE_URL });
 
 // SERIAL: one origin, one service-worker scope, one served-directory pointer. Two of these at once
-// would be two deploys landing on each other.
+// would be two deploys landing on each other. Serial covers this file in one project only; the lock
+// in `beforeEach` (`holdSwapServer`) covers service-worker.spec.ts and the other projects.
 test.describe.configure({ mode: "serial" });
 
 /** The run this "bridge" is reporting right now. One assignment is one step of the run. */
@@ -82,9 +93,12 @@ let lead: "behind" | "current" = "behind";
 let crewLegs: UpdatePeerLeg[] | null = null;
 /** When the lead stamped that run settled, or null while a leg is open. */
 let crewSettledAt: number | null = null;
+/** The run id the fake run carries, and so the one this device's claim takes off the 202. Unset,
+ *  the run has none, which is what every case before #283 walked. */
+let fakeRunId: string | undefined;
 
 function runAt(state: UpdateRunState): UpdateRun {
-  return {
+  const run: UpdateRun = {
     schema: 1,
     state,
     from: FROM,
@@ -94,6 +108,8 @@ function runAt(state: UpdateRunState): UpdateRun {
     pid: 4242,
     attempt: 0,
   };
+  if (fakeRunId !== undefined) run.runId = fakeRunId;
+  return run;
 }
 
 /** Walk the run to its next state. The phone picks it up on its next poll of either door. */
@@ -107,8 +123,13 @@ test.beforeEach(async ({ page }, testInfo) => {
     !projects.has(testInfo.project.name),
     "two real bundles and a real precache; a second viewport proves nothing new here",
   );
-  // Two builds, a precache over a throttled link, and a run walked through five states.
-  test.setTimeout(120_000);
+  // One case at a time on the swap server, across both files and every project (`holdSwapServer`
+  // says why). No timeout while queued for it (`holdSwapServer` bounds the wait itself), then the
+  // case's own budget on top of the wait: two builds, a precache over a throttled link, and a run
+  // walked through five states.
+  test.setTimeout(0);
+  const queued = await holdSwapServer();
+  test.setTimeout(120_000 + queued);
 
   clearDelay();
   clearFail();
@@ -119,6 +140,7 @@ test.beforeEach(async ({ page }, testInfo) => {
   lead = "behind";
   crewLegs = null;
   crewSettledAt = null;
+  fakeRunId = undefined;
 
   await installBridge(page);
   await installReloadCounter(page);
@@ -218,10 +240,11 @@ async function installBridge(page: Page): Promise<void> {
   );
 }
 
+// The release clears the three directives, and only for the case that holds the lock. This hook also
+// runs for a case `beforeEach` skipped, which never took the lock and must not touch the directives of
+// the case that did (the note above `LOCK` in `fixtures/builds.ts` says what that cost in CI).
 test.afterEach(() => {
-  clearThrottle();
-  clearDelay();
-  clearFail();
+  releaseSwapServer();
 });
 
 function updateInfo(): UpdateInfo {
@@ -376,6 +399,52 @@ test("update mode locks the app for a run this device started, reloads once at s
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
+test("a run this device started that gives up before anything moved ends on its failed screen, with the reason (#283)", async ({
+  page,
+}) => {
+  // The 1.13.0 shape of #283: the updater closed its staging as `idle` with a reason, the reducer
+  // read `idle` as "no update at all", and the panel simply vanished mid-run. The reason was on the
+  // record the whole time.
+  const reason = "the new version did not start here (killed by SIGKILL): zsh: killed  collie version";
+  fakeRunId = "run-e2e-283";
+  await page.goto("/settings/updates");
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+
+  await page.getByRole("button", { name: UPDATE_ACTION }).click();
+  const panel = page.getByRole("dialog");
+  await expect(panel.getByRole("heading", { name: fill(en["updateScreen.ready.heading"], { version: TO }) })).toBeVisible();
+  const base = await geometry(page);
+  await page.getByRole("button", { name: CONFIRM }).click();
+  await expect(panel.getByText(LOCK)).toBeVisible({ timeout: 15_000 });
+
+  step("staging");
+  await expect(panel.getByRole("heading", { name: fill(en["updateScreen.build.heading"], { version: TO, lead: "bluefin" }) })).toBeVisible({
+    timeout: 15_000,
+  });
+
+  // The updater gives up: nothing moved, so the record goes back to `idle`, carrying the reason.
+  currentRun = { ...runAt("idle"), reason };
+  const failed = page.getByRole("dialog", { name: fill(en["updateScreen.failed.heading"], { lead: "bluefin" }) });
+  await expect(failed).toBeVisible({ timeout: 15_000 });
+  await expect(failed.getByText(reason)).toBeVisible();
+  await expect(failed.getByText(fill(en["updateScreen.failed.subtitle"], { lead: "bluefin", from: FROM }))).toBeVisible();
+  // Its boxes are where Ready to start put them (DESIGN.md §6).
+  expectSame("failed", await geometry(page), base);
+  expect(await spills(page), "failed: nothing spills out of its box").toEqual([]);
+  // Nothing is in flight any more: the lock line is gone, and there is a way back.
+  await expect(failed.getByText(LOCK)).toHaveCount(0);
+  await expect(failed.getByRole("button", { name: en["updateScreen.action.tryAgain"] })).toBeVisible();
+
+  await failed.getByRole("button", { name: BACK }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect.poll(() => appIsInert(page), { timeout: 10_000 }).toBe(false);
+
+  // Closed is closed: the same record on a later load does not bring the screen back.
+  await page.reload();
+  await expect(page.getByRole("button", { name: UPDATE_ACTION })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
 test("a device that did not start the run gets a strip, never a lock", async ({ page, context }) => {
   // The second page is a second DEVICE as far as this feature is concerned: the claim lives in the
   // tab's own `sessionStorage` (`lib/update-ribbon.ts`), and a tab that never started the run has none.
@@ -480,12 +549,18 @@ async function bundleOnPage(page: Page): Promise<string> {
 // step 6 takes the no-worker path, a plain reload, and lands on the same Done screen; the download
 // state is measured when it happens.
 //
-// It lives in THIS file, serial with the three cases above, because all of them move the one served-
-// directory pointer of the swap server, and two files doing that at once would deploy onto each other.
+// It moves the one served-directory pointer of the swap server, like the three cases above and every
+// case in service-worker.spec.ts. Being in this file does not keep it apart from those: the WebKit
+// walk is another project and service-worker.spec.ts another file, so each case holds the swap
+// server's lock (`holdSwapServer`, taken in the file's `beforeEach`) for as long as it runs.
 
+// THE LARGE-TEXT WALK. Android's font scale and a browser's text size raise the root font size, and
+// every box in the panel is in rem, so the panel must grow as one piece: same no-shift rule, nothing
+// spilling out of its box, and the panel still below the band. 150% is where a px box used to spill.
 for (const engine of [
-  { name: "Chromium, with the worker", project: "app-phone", worker: "allow" },
-  { name: "WebKit, with no worker", project: "app-phone-webkit", worker: "block" },
+  { name: "Chromium, with the worker", project: "app-phone", worker: "allow", text: null },
+  { name: "WebKit, with no worker", project: "app-phone-webkit", worker: "block", text: null },
+  { name: "Chromium, text at 150%", project: "app-phone", worker: "allow", text: "150%" },
 ] as const) {
   // WHY WEBKIT RUNS WITH THE WORKER BLOCKED. Playwright's WebKit does not route a request that goes
   // through a service worker, so with a worker in control every `/api/*` read here would reach the
@@ -497,18 +572,31 @@ for (const engine of [
 
     test.beforeEach(async ({ page }, testInfo) => {
       test.skip(testInfo.project.name !== engine.project, `this walk is the ${engine.name} one`);
-      test.setTimeout(180_000);
+      // Sixty seconds more than the file's budget, which already carries any wait for the swap server.
+      test.setTimeout(testInfo.timeout + 60_000);
       await installCrewBridge(page);
+      if (engine.text !== null) {
+        // A stylesheet rule rather than the element's style: the page's own boot rewrites `<html>`.
+        await page.addInitScript((size: string) => {
+          const add = () => {
+            const style = document.createElement("style");
+            style.textContent = `html { font-size: ${size} !important; }`;
+            document.head.append(style);
+          };
+          if (document.head !== null) add();
+          else document.addEventListener("DOMContentLoaded", add, { once: true });
+        }, engine.text);
+      }
     });
 
     test(NO_SHIFT_TITLE, async ({ page }) => {
-      await walkEveryState(page, engine.worker === "allow");
+      await walkEveryState(page, engine.worker === "allow", engine.text);
     });
   });
 }
 
 /** The walk itself: every state, measured against "Ready to start". */
-async function walkEveryState(page: Page, withWorker: boolean): Promise<void> {
+async function walkEveryState(page: Page, withWorker: boolean, text: string | null = null): Promise<void> {
   const seen: string[] = [];
   const dialog = page.getByRole("dialog");
   const heading = (name: string) => page.getByRole("heading", { name, exact: true });
@@ -517,6 +605,10 @@ async function walkEveryState(page: Page, withWorker: boolean): Promise<void> {
   // A worker in control, where this walk runs with one.
   if (withWorker) await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
   await page.evaluate((key: string) => window.sessionStorage.setItem(key, "0"), RELOADS_KEY);
+  if (text !== null) {
+    const root = await page.evaluate(() => getComputedStyle(document.documentElement).fontSize);
+    expect(root, "the larger text size is on the page").toBe(`${(16 * Number.parseFloat(text)) / 100}px`);
+  }
 
   // ── Ready to start. The card's button opens the mode; it does not grow the card. ──
   await page.getByRole("button", { name: fill(en["settings.updateCard.actionAll"], { version: TO }) }).click();
@@ -527,8 +619,10 @@ async function walkEveryState(page: Page, withWorker: boolean): Promise<void> {
 
   const measure = async (state: string) => {
     expectSame(state, await geometry(page), base);
+    expect(await spills(page), `${state}: nothing spills out of its box`).toEqual([]);
     seen.push(state);
   };
+  expect(await spills(page), "ready: nothing spills out of its box").toEqual([]);
 
   // ── Steps 1 to 4, the lead. ──
   await page.getByRole("button", { name: en["updateScreen.action.start"] }).click();
@@ -752,6 +846,58 @@ async function geometry(page: Page): Promise<Geometry> {
     note: only("note", note),
     footer: only("footer", footer),
   };
+}
+
+/**
+ * Everything drawn inside a slot that reaches past the slot's own box, by half a pixel or more, and
+ * the panel reaching up under the band. A clamped or truncated line stays inside its box by design;
+ * what this catches is a px box holding rem text, the large-text fault counsel named for ADR 0064.
+ */
+async function spills(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const out: string[] = [];
+    const panel = document.querySelector('[data-slot="update-panel"]');
+    const band = document.querySelector('[data-slot="update-band"]');
+    if (panel !== null && band !== null) {
+      const gap = panel.getBoundingClientRect().top - band.getBoundingClientRect().bottom;
+      if (gap < -0.5) out.push(`panel under the band by ${-gap}px`);
+    }
+    for (const slot of ["update-heading", "update-subtitle", "update-row", "update-note", "update-footer"]) {
+      for (const box of document.querySelectorAll(`[data-slot="${slot}"]`)) {
+        const outer = box.getBoundingClientRect();
+        for (const inner of box.querySelectorAll("*")) {
+          const r = inner.getBoundingClientRect();
+          if (r.width === 0 || r.height === 0) continue;
+          if (r.bottom - outer.bottom > 0.5 || outer.top - r.top > 0.5) {
+            out.push(`${slot}: <${inner.tagName.toLowerCase()}> ${r.top}-${r.bottom} outside ${outer.top}-${outer.bottom}`);
+          }
+          // A box a flex parent squeezed below its content: the rect stays inside, the text does not.
+          // A clamp, an ellipsis or a scroller holds more than it shows on purpose, and is left alone.
+          const css = getComputedStyle(inner);
+          const clamps =
+            (css.webkitLineClamp !== "" && css.webkitLineClamp !== "none") ||
+            css.textOverflow === "ellipsis" ||
+            css.overflowY === "auto" ||
+            css.overflowY === "scroll";
+          // A clamp is allowed to hide lines, never to cut one: a box squeezed to 1.25 lines shows the
+          // top of the second line and no ellipsis. Its height must be a whole number of lines.
+          const line = Number.parseFloat(css.lineHeight);
+          if (clamps && css.overflowY !== "auto" && css.overflowY !== "scroll" && line > 0 && inner.clientHeight > 0) {
+            const part = inner.clientHeight % line;
+            if (Math.min(part, line - part) > 1) {
+              out.push(`${slot}: <${inner.tagName.toLowerCase()} class="${inner.getAttribute("class") ?? ""}"> cuts a line, ${inner.clientHeight}px of ${line}px lines`);
+            }
+          }
+          // A decorative icon is left alone too: a spinning glyph's rotated corners count as overflow.
+          const decor = inner.closest('[aria-hidden="true"]') !== null;
+          if (!clamps && !decor && css.display !== "inline" && inner.scrollHeight - inner.clientHeight > 1) {
+            out.push(`${slot}: <${inner.tagName.toLowerCase()} class="${inner.getAttribute("class") ?? ""}"> holds ${inner.scrollHeight}px in ${inner.clientHeight}px`);
+          }
+        }
+      }
+    }
+    return out;
+  });
 }
 
 /** Half a pixel, in every direction, on every box. */

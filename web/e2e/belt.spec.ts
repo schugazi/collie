@@ -69,6 +69,82 @@ test("both rows show every pill without scrolling, left of the Switch cell", asy
   }
 });
 
+// ONE SCALE FOR THE WHOLE BELT (operator, 2026-09-23). The Settings row "Action belt size" stores
+// `beltScale` in the dash prefs; the belt's root carries it as `--belt-scale`, and index.css derives
+// each row's band, the pills and the icons from it. Measured at 375x812 in Chromium: a row, a pill
+// and its icon at each of the three sizes, and every pill answering its whole row.
+test.describe("the belt's size setting", () => {
+  test.use({ viewport: { width: 375, height: 812 } });
+
+  const SIZES = [
+    { scale: 1.15, band: 45, pill: 37, icon: 18 },
+    { scale: 1.3, band: 52, pill: 42, icon: 21 },
+    { scale: 1.5, band: 60, pill: 48, icon: 24 },
+  ] as const;
+
+  for (const size of SIZES) {
+    test(`at scale ${size.scale} a row is ${size.band}px, a pill ${size.pill}px, an icon ${size.icon}px`, async ({
+      page,
+    }, testInfo) => {
+      test.skip(testInfo.project.name !== "app-phone", "measured once, in Chromium at phone width");
+      await page.addInitScript((beltScale) => {
+        localStorage.setItem("collie:dash-prefs:v1", JSON.stringify({ beltScale }));
+      }, size.scale);
+      await page.goto("/pane/w1:p1");
+      await expect(page.getByRole("button", { name: en["chat.switcher.aria"] })).toBeVisible();
+
+      const m = await page.locator(ROWS).first().evaluate((el) => {
+        const pill = el.querySelector("button")!;
+        const icon = pill.querySelector("svg")!;
+        const band = el.getBoundingClientRect();
+        const p = pill.getBoundingClientRect();
+        const i = icon.getBoundingClientRect();
+        // The pill's hit box reaches the row's own edges: a probe 1px inside the row's top and
+        // bottom, over the pill's middle, lands on the pill.
+        const x = p.left + p.width / 2;
+        const hit = (y: number) => pill.contains(document.elementFromPoint(x, y));
+        return {
+          band: band.height,
+          pill: p.height,
+          icon: [i.width, i.height],
+          top: hit(band.top + 1),
+          bottom: hit(band.bottom - 1),
+          scroll: [el.scrollHeight, el.clientHeight],
+        };
+      });
+      expect(m.band).toBe(size.band);
+      expect(m.pill).toBe(size.pill);
+      expect(m.icon).toEqual([size.icon, size.icon]);
+      expect(m.top).toBe(true);
+      expect(m.bottom).toBe(true);
+      expect(m.scroll[0]).toBe(m.scroll[1]);
+    });
+  }
+});
+
+test("a portrait cover display keeps its focused composer when the keyboard shrinks the viewport", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("collie:zen-enabled:v1", "1");
+    localStorage.setItem("collie:auto-zen-enabled:v1", "1");
+    // Only the viewport shrinks on keyboard opening; the device never rotates.
+    Object.defineProperty(screen, "orientation", {
+      configurable: true,
+      value: { type: "portrait-primary", addEventListener() {}, removeEventListener() {} },
+    });
+  });
+  await page.setViewportSize({ width: 430, height: 900 });
+  await page.goto("/pane/w1:p1");
+  const box = page.getByRole("textbox", { name: en["composer.placeholder.reply"] });
+  await box.focus();
+
+  await page.setViewportSize({ width: 430, height: 360 });
+
+  expect(await page.evaluate(() => matchMedia("(orientation: landscape)").matches)).toBe(true);
+  await expect(box).toBeVisible();
+  await expect(box).toBeFocused();
+  await expect(page.getByRole("button", { name: "Exit zen mode" })).toHaveCount(0);
+});
+
 test("no bare belt: the pills spread to the Switch cell, the tint spans its row, the mark stands apart", async ({ page }) => {
   // The operator, from the phone: no empty belt between the rows and the Switch cell, the harness
   // tint from one end of its row to the other, the buttons spread over the whole width rather than

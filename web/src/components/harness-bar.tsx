@@ -5,7 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { AgentIcon } from "@/components/agent-icon";
 import { AGENT_BRANDS } from "@/components/agent-icon-data";
 import { Button } from "@/components/ui/button";
-import { BELT_SECTION, STRIP_ROW_PILL } from "@/components/ui/labelled-strip";
+import { BELT_ICON, BELT_SECTION, STRIP_ROW_PILL } from "@/components/ui/labelled-strip";
 import { useActionEcho } from "@/hooks/use-action-echo";
 import { useLocale } from "@/hooks/use-locale";
 import { usePendingConfirm } from "@/hooks/use-pending-confirm";
@@ -198,11 +198,18 @@ export function HarnessBar({ agent, mine, onRun, disabled }: HarnessBarProps) {
       // describes (`-my-1.5` paired with a padding-grown box, landing on the scroller's old `py-1.5`)
       // brought back at the belt's new numbers, and it is safe for the same reason that one was: the
       // scroller has real padding to land on again, so nothing overflows `clientHeight`.
+      // SCALED since 2026-09-23: the 40px and the 4px are the belt's `--belt-band` and `--belt-pad`
+      // now (index.css, from the one `--belt-scale`), 45px and 4px at the default scale, so the
+      // section still spans its row's top rule to bottom rule at every size the Settings row offers.
       // The tint spans its whole row (actions-row.tsx gives that row no gutter): `grow` runs it to the
       // Switch cell's hairline and lets the pills inside spread over it, and `pl-2` is the controls
       // row's 4px gutter plus BELT_SECTION's own 4px, so the tint starts at the screen edge while
       // the mark starts about where Keys does above it.
-      className={cn(BELT_SECTION, "h-10 -my-1 grow pl-2", accent === undefined && "border-l-border bg-muted")}
+      className={cn(
+        BELT_SECTION,
+        "h-(--belt-band) -my-(--belt-pad) grow pl-2",
+        accent === undefined && "border-l-border bg-muted",
+      )}
       style={
         accent === undefined
           ? undefined
@@ -220,7 +227,7 @@ export function HarnessBar({ agent, mine, onRun, disabled }: HarnessBarProps) {
           phone); 12px of clear tint — wider than any pill-to-pill gap on a phone — says it labels
           the row instead. */}
       <span aria-hidden="true" className="mr-3 flex shrink-0 items-center">
-        <AgentIcon agent={agent} className="size-4" />
+        <AgentIcon agent={agent} className={BELT_ICON} />
       </span>
       {asked !== undefined && (
         // `contents` keeps the belt's own layout; the group only names Yes and No by the question.
@@ -293,12 +300,12 @@ export function HarnessBar({ agent, mine, onRun, disabled }: HarnessBarProps) {
                 is a 700ms echo, not a resting label — that is why the icon's 3:1/4.5:1 contrast
                 note below does not gate it (the operator chose this on 2026-09-21). */}
             {phase === "done" ? (
-              <Check className="size-4 shrink-0" />
+              <Check className={BELT_ICON} />
             ) : (
               /* The icon takes the brand colour and the word does not. An icon is held to 3:1
                  (non-text contrast) and clears it on both themes; a 12px word in #D97757 would
                  not, so the label keeps the app's own text colour and stays readable. */
-              <Icon className="size-4 shrink-0" style={accent ? { color: accent } : undefined} />
+              <Icon className={BELT_ICON} style={accent ? { color: accent } : undefined} />
             )}
             {labelText(item.label)}
           </Button>

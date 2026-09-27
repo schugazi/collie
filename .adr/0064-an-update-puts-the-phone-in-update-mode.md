@@ -78,8 +78,13 @@ three end screens, each with "Back to the app".**
    reserved line under the first, a note of two lines plus one 44px action row, and a footer of two
    44px rows. The panel's height is a function of the machine count only. The row count is the same
    in every state, "Ready to start" included, because the rows are the lead, the census and this
-   phone from the first screen on. `e2e/update-screen.spec.ts` walks every state at 375x812 in
-   Chromium and WebKit and holds each box to half a pixel of the first screen.
+   phone from the first screen on. Every box is in rem, so a larger text size grows the panel as
+   one piece; past the screen's height below the band, the row list scrolls. `e2e/update-screen.spec.ts`
+   walks every state at 375x812 in Chromium and WebKit, and again in Chromium at 150% text, and holds
+   each box to half a pixel of the first screen.
+9. **The screen stays on while the mode locks the app.** A screen wake lock, taken again on every
+   return to the foreground, keeps the band's clock and bar moving. A browser that refuses it
+   changes nothing but the dimming.
 
 ## Consequences
 
@@ -98,6 +103,29 @@ three end screens, each with "Back to the app".**
 - **The panel's fixed heights are a second DESIGN.md §6 reservation.** Every occupant states its own
   box (truncate, clamp, fixed buttons), so nothing can grow, and the sizes were designed around, not
   measured. A longer translation clamps; it never pushes.
+- **Counsel on 2026-09-23, after the push, found three things and changed three.** The note's
+  `h-[84px]` and the row list's px height did not grow with a larger text size, so at 150% the
+  note cut its second line in half: both are rem now, and the 150% walk holds them. The screen
+  slept mid-run: the wake lock (point 9). The rest was already so or is not a fault. The panel
+  re-reads on every return to the foreground. The app behind it is `inert`, which hides it from a
+  screen reader too, and the heading is a polite live region. A second start is refused by the
+  bridge (`update.in_progress`, ADR 0062). A step 6 cannot wait on a rolled-back run, because only
+  the lead's `done` leads there. A claim that iOS drops with a discarded tab leaves the band of a
+  device that did not start the run, which unlocks the phone and misleads nobody. For the same
+  reason "Skip" needs no server side: it only ends this device's wait, and a device without the
+  claim has none to end. The old-bundle window can fail only a language bundle, the one lazy
+  chunk, and a failed one falls back to English (`lib/i18n`). Deferred: a notification at Done,
+  Stuck, or a member's question, so the phone can be put down; it is a feature of its own.
+- **A run that gives up before the switch is a fourth end, "failed", Stuck's sibling (#283,
+  2026-09-24).** The updater closes a staging it abandons as `idle` with a reason, because nothing
+  flipped and nothing restarted. The reducer read every `idle` as "no update", so in 1.13.0 the panel
+  vanished mid-run and the reason was never shown. Now the run this device's claim names, matched by
+  its run id and nothing looser, ends on *The update failed on <lead>*, with the reason as the note
+  and "Back to the app", "Try again" and "Show log" below it. It is step 2, because every abort
+  happens while the updater stages. An `idle` record with no reason, with no claim, or with another
+  run's id is still no update at all, so a device that did not start the run is never shown it.
+  The boxes are the same as every other state, and the end has its own key, so a close is kept
+  across a reload.
 - **Revisit** if a crew grows past six machines as a common case: the rows scroll inside their box
   past six, which keeps the panel still but hides a row. The answer then is a different panel, not a
   taller one.

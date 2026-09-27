@@ -15,7 +15,7 @@
 // claude--*preview*.txt), and never touches a pane or the network.
 
 import type { StyledLine } from "../../blocks";
-import { classifyFooter, dialogTail, isBlank, isHorizontalRule, lineText, questionText } from "./markers";
+import { classifyFooter, dialogTail, isBlank, isHorizontalRule, lineText, questionRowText } from "./markers";
 import { parseOptionRow } from "./prompt-select";
 import { parseStepperLine } from "./wizard";
 import type { PreviewNote, PreviewOption, PreviewSelectModel } from "../preview-model";
@@ -213,7 +213,7 @@ export function detectPreviewSelectRegion(lines: StyledLine[]): PreviewSelectReg
   //    line (" ☐ Design") never parses as a stepper, so single-question dialogs get steps: null.
   let steps: WizardStepChip[] | null = null;
   let startLine = firstOpt;
-  let question = questionText(texts[questionIdx]!);
+  let question = questionRowText(texts[questionIdx]!);
   for (let i = questionIdx - 1, seen = 0; i >= 0 && seen < STEPPER_SCAN_LIMIT; i--, seen++) {
     if (isHorizontalRule(texts[i]!)) break;
     const stepper = parseStepperLine(lines[i]!);
@@ -224,7 +224,7 @@ export function detectPreviewSelectRegion(lines: StyledLine[]): PreviewSelectReg
       // options is the question (mirrors wizard.ts).
       const parts: string[] = [];
       for (let j = i + 1; j < firstOpt; j++) {
-        if (!isBlank(texts[j]!)) parts.push(questionText(texts[j]!));
+        if (!isBlank(texts[j]!)) parts.push(questionRowText(texts[j]!));
       }
       if (parts.length > 0) question = parts.join(" ");
       break;

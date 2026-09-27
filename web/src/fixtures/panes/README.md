@@ -104,6 +104,59 @@ Byte-faithful `tmux capture-pane -p -e -J` captures (LF endings, where Herdr's a
 | `codex--v0157-idle.txt` | Welcome box, a `Tip:` row, the empty prompt, the status row, and `← for agents · ? for shortcuts` under it | `idle` |
 | `codex--v0157-working.txt` | A turn nine seconds in: `• Working (9s • esc to interrupt) · 1 background terminal running · …` above the same empty prompt, status row and hint row | `working` |
 | `codex--v0157-queue-hint.txt` | `queued` typed into the prompt mid-turn: the hint row reads `tab to queue message` | `working` |
+## Codex 0.156.1 corpus (captured 2026-09-26, herdr, Linux sandbox panes)
+
+Byte-faithful `format:ansi` captures from throwaway panes in `/tmp/collie-codex-debug`, each cut to
+the rows its test needs, then scrubbed of the username and hostname (none survived the cut). Dialog
+captures ran with `-a on-request -s read-only -c approvals_reviewer=user`. No key was pressed on
+these screens while capturing. The new recipes (trust `Enter` / `Down, Enter`, patch `y` /
+`Escape`, two-row exec `2`) were probed afterwards the same day in a fresh sandbox pane, see
+`APPROVAL_NOTES.md` and `TRUST_NOTES.md`. **The
+headline: 0.156.1's default status row drops SGR 2.** Its ` · ` separators carry the theme's
+muted foreground (`38;2;135;140;164`), and there is still no `Context` field, so neither acceptor
+matched. No default pane had a composer, and the unread-dialog card sat over a live input box. The
+styled acceptor now takes either quiet paint, never by colour value (see `isStatusRow` in
+`lib/harness/codex/markers.ts`). The composer band now sits on a `48;2;57;57;71` fill.
+
+| Fixture | State / what's in it | Herdr status |
+|---|---|---|
+| `codex--v0156-idle.txt` | Empty dim `› Ask Codex to do anything` composer on its fill, over the two-field status row whose separator is a foreground, not SGR 2. `composerReady` must be TRUE | `idle` |
+| `codex--v0156-idle-50.txt` | The same idle screen with the pane at 50 columns | `idle` |
+| `codex--v0156-draft-multiline.txt` | Three-line draft typed with hard breaks. The status row carries a third field (`Ask one question`) and a right-aligned `⚠ 1 warning · f2 to view` notice after a run of spaces | `idle` |
+| `codex--v0156-draft-blank-line.txt` | Two-paragraph draft with a blank row inside the composer | `idle` |
+| `codex--v0156-paste-placeholder.txt` | A typed paragraph, a blank row, then `[Pasted Content 1024 chars]`. The draft reads as both; it is not paste evidence on its own | `idle` |
+| `codex--v0156-trust.txt` | Rewritten trust prompt: `Folder access`, the folder, `Trust this folder? …`, `› 1. Trust and continue` / `2. Quit`, footer `enter continue · esc quit`. Read as a pointer walk plus Enter (ADR 0055), no digit | `blocked` |
+| `codex--v0156-approval-exec-2opt.txt` | Exec approval for a heredoc: the full `$ cat <<'EOF'` block, then only two options, `1. Yes, proceed (y)` / `2. No, and tell Codex what to do differently (esc)` | `blocked` |
+| `codex--v0156-approval-exec-wrapped.txt` | Exec approval for a long `echo`: the persistent row 2 wraps onto two rows indented to the label column | `blocked` |
+| `codex--v0156-approval-exec-wrapped-50.txt` | Exec approval for `touch` at 50 columns: rows 2 and 3 both wrap, and `(p)` and `(esc)` land on rows of their own | `blocked` |
+| `codex--v0156-approval-patch.txt` | Patch approval: `Would you like to make the following edits?`, `Description:` / `Destination:`, `1. Yes, proceed (y)` / `2. Yes, and don't ask again for these files (a)` / `3. No… (esc)`. Buttons send the printed `y` and Escape | `blocked` |
+
+Three more 0.156.1 screens were captured and are NOT in the corpus yet: the update prompt
+(`Update now` / `Skip` / `Skip until next version`, footer `enter continue · esc skip`) and the
+`/model` and `/permissions` pickers (footer `enter select · esc back`). No grammar reads them, by
+decision. The footer names only Enter and Esc. Enter acts on the pointed row, which on the update
+prompt runs an installer, and what Esc skips is not stated. So the unread-dialog card, with its one
+Escape, is their way out. As fixtures they would show that card, and `unread-dialog.test.ts` lists
+every Codex screen that does, so they land together with that list. Their footers are pinned
+byte-exact in `codex.test.ts` meanwhile.
+
+## Codex 0.156.1 headless (captured 2026-09-26, herdr 0.9.0, no Herdr client attached, #294)
+
+Byte-faithful `format:ansi` captures from a throwaway Herdr session whose server never had a client
+attached, read the way the bridge reads a pane. Codex asks the terminal for its colours at start,
+and with no client nothing answers. It then paints the status row's ` · ` separator with no SGR at
+all and the composer with no `48;2;57;57;71` fill; the fields keep their colours, and the
+placeholder is still SGR 2. Before #294 the acceptor refused a separator with no paint, so every
+Codex started this way had no composer and the unread-dialog card sat over a live input box. A
+client attached later does not repaint the row; a Codex started after a client has attached once
+paints the 0.156.1 client shape above. Each file is cut to the rows from the header box down; the
+update notice above it is left out. **No scrubbing was needed**: the sandbox folder is
+`/tmp/i294-proj-codex`, and no username, hostname or session UUID is on the kept rows.
+
+| Fixture | State / what's in it | Herdr status |
+|---|---|---|
+| `codex--v0156-headless-idle.txt` | Empty dim `› Ask Codex to do anything` with no fill, over `  GPT-6-Luna low · /tmp/i294-proj-codex` whose separator carries no paint. `composerReady` must be TRUE, the draft is null, and no unread-dialog card | `idle` |
+| `codex--v0156-headless-draft.txt` | The same pane holding the typed draft `hello from the phone probe`. The draft reads back | `idle` |
 
 ## Codex mobile chrome (reconstructed 2026-09-03)
 
@@ -210,7 +263,7 @@ Grok's composer is a rounded box at the tail: `╭─…─╮` / `│ ❯ … �
 | `claude--fresh-idle.txt` | Fresh session: empty input box between rules, statusline, usage-limit banner, shell MOTD scrollback above | `idle` |
 | `claude--done.txt` | Completed turn: `⏺ Write(hello.txt)` call, `⎿` result, `●` summary, idle input box | `done` |
 | `claude--trust-prompt.txt` | Folder-trust dialog: `❯ 1. Yes… / 2. No…`, "Enter to confirm · Esc to cancel" | `blocked` |
-| `claude--trust-prompt-unnumbered.txt` | The SAME dialog on Claude Code 2.1.278 (captured 2026-09-22, 120 columns, sanitised length-preservingly: the shell prompt's username and hostname only): the rows lost their numbers and the pointer parks on the QUIT row — `❯ No, exit` / `  Yes, I trust this folder`, same "Enter to confirm · Esc to cancel" footer. Lifted by the pointed-list arm of the prompt-select grammar ([ADR 0055](../../../.adr/0055-a-pointed-list-is-walked-then-confirmed.md)): a tap is the arrow walk from the pointer plus Enter, and no digit is synthesised because the screen printed none | `blocked` |
+| `claude--trust-prompt-unnumbered.txt` | The SAME dialog on Claude Code 2.1.278 (captured 2026-09-22, 120 columns, sanitised length-preservingly: the shell prompt's username and hostname only): the rows lost their numbers and the pointer parks on the QUIT row — `❯ No, exit` / `  Yes, I trust this folder`, same "Enter to confirm · Esc to cancel" footer. Lifted by the pointed-list arm of the prompt-select grammar ([ADR 0055](../../../../.adr/0055-a-pointed-list-is-walked-then-confirmed.md)): a tap is the arrow walk from the pointer plus Enter, and no digit is synthesised because the screen printed none | `blocked` |
 | `claude--select-menu.txt` | AskUserQuestion: chip line, question, numbered options **with description sub-lines**, "Type something." free-text row, separated "5. Chat about this", "Enter to select · ↑/↓ · Esc" footer | `blocked` |
 | `claude--select-multi.txt` | **Multi-question** AskUserQuestion: a stepper header `←  ☒ Focus area  ☐ Scope  ☐ Workflow  ✔ Submit  →` above the current question, "Tab/Arrow keys to navigate" footer. prompt-select deliberately BAILS on this; since T7 the wizard grammar (`grammar/wizard.ts`) claims it | `blocked` |
 | `claude--permission-edit.txt` | Edit permission: diff preview, "Do you want to create hello.txt?", `❯ 1. Yes / 2. Yes, allow all edits… (shift+tab) / 3. No`, "Esc to cancel · Tab to amend" | `blocked` |
@@ -485,6 +538,47 @@ username, hostname, home path or real project path appears in any file: the sess
 | `claude-lab--working-popup-open--w82.txt` | 82 × 49 | slash popup with clipped names painted ABOVE the box while a tool runs; the tail under the box is the statusline |
 | `claude-lab--working-queued-message--w82.txt` | 82 × 49 | queued '❯ …' row above the box while working; the box is empty under it (draft must read null) |
 | `claude-lab--working-spinner--w82.txt` | 82 × 49 | tool running, spinner line above a live empty box |
+
+## Dialog input corpus (captured 2026-09-26, Claude Code 2.1.283, herdr 0.9.0, throwaway Herdr panes)
+
+Dialogs the phone could not read, or read wrong, found while chasing an operator report that
+"line breaks" made Collie say it cannot read a dialog. Sandbox repos under `/tmp`, scrubbed with a
+length-changing pass (user and host names, home paths, session ids zeroed), trimmed to the tail.
+Every key behaviour named below was sent one keystroke at a time and read back.
+
+| Fixture | State / what's in it |
+|---|---|
+| `claude--v2283-permission-amend-focused.txt` | Bash permission dialog after Tab on row 1: `❯ 1. Yes, and tell Claude what to do next`, footer shrinks to `Esc to cancel`. A digit here is typed into the note (`❯ 1. Yes, 2`) |
+| `claude--v2283-permission-amend-typed.txt` | The same note holding two typed lines (`Yes, use b instead` / `and also c`), pointer on it |
+| `claude--v2283-permission-amend-no-off-row.txt` | Tab on row 4 opens `No, and tell Claude what to do differently`; typed two lines, then `Up`: pointer on row 3, note kept. Off the note, digits answer (digit 4 from row 2 rejected the command) |
+| `claude--v2283-ask-type-something-focused.txt` | AskUserQuestion, pointer on the empty `4. Type something.`; footer gains `ctrl+g to edit in nano`. A digit is typed into the field (`❯ 3. 1`) |
+| `claude--v2283-ask-type-something-typed-two-lines.txt` | The field holding `my own answer` / `second line of my answer`, pointer on it |
+| `claude--v2283-ask-type-something-typed-off-row.txt` | The field holding `1`, pointer moved up onto `2. Banana` |
+| `claude--v2283-ask-two-line-question.txt` | A question written on two lines, painted with a `│` gutter; option descriptions whose line break herdr renders as U+FFFD |
+| `claude--v2283-ask-long-question--w50.txt` | A 25-word question wrapped to three gutter rows at 50 columns |
+| `claude--v2283-trust--w50.txt` | Folder-trust prompt at 50 columns; the `?` sits in the middle row of a five-row paragraph |
+| `claude--v2283-multiselect-type-something-focused.txt` | multiSelect, pointer on `4. [ ] Type something`. Off the field, a typed row toggles with its digit like any other (measured) |
+| `claude--v2283-wizard-two-line-question.txt` | Two-question wizard, step 1, question on two gutter rows |
+| `claude--v2283-shell-before-first-frame.txt` | The shell prompt with `claude-danger` typed, read while herdr already reported the agent as `claude` (about 0.3 s before the first frame) |
+| `claude--v2283-shell-after-exit.txt` | The shell prompt just after Claude exited, still reported as `claude` (about 0.5 s) |
+
+## Draft-frame and modal-edge corpus (captured 2026-09-26, Claude Code 2.1.283, herdr 0.9.0, throwaway Herdr panes)
+
+Two screens the phone read wrong. A draft holding a pasted rule or shell prompt hid its own input
+box, and every slash-command modal opened under a `▔` (U+2594) edge that no grammar took as a region
+top. Sandbox pane in `/tmp`, scrubbed for user and host names, trimmed to the tail rows each test
+needs. The `▔` edge carries Claude's effort label near its right end (`▔▔▔…▔ ● high · /effort ▔`),
+so it is not a plain rule.
+
+| Fixture | State / what's in it |
+|---|---|
+| `claude--v2283-draft-rule.txt` | Live box, draft `see this output:` / `────────────────────` / `some text` / `────────────────────` / `end`. The two rules are indented continuation rows; the box stands and the whole draft reads back (ADR 0048 addendum 2026-09-26) |
+| `claude--v2283-draft-prompt.txt` | Live box, draft `my shell said:` / `❯ ls -la` / `and then nothing`. The indented `❯` row is draft text, not the prompt row |
+| `claude--v2283-slash-mcp.txt` | `/mcp` under a labelled `▔` edge, no `─` rule above the title. Footer `↑/↓ to navigate · Enter to confirm · Esc to cancel`. Lifts `menu` `Manage MCP servers` |
+| `claude--v2283-slash-hooks.txt` | `/hooks`, a tall list: the `▔` edge sits 37 rows above the footer, past the 30-row rule window. Lifts `menu` `Hooks` |
+| `claude--v2283-slash-effort.txt` | The `/effort` slider under the labelled edge, marker on `high`. The Effort grammar lifts it with all four keys and the scale |
+| `claude--v2283-slash-export.txt` | `/export` picker: two numbered rows and a lone `Esc to cancel` footer. Lifts `menu` with one Cancel action and Up/Down, never a digit |
+| `claude--v2283-slash-usage.txt` | `/usage` info panel under the edge, tab bar as its first row, lone `Esc to cancel` footer. Lifts `menu` with one Cancel action |
 
 ## Wizard corpus (captured 2026-07-05, sandbox pane; choreography in `../../lib/grammar/WIZARD_NOTES.md`)
 
@@ -788,6 +882,14 @@ else needed it: no username, hostname, home path, session id, credential-shaped
 string or UUID appears, and the cwd is the generic sandbox dir. Verified with
 an email/path/UUID/secret-shape sweep, which returns only the fabricated token.
 
+**The nine files added 2026-09-23 are hand-built, not captures** (#274 to #280):
+`muse--draft-blank-row`, `muse--tip-loop`, `muse--palette-exact`, `muse--palette-partial`,
+`muse--draft-image-chip`, `muse--draft-quoted-path`, `muse--tip-paste`,
+`muse--approval-network` and `muse--approval-network-moved`. Each starts from one of the 18
+captures above and swaps the box or dialog rows for the text the contributor saw live on Muse
+1.3.0 under Collie 1.12.1. The transcript, the rules and the statusline are the capture's bytes;
+the swapped rows reuse the styling of the rows they replace, so their colours are not evidence.
+
 **The headline: Muse's questions are digit-MOVES, not digit-answers, and its
 checkbox/review phases need pointer choreography.** A digit jumps the `›`
 pointer; `Enter` selects (single), toggles (checkbox), or submits (review).
@@ -810,14 +912,23 @@ signature.
 |---|---|---|
 | `muse--trust-prompt.txt` | Pre-session workspace trust: `Do you trust this workspace?`, `> 1  Trust and continue` / `  2  Quit` (two spaces, NO period — unlike every other Muse dialog), `Use Up/Down or 1/2, then Enter. Esc quits.` footer. Digit `1` live-probed: submits immediately | `blocked` |
 | `muse--fresh-idle.txt` | Post-trust idle: banner, Voice rule, bare `❯`, bottom rule, `muse-spark-1.3 · max · <cwd> · Launch overrides` statusline | `idle` |
+| `muse--palette-exact.txt` | Slash palette open under an exact command: `❯ /usage` + one suggestion row naming `/usage`. The read is the command alone, so verify passes and Enter submits it (#276) | `idle` |
+| `muse--palette-partial.txt` | Slash palette open under partial input: `❯ /us` + the `/usage` suggestion. The read stays polluted on purpose — Enter would accept the suggestion, so verifying the typed text would bless another command (#276) | `idle` |
 | `muse--draft-single.txt` | Stranded one-line draft on the `❯` row | `idle` |
 | `muse--draft-wrapped.txt` | Long draft soft-wrapped onto a 2-space-indented continuation row (breaks at the hyphen in `soft-wrap`) | `idle` |
 | `muse--draft-paste-token.txt` | A 3003-char single line collapsed to `[Pasted Content 3003 chars]` — per-LINE collapse (a 3300-char burst of short lines stayed literal), N in code points, threshold in (1000, 1200] | `idle` |
+| `muse--draft-blank-row.txt` | Two-paragraph draft: a blank row between the `❯` head and the continuation. The tail walk steps over it, so the prompt binds, the draft folds, and no card draws (#274) | `idle` |
+| `muse--draft-image-chip.txt` | An attached image path converted in place to `[Image #1]` (N in attach order). The read stays verbatim; the attach grammar maps it back for verify (#278) | `idle` |
+| `muse--draft-quoted-path.txt` | A non-image path double-quoted in place (`"/tmp/…"`). Same split: verbatim read, attach grammar verifies (#278) | `idle` |
 | `muse--working.txt` | Mid-turn: `◇ Double checking (2m 40s · esc to interrupt)` above the live composer | `working` |
 | `muse--done.txt` | Completed turn: `◆ Ran command …`, `◆` summary, `◆ Worked for 1m 06s`, idle composer holding the `Start a message with ! to run a shell command yourself` placeholder (grey, not a draft) | `idle` |
+| `muse--tip-loop.txt` | The same idle composer holding the rotated `/loop 10m <prompt> schedules a recurring prompt` placeholder tip — the tip rotates, and an unlisted one reads as a ghost draft (#274) | `idle` |
+| `muse--tip-paste.txt` | The same idle composer holding the `Paste an image with Ctrl+V — file paths and URLs work too` placeholder tip — the tip rotates per context (#278) | `idle` |
 | `muse--quoted-dialogs-bare.txt` | Model-printed facsimiles (approval + single-select + review) as the last reply above a bare box — the model paraphrased the review pointer (`│`), so no detector matches; nothing lifts and the reply stays allowed (#260) | `idle` |
 | `muse--approval-ls.txt` | `Would you like to run the following command?`, `$` + `Stage 1/1` + `Current argv:` subject, `› 1. Allow this stage once (y)` / `2. Always allow … (p)` / `3. Abort … (esc)`. No footer row. Digit `1` live-probed: approves alone | `blocked` |
 | `muse--approval-ls-moved.txt` | Same dialog after one `Down` (`›` on option 2) | `blocked` |
+| `muse--approval-network.txt` | `Would you like to allow this network access?`, `network: host:port scheme` + `full URL:` subject, four options with `(y)`/`(p)`/`(esc)` hints and a `host:port (scheme)` scope on 2–3. Digit `1` live-probed: approves once, fetch runs (#280) | `blocked` |
+| `muse--approval-network-moved.txt` | Same dialog with `›` on option 2, as seen live | `blocked` |
 | `muse--ask-color.txt` | Single-select: `Request user input` header, question, `› 1. Red (Recommended)` / `2.` / `3.` / auto-added `4. None of the above`, `Enter to select · ↑/↓ to move · Tab for an optional note · Esc to interrupt` footer | `blocked` |
 | `muse--ask-color-moved.txt` | Same dialog after one `Down` (`›` on option 2) | `blocked` |
 | `muse--ask-color-notes-open.txt` | After `Tab`: inline `Note (optional): ▌` row under the pointed option, footer unchanged. The lift must decline: the note owns the keyboard | `blocked` |

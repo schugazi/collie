@@ -1630,6 +1630,10 @@ describe("marksPaneSeen — CSRF guard on marking a pane seen", () => {
     expect(marksPaneSeen(withHeader({ [SEEN_HEADER]: "1" }), "history")).toBe(true);
   });
 
+  test("changes is a read too — a git view of the folder does not mark the pane seen on its own", () => {
+    expect(marksPaneSeen(withHeader(), "changes")).toBe(false);
+  });
+
   test("write actions count without it — they already cleared the Origin-requiring write gate", () => {
     for (const action of ["reply", "keys", "upload", "close", "rename"]) {
       expect(marksPaneSeen(withHeader(), action)).toBe(true);
@@ -2093,10 +2097,11 @@ describe("the host gate — `?host=` selects among enrolled members and nothing 
     // The load-bearing claim: `?h=laptop` + `w1:p1` must never be served the DESK's `w1:p1`, and
     // pane ids collide across machines, so a fall-through here is a cross-host write.
     //
-    // All TEN session-scoped routes (tab create, workspace create, launch, this host's launcher
-    // rows, one journal blob, tab action, the pane family, "look now", the worktree listing and the
-    // worktree actions) reach their runtime through the caller's resolver and nothing else.
-    expect([...src.matchAll(/await caller\.resolve\(\);/g)]).toHaveLength(10);
+    // All ELEVEN session-scoped routes (tab create, workspace create, launch, this host's launcher
+    // rows, one journal blob, a workspace's Changes list, tab action, the pane family, "look now",
+    // the worktree listing and the worktree actions) reach their runtime through the caller's
+    // resolver and nothing else.
+    expect([...src.matchAll(/await caller\.resolve\(\);/g)]).toHaveLength(11);
     // Exactly seven `registry.get(` calls remain, and each is a sanctioned one, named here rather
     // than exempted: assembling THIS collie's own snapshot body; `localRuntime`, the single
     // "(session) → runtime, or 404" helper both callers share; `/api/config`, which reports THIS

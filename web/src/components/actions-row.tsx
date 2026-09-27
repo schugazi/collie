@@ -1,4 +1,5 @@
-import { Layers } from "lucide-react";
+import type { CSSProperties } from "react";
+import { GitCompare, Layers } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,8 @@ import { Collapse } from "@/components/ui/collapse";
 import { HarnessBar, useHarnessBarItems } from "@/components/harness-bar";
 import { OverflowEdges } from "@/components/ui/overflow-edges";
 import { SectionLabel } from "@/components/ui/section-label";
-import { STRIP_ROW_PILL, STRIP_SCROLLER } from "@/components/ui/labelled-strip";
+import { BELT_ICON, STRIP_ROW_PILL, STRIP_SCROLLER } from "@/components/ui/labelled-strip";
+import { useDashPrefs } from "@/hooks/use-dash-prefs";
 import { useLocale } from "@/hooks/use-locale";
 import { t as translate } from "@/lib/i18n";
 import type { OperatorCommand } from "@/lib/types";
@@ -75,6 +77,15 @@ import { cn } from "@/lib/utils";
 // leading with it would make the top-left mean a different thing per pane, and the thumb could not
 // learn one position. The top-left is Keys on every pane there is.
 //
+// ONE SCALE FOR THE WHOLE BELT (operator, 2026-09-23, from the phone: "make the belt slightly
+// higher and the icons slightly larger, like 15%", plus a Settings row to go further). The root
+// carries `--belt-scale` inline, from the dash pref `beltScale` (1.15 default, 1.3 Large, 1.5
+// Larger), and `index.css` derives the rows' padding, the pill height, the icons and the harness
+// section's band from it. The words stay 11px at the call sites, because a row's width is what has
+// to fit a 390px phone; the px figures in the comments below are the scale-1 belt they were measured
+// on. The key rail and every other strip are untouched: the `--belt-*` properties exist only under
+// this root.
+//
 // EVERY PILL IS AN ICON AND A WORD, IN BOTH ROWS. The general part was icon-only for half a day, and
 // Altan's verdict on it was that it "looks alien to what we've added now for harness specific
 // stuff": two parts that are meant to read as one belt cannot hold two different kinds of pill.
@@ -90,14 +101,26 @@ const ON = "bg-control-on text-control-on-foreground hover:bg-control-on";
 const OFF = "text-muted-foreground";
 
 /**
- * One row of the belt's scroller. `py-1` makes the row 40px — the pill's 32px plus 4px above and
- * below; the operator read the bare 32px as too thin. `overflow-y-hidden` is the pair of that:
+ * One row of the belt's scroller. `py-(--belt-pad)` makes the row 40px at scale 1 — the pill's 32px
+ * plus 4px above and below; the operator read the bare 32px as too thin. `overflow-y-hidden` is the pair of that:
  * `STRIP_TAP_TARGET`'s `::before` still reaches past 4px of padding, and `overflow-x: auto` forces
  * `overflow-y` to compute to `auto` too, which would turn that overflow into a vertical scrollbar
  * under a thumb. `px-1` is a 4px gutter at both ends — the pills spread over the row now, so the
  * route's full 12px gutter read as a gap on the left (operator, from the phone).
  */
-const BELT_ROW = "bg-primary/10 px-1 py-1 overflow-y-hidden";
+const BELT_ROW = "bg-primary/10 px-1 py-(--belt-pad) overflow-y-hidden";
+
+/**
+ * The Switch cell's buttons: they fill their share of the cell, so the hit box is the drawn box.
+ *
+ * TAP FEEDBACK, IDENTICAL ON BOTH (operator, phone: "can we get a focus hover animation/color change
+ * on both icons? so I know I've clicked"). `active:bg-foreground/15` is the belt's own alpha-wash
+ * recipe at a stronger step than its ground; `active:scale-[0.92]` overrides `ui/button.tsx`'s base
+ * `active:scale-[0.98]` through `cn()`'s twMerge, and `motion-reduce:` cancels it for an operator who
+ * asked for less motion; `duration-[120ms]` is the app's own tap speed.
+ */
+const CELL_BUTTON =
+  "h-auto flex-1 touch-manipulation select-none rounded-none px-0 has-[>svg]:px-0 hover:bg-foreground/8 active:bg-foreground/15 active:scale-[0.92] motion-reduce:active:scale-100 duration-[120ms]";
 
 /**
  * One of Collie's own actions. The composer owns every one of these — what it does, whether it is
@@ -171,12 +194,24 @@ export interface ActionsRowProps {
     /** Another pane needs you: a red dot on the mark's corner. The label says so in words. */
     alert?: boolean;
   };
+  /**
+   * The Changes view's entry (ADR 0065), moved out of the pane actions sheet onto the belt's right
+   * end (upstream's experiment, operator, 2026-09-23). It stands in the Switch cell, above the mark.
+   * Absent when the pane reports no folder (the caller decides).
+   */
+  changes?: {
+    /** Opens the Changes route for this pane. */
+    onClick: () => void;
+    /** ALREADY TRANSLATED. The button's accessible name, `chat.changes.label`. */
+    label: string;
+  };
 }
 
-export function ActionsRow({ general, agent, mine, onRun, disabled, handle }: ActionsRowProps) {
+export function ActionsRow({ general, agent, mine, onRun, disabled, handle, changes }: ActionsRowProps) {
   useLocale();
 
   const harnessItems = useHarnessBarItems(agent, mine);
+  const { beltScale } = useDashPrefs().prefs;
 
   // Nothing to draw at all. Render nothing rather than an empty scroller, so the belt costs no
   // height.
@@ -205,6 +240,11 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, handle }: Ac
       // comes `touch-pan-x`, and only with it — `touch-pan-x` with no listener behind it would
       // forbid a vertical page gesture and give nothing back.
       ref={handle?.ref}
+      // The belt's one scale; index.css derives every `--belt-*` size from it (header above).
+      // SAFETY: a CSS CUSTOM PROPERTY, and the value is a number from BELT_SCALES. React passes it
+      // through to the style attribute verbatim; `CSSProperties` only declares the known property
+      // names, so a `--*` key has no other way to be spelled.
+      style={{ "--belt-scale": beltScale } as CSSProperties}
       className={cn("-mx-3 mb-1 flex border-b border-border bg-foreground/6", handle && "touch-pan-x")}
     >
       {/* The rows start from their widest row's own width and `grow` into whatever the Switch cell
@@ -249,7 +289,7 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, handle }: Ac
                       onClick={action.onSelect}
                       className={cn(`${STRIP_ROW_PILL} gap-1 text-[11px]`, action.on === true ? ON : OFF)}
                     >
-                      <action.icon className="size-4 shrink-0" />
+                      <action.icon className={BELT_ICON} />
                       {action.word ?? action.label}
                     </Button>
                   ))}
@@ -286,30 +326,47 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, handle }: Ac
           needed. The cell's width is the header's "no bare belt" rule in flex terms: from nothing
           (`basis-0`), it takes free width FIRST — `grow-1000` against the rows' `grow` hands it
           nearly all of it — until it stops at 44px (`max-w-11`), and the rows get the rest. When
-          there is less than 32px free it holds 32px (`min-w-8`) and the rows pan instead. */}
-      {handle && (
-        <span className="flex min-w-8 max-w-11 grow-1000 basis-0 border-l border-border bg-chrome">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            aria-label={handle.label}
-            aria-haspopup="dialog"
-            onClick={handle.onClick}
-            className="h-auto flex-1 touch-manipulation select-none rounded-none px-0 has-[>svg]:px-0"
-          >
-            {/* The red dot rides the mark's own top-right corner, absolutely placed so it never
-                moves the belt. `ring-chrome` cuts it out of the glyph it overlaps. */}
-            <span className="relative flex">
-              <Layers className="size-4 shrink-0 text-primary" />
-              {handle.alert === true && (
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute -top-1 -right-1 size-2 rounded-full bg-status-blocked ring-2 ring-chrome"
-                />
-              )}
-            </span>
-          </Button>
+          there is less than 32px free it holds 32px (`min-w-8`) and the rows pan instead.
+          THE CHANGES PILL STANDS ABOVE THE MARK in the same cell, each taking half its height, so
+          the rows lose no width to it. It navigates rather than opening a sheet: no
+          `aria-haspopup`. */}
+      {(handle || changes) && (
+        <span className="flex min-w-8 max-w-11 grow-1000 basis-0 flex-col border-l border-border bg-chrome">
+          {changes && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-label={changes.label}
+              onClick={changes.onClick}
+              className={CELL_BUTTON}
+            >
+              <GitCompare className={cn(BELT_ICON, "text-primary")} />
+            </Button>
+          )}
+          {handle && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-label={handle.label}
+              aria-haspopup="dialog"
+              onClick={handle.onClick}
+              className={CELL_BUTTON}
+            >
+              {/* The red dot rides the mark's own top-right corner, absolutely placed so it never
+                  moves the belt. `ring-chrome` cuts it out of the glyph it overlaps. */}
+              <span className="relative flex">
+                <Layers className={cn(BELT_ICON, "text-primary")} />
+                {handle.alert === true && (
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute -top-1 -right-1 size-2 rounded-full bg-status-blocked ring-2 ring-chrome"
+                  />
+                )}
+              </span>
+            </Button>
+          )}
         </span>
       )}
     </div>

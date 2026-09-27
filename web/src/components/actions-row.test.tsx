@@ -10,6 +10,7 @@ import { ActionsRow, type GeneralAction } from "./actions-row";
 afterEach(() => {
   __resetHarnessBar();
   vi.useRealTimers();
+  localStorage.clear();
 });
 
 const took = async () => true;
@@ -213,16 +214,74 @@ describe("ActionsRow", () => {
     }
   });
 
-  it("stands each belt row at py-1 (40px), with no vertical scroll under a thumb", () => {
+  // The Changes entry (upstream's experiment, operator, 2026-09-23) rides the Switch cell, above the
+  // mark, so the rows lose no width to it.
+  it("stands the Changes button above the Switch mark in the same cell", async () => {
+    const onChanges = vi.fn();
+    render(
+      <ActionsRow
+        general={[general()]}
+        agent="claude"
+        onRun={took}
+        handle={{ ref: vi.fn(), onClick: vi.fn(), label: "Switch pane" }}
+        changes={{ onClick: onChanges, label: "Changes" }}
+      />,
+    );
+    const pill = screen.getByRole("button", { name: "Changes" });
+    const grip = screen.getByRole("button", { name: "Switch pane" });
+    expect(pill.nextElementSibling).toBe(grip);
+    expect(pill.parentElement!.className).toMatch(/(?:^|\s)flex-col(?=\s|$)/);
+    expect(pill.className).toMatch(/(?:^|\s)flex-1(?=\s|$)/);
+    expect(pill).not.toHaveAttribute("aria-haspopup");
+    await userEvent.click(pill);
+    expect(onChanges).toHaveBeenCalledTimes(1);
+  });
+
+  it("has no Changes pill without the prop", () => {
+    render(
+      <ActionsRow general={[general()]} agent="claude" onRun={took} handle={{ ref: vi.fn(), onClick: vi.fn(), label: "Switch pane" }} />,
+    );
+    expect(screen.queryByRole("button", { name: "Changes" })).not.toBeInTheDocument();
+  });
+
+  // Operator, phone: "can we get a focus hover animation/color change on both icons? so I know
+  // I've clicked" — the Changes pill and the Switch mark share CELL_BUTTON, so the tap feedback is
+  // asserted once per class and expected identical on both.
+  it("gives the Changes pill and the Switch mark identical, fast tap feedback", () => {
+    render(
+      <ActionsRow
+        general={[general()]}
+        agent="claude"
+        onRun={took}
+        handle={{ ref: vi.fn(), onClick: vi.fn(), label: "Switch pane" }}
+        changes={{ onClick: vi.fn(), label: "Changes" }}
+      />,
+    );
+    const changesPill = screen.getByRole("button", { name: "Changes" });
+    const switchPill = screen.getByRole("button", { name: "Switch pane" });
+    for (const pill of [changesPill, switchPill]) {
+      expect(pill.className).toMatch(/(?:^|\s)hover:bg-foreground\/8(?=\s|$)/);
+      expect(pill.className).toMatch(/(?:^|\s)active:bg-foreground\/15(?=\s|$)/);
+      expect(pill.className).toMatch(/(?:^|\s)active:scale-\[0\.92\](?=\s|$)/);
+      expect(pill.className).toMatch(/(?:^|\s)motion-reduce:active:scale-100(?=\s|$)/);
+      expect(pill.className).toMatch(/(?:^|\s)duration-\[120ms\](?=\s|$)/);
+    }
+    // No layout shift: the drawn box stays padding-free in every state — only the background, the
+    // transform and the outline (focus-visible, from ui/button.tsx) move.
+    expect(changesPill.className).toMatch(/(?:^|\s)px-0(?=\s|$)/);
+  });
+
+  it("stands each belt row on the scaled padding, with no vertical scroll under a thumb", () => {
     // Option 6 of the belt-shade deck (playground, removed 2026-09-14 once it had served) first
     // dropped STRIP_SCROLLER's own `py-1.5` to `py-0`, the pill's own 32px. The phone read that as
     // too thin, so it came back up to `py-1` — 40px, 4px above and below the 32px pills — and
     // `overflow-y-hidden` stays paired with it so STRIP_TAP_TARGET's 46px `::before` reach, still
     // wider than the 4px of padding on each side, cannot force a vertical scrollbar the way it did
     // in the playground.
+    // Since 2026-09-23 the 4px is `--belt-pad`, derived from the belt's one `--belt-scale`.
     render(<ActionsRow general={[general()]} agent="claude" onRun={took} />);
     for (const row of document.querySelectorAll<HTMLElement>(".overflow-x-auto")) {
-      expect(row.className).toMatch(/(?:^|\s)py-1(?=\s|$)/);
+      expect(row.className).toMatch(/(?:^|\s)py-\(--belt-pad\)(?=\s|$)/);
       expect(row.className).toMatch(/(?:^|\s)overflow-y-hidden(?=\s|$)/);
     }
   });
@@ -250,6 +309,25 @@ describe("ActionsRow", () => {
     // height instead of standing as a 32px pill in the middle of it.
     expect(grip.className).toMatch(/(?:^|\s)h-auto(?=\s|$)/);
     expect(grip.className).not.toMatch(/(?:^|\s)h-8(?=\s|$)/);
+  });
+
+  // ONE SCALE FOR THE WHOLE BELT (operator, 2026-09-23): the root carries `--belt-scale` from the
+  // dash pref, 1.15 by default.
+  it("sets --belt-scale from the dash pref, 1.15 by default", () => {
+    const { unmount } = render(<ActionsRow general={[general()]} agent="claude" onRun={took} />);
+    const belt = () => document.querySelector<HTMLElement>('[data-slot="composer-actions"]')!;
+    expect(belt().style.getPropertyValue("--belt-scale")).toBe("1.15");
+    unmount();
+    localStorage.setItem("collie:dash-prefs:v1", JSON.stringify({ beltScale: 1.5 }));
+    render(
+      <ActionsRow
+        general={[general()]}
+        agent="claude"
+        onRun={took}
+        handle={{ ref: vi.fn(), onClick: vi.fn(), label: "Switch pane" }}
+      />,
+    );
+    expect(belt().style.getPropertyValue("--belt-scale")).toBe("1.5");
   });
 
   it("spreads the pills over their rows and stands the harness mark apart as a label", () => {
