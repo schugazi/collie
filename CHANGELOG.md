@@ -32,6 +32,7 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 
 ### Added
 - **New workspaces offer a starting-directory dropdown.** Choose home or a visible folder beneath it, or enter a custom path; directory choices follow the selected host.
+- **A new terminal offers to start Claude or Codex.** A tab, space or worktree opened from the phone swaps the belt's top row for Claude, Codex and None until one is tapped; Claude and Codex type that command into the shell, None just brings the usual controls back.
 
 ### Changed
 - **The personal fork wears the mycroftxxx remote name and artwork.** The PWA uses the server dashboard logo across its header, splash, installed icons and notifications.

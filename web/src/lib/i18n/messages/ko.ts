@@ -215,6 +215,7 @@ export const ko: Dictionary = {
   "composer.controls.agent": "에이전트",
   "composer.controls.displayAria": "표시 설정",
   "composer.controls.display": "표시",
+  "composer.agentOffer.none": "없음",
   "composer.sentPreview.label": "보낸 내용:",
   "composer.placeholder.gone": "창이 닫혔습니다",
   "composer.placeholder.readOnly": "읽기 전용: 권한 없음",

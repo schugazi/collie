@@ -1,8 +1,8 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ChangeEvent, ClipboardEvent, CSSProperties, ReactNode } from "react";
-import { useRevalidator } from "react-router";
-import { Check, FileText, Image, Keyboard, Loader2, Mic, Paperclip, Send, Settings2, Slash, Square, Terminal, X, Zap } from "lucide-react";
+import { useLocation, useRevalidator } from "react-router";
+import { Bot, Check, Code, FileText, Image, Keyboard, Loader2, Mic, Paperclip, Send, Settings2, Slash, Square, Terminal, X, Zap } from "lucide-react";
 
 import { applyDraftFontSize, fontStack, inputFocusZoomsPage } from "@/hooks/use-display-prefs";
 import type { DisplayPrefs } from "@/hooks/use-display-prefs";
@@ -246,6 +246,29 @@ function ComposerDock({
 const ATTACH_PRESS_MS = 220;
 
 /**
+ * The new-terminal agent offer per pane (`offerAgent` in Composer): "pending" from the navigation
+ * that created the pane until a tap makes it "answered". In sessionStorage, not the history entry,
+ * so switching away and back keeps an unanswered offer and a reload does not revive an answered one.
+ * ponytail: never pruned, so a Herdr-reused pane id inherits a stale "pending"; isShell bounds it.
+ */
+const AGENT_OFFER_KEY = "collie:agent-offer:v1";
+function readAgentOffers(): Record<string, "pending" | "answered"> {
+  try {
+    // SAFETY: only this module writes the key, and always this shape; a bad parse falls to `{}`.
+    return JSON.parse(globalThis.sessionStorage?.getItem(AGENT_OFFER_KEY) ?? "{}") as Record<string, "pending" | "answered">;
+  } catch {
+    return {};
+  }
+}
+function writeAgentOffer(key: string, state: "pending" | "answered"): void {
+  try {
+    globalThis.sessionStorage?.setItem(AGENT_OFFER_KEY, JSON.stringify({ ...readAgentOffers(), [key]: state }));
+  } catch {
+    // Storage full or blocked: the offer then lasts only as long as this render's state.
+  }
+}
+
+/**
  * The 44px tap floor, bought back as HIT AREA by the two buttons inside the composer's box.
  *
  * DESIGN.md §6 states the floor and also states this trade: where drawn height is expensive, a
@@ -336,6 +359,25 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   // or funnelled through `pressKeys`, which is synchronous with its own check.
   const lockedRef = useRef(locked);
   lockedRef.current = locked;
+
+  // A terminal just opened from this phone (`pickAgent`, hooks/use-spaces.ts): the belt's top row
+  // offers Claude / Codex / None instead of the controls until one is tapped (AGENT_OFFER_KEY above).
+  // A pane that is no longer a bare shell (an agent already started in it) never asks.
+  const location = useLocation();
+  const pickKey = `${scopeKey(scope)}|${paneId}`;
+  const [offerPending, setOfferPending] = useState(() => {
+    const known = readAgentOffers()[pickKey];
+    if (known !== undefined) return known === "pending";
+    // SAFETY: `location.state` is whatever the navigation attached; only `pickAgent === true` counts.
+    const created = (location.state as { pickAgent?: boolean } | null)?.pickAgent === true;
+    if (created) writeAgentOffer(pickKey, "pending");
+    return created;
+  });
+  const offerAgent = offerPending && isShell && !locked;
+  const answerPick = () => {
+    writeAgentOffer(pickKey, "answered");
+    setOfferPending(false);
+  };
 
   // The phone-owned draft, restored from (and written through to) the per-pane draft store — the
   // pane view is keyed by paneId, so without this, stepping over to another tab mid-reply ate the
@@ -1388,7 +1430,14 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
             actions-row.tsx; everything below is only what each action DOES.
   */}
         <ActionsRow
-          general={[
+          general={offerAgent ? [
+              // Harness names are another tool's vocabulary, so they stay untranslated.
+              // Disabled mid-send: `send` refuses while one is in flight, and the tap would still
+              // dismiss the offer having typed nothing.
+              { id: "claude", icon: Bot, label: "Claude", disabled: sending, onSelect: () => { answerPick(); void send("claude", false); } },
+              { id: "codex", icon: Code, label: "Codex", disabled: sending, onSelect: () => { answerPick(); void send("codex", false); } },
+              { id: "none", icon: X, label: translate("composer.agentOffer.none"), onSelect: answerPick },
+          ] : [
               // Keys and Quick are TOGGLES for the in-flow dock above (not overlays): tap to
               // open, tap again to close. `expanded` ties each to the dock; the "on" tint marks
               // it pressed while open. Both share the single-valued `drawer`, so opening one

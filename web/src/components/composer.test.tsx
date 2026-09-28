@@ -3380,3 +3380,114 @@ describe("Composer — an attachment is a chip (ADR 0060)", () => {
 
   });
 });
+
+describe("Composer — new terminal agent offer", () => {
+  // A bare shell has no harness adapter, so its reply is ONE call carrying text and submit together.
+  function shellReplies(typed: string[]) {
+    return http.post<never, { text: string }>(/\/api\/pane\/[^/]+\/reply$/, async ({ request }) => {
+      typed.push((await request.json()).text);
+      return HttpResponse.json({ ok: true });
+    });
+  }
+
+  beforeEach(() => sessionStorage.clear());
+
+  // `created` is the navigation that made the pane; false is a later arrival (a pane switch back, or
+  // a reload whose history entry the offer no longer trusts).
+  function renderNewShell(paneId: string, created = true) {
+    const router = createMemoryRouter(
+      [
+        {
+          path: "/",
+          element: (
+            <Composer
+              paneId={paneId}
+              agent="shell"
+              isShell
+              gone={false}
+              readOnly={false}
+              dialogPresent={false}
+              text="$ "
+              terminalDraft={null}
+              rawTerminalDraft={null}
+              prefs={{ wrap: true, fontSize: 11, draftFontSize: 14, fontFamily: "system", rawTerminal: false, tapToFocus: true, expandClippedReply: true }}
+              setWrap={vi.fn()}
+              stepFontSize={vi.fn()}
+              setRawTerminal={vi.fn()}
+              setTapToFocus={vi.fn()}
+              mirrorNative={false}
+              setMirrorNative={vi.fn()}
+              setExpandClippedReply={vi.fn()}
+              onSent={vi.fn()}
+            />
+          ),
+        },
+      ],
+      { initialEntries: [{ pathname: "/", state: created ? { pickAgent: true } : null }] },
+    );
+    return render(<RouterProvider router={router} />);
+  }
+
+  it("replaces the controls with Claude / Codex / None, and Claude types `claude`", async () => {
+    const user = userEvent.setup();
+    const typed: string[] = [];
+    server.use(shellReplies(typed));
+    renderNewShell("w9:p1");
+
+    expect(screen.queryByRole("button", { name: /keys/i })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Claude" }));
+
+    await waitFor(() => expect(typed).toEqual(["claude"]));
+    expect(screen.queryByRole("button", { name: "Claude" })).toBeNull();
+    expect(screen.getByRole("button", { name: /keys/i })).toBeInTheDocument();
+  });
+
+  it("None sends nothing and brings the controls back", async () => {
+    const user = userEvent.setup();
+    const typed: string[] = [];
+    server.use(shellReplies(typed));
+    renderNewShell("w9:p2");
+
+    await user.click(screen.getByRole("button", { name: "None" }));
+
+    expect(screen.queryByRole("button", { name: "Codex" })).toBeNull();
+    expect(screen.getByRole("button", { name: /keys/i })).toBeInTheDocument();
+    expect(typed).toEqual([]);
+  });
+
+  it("an unanswered offer survives switching away and back", () => {
+    renderNewShell("w9:p3").unmount();
+    renderNewShell("w9:p3", false);
+    expect(screen.getByRole("button", { name: "Codex" })).toBeInTheDocument();
+  });
+
+  it("an answered offer stays gone on a reload that still carries the creating entry", async () => {
+    const user = userEvent.setup();
+    const view = renderNewShell("w9:p4");
+    await user.click(screen.getByRole("button", { name: "None" }));
+    view.unmount();
+
+    renderNewShell("w9:p4");
+    expect(screen.queryByRole("button", { name: "Codex" })).toBeNull();
+  });
+
+  it("disables Claude and Codex while another send is in flight", async () => {
+    const user = userEvent.setup();
+    let release!: () => void;
+    server.use(
+      http.post(/\/api\/pane\/[^/]+\/reply$/, async () => {
+        await new Promise<void>((r) => (release = r));
+        return HttpResponse.json({ ok: true });
+      }),
+    );
+    renderNewShell("w9:p5");
+
+    await user.type(screen.getByRole("textbox"), "ls");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Claude" })).toBeDisabled());
+    expect(screen.getByRole("button", { name: "Codex" })).toBeDisabled();
+    act(() => release());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Claude" })).toBeEnabled());
+  });
+});

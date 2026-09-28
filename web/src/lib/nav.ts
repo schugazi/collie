@@ -143,6 +143,8 @@ export function pairedDevicesPath(scope?: Scope): string {
 export interface NavState {
   from?: string;
   freshPane?: AgentView;
+  /** A new bare terminal: the composer offers Claude / Codex / None on its top belt row once. */
+  pickAgent?: boolean;
 }
 
 /** The fields a move may carry beside `from`, which the move itself writes. */

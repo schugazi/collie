@@ -234,6 +234,7 @@ export const en = {
   "composer.controls.agent": "Agent",
   "composer.controls.displayAria": "Display settings",
   "composer.controls.display": "Display",
+  "composer.agentOffer.none": "None",
   "composer.sentPreview.label": "You sent:",
   "composer.placeholder.gone": "Pane is gone",
   "composer.placeholder.readOnly": "Read-only — not authorised",

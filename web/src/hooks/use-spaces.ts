@@ -52,7 +52,9 @@ export function useSpaceActions() {
     // the SAME scope, or the phone would open the new pane's id on the machine it was looking at —
     // where that id is a different terminal, which is the one mistake the host dimension exists to
     // prevent. Absent means the ambient scope, which is every caller that cannot re-address.
-    (res: CreateResponse, what: "tab" | "space", at?: Scope) => {
+    // `pickAgent`: the new pane is a bare shell nothing has typed into yet, so the composer offers to
+    // start an agent in it. A launcher already ran its command, and an already-open worktree is not new.
+    (res: CreateResponse, what: "tab" | "space", at?: Scope, pickAgent = true) => {
       if (!res.ok) {
         setStatus(describeApiError(res), "error");
         return;
@@ -78,7 +80,7 @@ export function useSpaceActions() {
       revalidatorRef.current.revalidate();
       // `open`: a step DOWN from a dashboard or a space, SIDEWAYS from a pane (a new tab opened
       // from inside one), so the new pane's way up is the level the operator started from (ADR 0067).
-      nav.open(panePath(p.paneId, at ?? scopeRef.current), { freshPane: fresh });
+      nav.open(panePath(p.paneId, at ?? scopeRef.current), { freshPane: fresh, pickAgent });
     },
     [nav],
   );
@@ -164,7 +166,8 @@ export function useSpaceActions() {
     async (workspaceId: string, path: string) => {
       if (readOnlyRef.current) return setStatus(blockedText(), "error");
       try {
-        open(await api.openWorktree(workspaceId, path, scopeRef.current), "space");
+        const res = await api.openWorktree(workspaceId, path, scopeRef.current);
+        open(res, "space", undefined, res.ok && !res.alreadyOpen);
       } catch (e) {
         setStatus(describeThrownError(e), "error");
       }
@@ -193,7 +196,12 @@ export function useSpaceActions() {
       launchingRef.current.add(command);
       setLaunching(new Set(launchingRef.current));
       try {
-        open(await api.launch(command, beside, scopeRef.current), beside !== undefined ? "tab" : "space");
+        open(
+          await api.launch(command, beside, scopeRef.current),
+          beside !== undefined ? "tab" : "space",
+          undefined,
+          false,
+        );
       } catch (e) {
         setStatus(describeThrownError(e), "error");
       } finally {
