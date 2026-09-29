@@ -241,7 +241,6 @@ export const ja: Dictionary = {
   "composer.attach.removeAria": "{name}を削除",
   "composer.attach.inFront": "テキストからマーカーが消えたため、送信時に先頭へ {name} が付きます。",
   "composer.send.typeAnyway": "強制的に入力しますか？",
-  "composer.send.reallySend": "送信しますか？",
   "composer.send.stopTypingAria": "ターミナルへの入力を停止",
   "composer.send.sendAria": "送信",
   "composer.draft.tooLong":
@@ -257,8 +256,6 @@ export const ja: Dictionary = {
   "composer.status.tapAgainToType": "{error} もう一度送信をタップすると強制入力します。",
   "composer.discard.confirmKeys.one": "もう一度タップすると待機中の{count}キーを破棄します",
   "composer.discard.confirmKeys.other": "もう一度タップすると待機中の{count}キーを破棄します",
-  "composer.destructive.confirm": "破壊的操作: {reason}。確認のため送信を再タップしてください",
-  "composer.destructive.confirmOnHost": "破壊的操作: {host}上の{reason}。確認のため送信を再タップしてください",
   "composer.upload.success": "ファイルを添付しました",
   "composer.upload.tooLarge": "上限の {max} MB を超えています。",
   "composer.upload.badType": "{name} は添付できません。",

@@ -259,7 +259,6 @@ export const en = {
   "composer.attach.removeAria": "Remove {name}",
   "composer.attach.inFront": "Its marker is gone from your text, so Send puts {name} in front.",
   "composer.send.typeAnyway": "Type anyway?",
-  "composer.send.reallySend": "Really send?",
   "composer.send.stopTypingAria": "Stop typing into terminal",
   "composer.send.sendAria": "Send",
   "composer.draft.tooLong":
@@ -275,8 +274,6 @@ export const en = {
   "composer.status.tapAgainToType": "{error} Tap Send again to type anyway.",
   "composer.discard.confirmKeys.one": "Tap again to discard {count} queued key",
   "composer.discard.confirmKeys.other": "Tap again to discard {count} queued keys",
-  "composer.destructive.confirm": "Destructive: {reason} — tap Send again to confirm",
-  "composer.destructive.confirmOnHost": "Destructive: {reason} on {host} — tap Send again to confirm",
   "composer.upload.success": "File attached",
   "composer.upload.tooLarge": "That file is bigger than {max} MB, the limit on this server.",
   "composer.upload.badType": "mycroftxxx remote can't attach {name}.",

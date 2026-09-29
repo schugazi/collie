@@ -46,9 +46,8 @@ import {
   uploadLimits,
 } from "@/lib/attachments";
 import { ctrlPresetsFor } from "@/lib/operator-keys";
-import { isDestructiveInput } from "@/lib/destructive";
 import { HostChip } from "@/components/host-chip";
-import { useAmbientHost, useHostLabel } from "@/components/crew-provider";
+import { useAmbientHost } from "@/components/crew-provider";
 import { clearDraft, fitsDraftStore, loadDraftEntry, saveDraft } from "@/lib/drafts";
 import { AttachmentChip, type ComposerAttachment } from "@/components/attachment-chip";
 import { useHoldReload } from "@/lib/reload-guard";
@@ -346,12 +345,10 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   const locked = gone || readOnly || hostBlock !== undefined || missingSend !== null;
   // The machine every write on this row lands on. The pane view addresses one host (the pane's own,
   // carried in `?h=` since the row was opened), so the ambient scope IS the target here. Undefined on
-  // a solo install, which renders no chip and leaves every confirm string unchanged.
+  // a solo install, which renders no chip.
   // It names the Keys dock's own header; the belt below it carried the tag for a day and the pane
   // header carries it now (agent-chat.tsx).
   const writeHost = useAmbientHost(scope?.host);
-  // Its display name, or undefined when there is no crew — the copy-level half of the hide rule.
-  const writeHostLabel = useHostLabel(scope?.host);
   // …and a ref alongside it, for the ONE caller that reads it after an await. `send()` checks
   // `locked` once, up front, but its pre-clear sweep goes out on the far side of the pre-flight's
   // pane read; a re-render that locks the composer in that window must be able to stop the most
@@ -498,8 +495,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   // Keys staged in the (unmounted-on-close) NavTray, pushed up so leaving the Keys dock can guard a
   // composed sequence. See requestDrawer.
   const [queuedKeys, setQueuedKeys] = useState(0);
-  // Two-tap guard for discarding that sequence. Separate from sendConfirm so an armed "Really send?"
-  // and an armed discard can't clobber each other.
+  // Two-tap guard for discarding that sequence.
   const discardConfirm = usePendingConfirm();
 
   // The SINGLE choke point for every drawer transition. Closing the Keys dock destroys the composed
@@ -524,14 +520,9 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
     setDrawer(next);
   }
   const closeDrawer = () => requestDrawer(null);
-  // Two-tap guard for destructive commands (rm -rf, force-push, …): the first tap arms a "Really
-  // send?" state on the Send button (auto-disarms after 3 s), the second actually sends. Same shared
-  // confirm the command palette uses for /clear.
-  const sendConfirm = usePendingConfirm();
-  // Two-tap override for a `blocked` pre-flight ("the input box isn't on screen"). Separate from
-  // sendConfirm so a destructive-command confirm and an override can't clobber each other, and given
-  // a longer window than the 3s default: unlike "Really send?", this one asks you to read a sentence
-  // explaining WHY nothing was typed before deciding to overrule it.
+  // Two-tap override for a `blocked` pre-flight ("the input box isn't on screen"), given a longer
+  // window than the 3s default: this one asks you to read a sentence explaining WHY nothing was
+  // typed before deciding to overrule it.
   const forceConfirm = usePendingConfirm(10_000);
 
   // The password prompt the last refused send was looking at, if it was one (#103). Set from the
@@ -580,7 +571,6 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
     suspended: locked,
     sendKeys: pressKeys,
     onActivate: () => {
-      sendConfirm.reset();
       forceConfirm.reset();
       noticeNoEcho(null); // the notice's whole job was to get you here
     },
@@ -1041,9 +1031,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
         return true;
       } else if (res.status === "blocked") {
         // The pre-flight refused: NOTHING was typed. That is usually right (a menu owns the keyboard),
-        // but the adapter can only report what it can see, so the user gets a deliberate override —
-        // the same two-tap shape as the destructive-send confirm. The second tap skips the pre-flight
-        // ONLY; the type-then-verify guard still runs, so Enter is never fired blind either way.
+        // but the adapter can only report what it can see, so the user gets a deliberate two-tap
+        // override. The second tap skips the pre-flight ONLY; the type-then-verify guard still runs, so Enter is never fired blind either way.
         forceConfirm.confirm("force");
         // A password prompt gets the notice AND keeps the override: the notice explains the screen and
         // offers the control that works, the override stays for the case where the detection is wrong.
@@ -1076,37 +1065,19 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
     }
   }
 
-  // Gate the composer's Send through the destructive-input confirm: a matching command arms the
-  // "Really send?" state instead of sending; the confirming second tap goes through. Non-destructive
-  // input sends immediately (and any stray armed state is cleared).
+  // The personal fork sends on the first tap: no "Really send?" confirm for destructive-looking text.
   function onSendClick() {
     // An armed override takes precedence: this tap IS the deliberate "type anyway", so it skips the
-    // destructive re-confirm (already answered on the tap that got blocked) and the pre-flight.
-    // The line the terminal gets: every chip's marker swapped for its path (ADR 0060). Both the
-    // destructive check and the send read THIS, never the draft with its markers in it.
+    // pre-flight. The line the terminal gets: every chip's marker swapped for its path (ADR 0060);
+    // the send reads THIS, never the draft with its markers in it.
     const line = composeLine(input, attachments);
     if (forceConfirm.pending === "force") {
       forceConfirm.reset();
       send(line, true, true);
       return;
     }
-    const reason = isDestructiveInput(line);
-    if (reason && !sendConfirm.confirm("send")) {
-      // On a crew the confirm names the machine as well as the pattern: "rm -r" is a different
-      // sentence depending on whose disk it runs on, and this line is the last thing read before the
-      // second tap. Solo copy is unchanged, byte for byte.
-      setStatus(
-        writeHostLabel
-          ? translate("composer.destructive.confirmOnHost", { reason, host: writeHostLabel })
-          : translate("composer.destructive.confirm", { reason }),
-        "info",
-      );
-      return;
-    }
-    sendConfirm.reset();
     send(line, true);
   }
-  const confirmingSend = sendConfirm.pending === "send";
   const forcingSend = forceConfirm.pending === "force";
 
   // Coalesce revalidations from a burst of key presses, LEADING edge first: the first press in a
@@ -1825,7 +1796,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
               even now that attach stands near the box's own right edge: the panel is `right-0
               min-w-44` against its anchor, and the gap between attach and that edge is NOT fixed —
               the primary action beside it is a size-9 icon square most of the time but widens into
-              a text button ("Type anyway?" / "Really send?") the moment a confirm is armed, which
+              a text button ("Type anyway?") the moment the override is armed, which
               would slide the menu sideways if it followed the button instead of the box. Anchoring
               to the box keeps the picker's own right edge pinned to the box's right edge no matter
               which shape the primary action is wearing.
@@ -1866,10 +1837,10 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
             // in-flow strip here to animate. What is left is one control swapped for another in a
             // slot that already exists, on the horizontal axis; `Collapse` animates a row's HEIGHT,
             // so wrapping it would animate nothing and add a wrapper between the flex row and its
-            // child. §2 is kept by the button box being the same height in all four branches.
+            // child. §2 is kept by the button box being the same height in every branch.
             //
-            // The two confirm branches are the only ones that carry a WORD, so they are the only
-            // ones that are not square: `h-9` to match the round faces beside them, and `shrink-0`
+            // This is the only branch that carries a WORD, so it is the only one that is not
+            // square: `h-9` to match the round faces beside them, and `shrink-0`
             // keeps the word whole; the field is the one flex item that gives up width for it.
             <Button
               variant="destructive"
@@ -1879,16 +1850,6 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
               aria-label={translate("composer.send.typeAnyway")}
             >
               {translate("composer.send.typeAnyway")}
-            </Button>
-          ) : !direct.active && confirmingSend ? (
-            <Button
-              variant="destructive"
-              className={cn(TOOLBAR_TAP_TARGET, "h-9 shrink-0 rounded-md px-3 text-sm font-semibold")}
-              onClick={onSendClick}
-              disabled={locked || !hasDraft || sending}
-              aria-label={translate("composer.send.reallySend")}
-            >
-              {translate("composer.send.reallySend")}
             </Button>
           ) : micIsPrimary ? (
             // THE MICROPHONE IS THE PRIMARY ACTION WHILE THE BOX IS EMPTY, and becomes Send the

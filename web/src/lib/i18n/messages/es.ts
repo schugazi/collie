@@ -243,7 +243,6 @@ export const es: Dictionary = {
   "composer.attach.removeAria": "Quitar {name}",
   "composer.attach.inFront": "Su marcador ya no está en el texto, por lo que Enviar antepone {name}.",
   "composer.send.typeAnyway": "¿Escribir de todos modos?",
-  "composer.send.reallySend": "¿Confirmar envío?",
   "composer.send.stopTypingAria": "Detener escritura en la terminal",
   "composer.send.sendAria": "Enviar",
   "composer.draft.tooLong":
@@ -259,9 +258,6 @@ export const es: Dictionary = {
   "composer.status.tapAgainToType": "{error} Pulsa Enviar de nuevo para forzar la escritura.",
   "composer.discard.confirmKeys.one": "Pulsa de nuevo para descartar {count} tecla en cola",
   "composer.discard.confirmKeys.other": "Pulsa de nuevo para descartar {count} teclas en cola",
-  "composer.destructive.confirm": "Acción destructiva: {reason}. Pulsa Enviar de nuevo para confirmar.",
-  "composer.destructive.confirmOnHost":
-    "Acción destructiva: {reason} en {host}. Pulsa Enviar de nuevo para confirmar.",
   "composer.upload.success": "Archivo adjuntado",
   "composer.upload.tooLarge": "El archivo supera los {max} MB, el límite en este server.",
   "composer.upload.badType": "mycroftxxx remote no puede adjuntar {name}.",

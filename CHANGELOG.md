@@ -43,6 +43,7 @@ PATH. Details and rollback: [`docs/upgrading.md`](./docs/upgrading.md) → *Upgr
 - **The Quick dock offers the replies you actually type.** Agent panes now get yes and continue, then commit and push, stage the changes, the astra and fable review asks and propose the plan, drawn from a day of Herdr transcripts; retry, skip and no are gone. A phrase too long for its button wraps to a second line instead of spilling out.
 - **The installed icon rings its terminal prompt and tints like the other apps.** A thin teal circle now surrounds the `>_`, like Herald and the dashboard, and the gold tiles are drawn at four times their size and shrunk the way those apps' are, so iOS 27's Clear Home Screen darkens the whole tile instead of lifting the prompt off it; remove and re-add the app to see it.
 - **Compact asks before it sends.** Tapping Compact on the harness row now shows "Compact now?" with Yes and No, and `/compact` goes to the agent only on Yes.
+- **Send no longer asks "Really send?" for destructive-looking text.** A message that mentions `sudo`, `rm -r`, `--force` and similar goes out on the first tap, since most replies are prose to an agent rather than a shell command.
 - **The Changes button stands above the Switch mark.** On the two-row belt it shares the Switch cell at the right end, each button half the cell's height, so neither row gives up width to it; the belt size setting grows both rows, their pills and icons.
 
 ### Fixed

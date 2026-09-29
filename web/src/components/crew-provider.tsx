@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 
-import { ambientHost, hostName, isMultiHost, leadHost } from "@/lib/hosts";
+import { ambientHost, isMultiHost, leadHost } from "@/lib/hosts";
 import {
   departedHealth,
   healthFor,
@@ -161,16 +161,4 @@ export function useHostWriteBlock(host: string | undefined): string | undefined 
 export function useAmbientHost(host: string | undefined): string | undefined {
   const { servers } = useCrew();
   return ambientHost(servers, host);
-}
-
-/**
- * The same host, as a NAME to interpolate into copy — and `undefined` whenever there is no host
- * dimension to speak of, so every confirm string on a single-host install stays byte-identical.
- * Callers interpolate it only when set, which is the copy-level twin of HostChip's hide rule.
- */
-export function useHostLabel(host: string | undefined): string | undefined {
-  const { servers, multi } = useCrew();
-  if (!multi) return undefined;
-  const id = ambientHost(servers, host);
-  return id === undefined ? undefined : hostName(servers, id) ?? id;
 }

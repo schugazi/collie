@@ -437,8 +437,6 @@ Also shipped, as defence in depth:
   to `<stateDir>/audit.log`, mode 0600 since it may echo reply text. An audit failure never fails the
   user's action. `COLLIE_AUDIT_CONTENT=none` keeps the trail and drops the bodies — what survives is
   an allowlist of action parameters, documented at the list itself (`bridge/audit.ts`).
-- **Destructive-action confirm** — a browser-side prompt when input pattern-matches `rm`, `sudo`,
-  `git push --force`, `dd`, etc. (`web/src/lib/destructive.ts`). Prevents catastrophic mistaps.
 
 Considered, not built:
 
