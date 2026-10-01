@@ -1,0 +1,45 @@
+[2m╭────────────────────────────────────────────────╮[0m
+[2m│ >_ [0;1mOpenAI Codex[0;2m (v0.157.0)                     │[0m
+[2m│                                                │[0m
+[2m│ model:     [0mGPT-6-Sol medium[2m   [0m[38;2;99;168;248m/model[2m[39m to change │[0m
+[2m│ directory: [0m/tmp/ud-sandbox[2m                     │[0m
+[2m╰────────────────────────────────────────────────╯[0m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                                      [1mTip:[0m Press [38;2;166;227;161mctrl+t[39m to open the full transcript.
+
+[1m›[0m [2mAsk Codex to do anything[0m
+
+  [38;2;246;226;183mGPT-6-Sol medium[39m · [38;2;242;181;144mContext 0% used[39m · [38;2;143;179;239mmaster[39m · [38;2;171;223;167m/tmp/ud-sandbox[39m · [38;2;233;144;169mweekly 98% left[39m · [38;2;200;169;238mFast off[39m · [38;2;148;153;174mcollie-box[39m
+  [1m←[0m for agents · [1m?[0m for shortcuts

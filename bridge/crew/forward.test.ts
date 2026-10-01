@@ -18,6 +18,7 @@ import {
   type ForwardErrorCode,
   type ForwardTransport,
 } from "./forward.ts";
+import { crewDeviceOf } from "./peer-gate.ts";
 import { crewTimeoutBudget, WRITE_BUDGET_MS, type CrewLink, type PeerOutcome } from "./peer-client.ts";
 import type { PeerState } from "./registry.ts";
 
@@ -143,6 +144,24 @@ describe("which routes cross a link", () => {
     expect(forwardAuditAction("launchers")).toBeNull();
   });
 
+  test("the folder list and a star on it cross the link — folders live on the member that has them", () => {
+    // #289: the new-space sheet's list is that member's own `folders.json`, so a `?host=` read or star
+    // reaches the member, never the lead's file.
+    expect(crewRouteFor("/api/folders")).toBe("folders");
+    expect(crewRouteFor("/api/folders/star")).toBe("folders/star");
+    expect(apiPathFor("folders")).toBe("/api/folders");
+    expect(apiPathFor("folders/star")).toBe("/api/folders/star");
+    // Nothing else under `folders/` rides the link.
+    expect(crewRouteFor("/api/folders/unstar")).toBeNull();
+    expect(crewRouteFor("/api/folders/star/x")).toBeNull();
+    // The list is a READ, attempted even against a stale member; the star is a WRITE.
+    expect(forwardKind("folders")).toBe("read");
+    expect(forwardKind("folders/star")).toBe("write");
+    // Neither is audited on either side: a star is a preference and reaches no terminal.
+    expect(forwardAuditAction("folders")).toBeNull();
+    expect(forwardAuditAction("folders/star")).toBeNull();
+  });
+
   test("a blob crosses the link as a READ — the bytes live on the member that named them", () => {
     const hash = "a".repeat(64);
     expect(crewRouteFor(`/api/blobs/${hash}`)).toBe(`blobs/${hash}`);
@@ -189,7 +208,10 @@ describe("which routes cross a link", () => {
     const tab = server.match(/^const TAB_ACTION_ROUTE = (.+);$/m)![1]!;
     const alternation = /\(([a-z]+(?:\|[a-z]+)+)\)/;
     const paneActions = pane.match(alternation)![1]!.split("|").toSorted();
-    expect(paneActions).toEqual(["changes", "close", "focus", "history", "keys", "rename", "reply", "upload"]);
+    // The list IS the inventory of what crosses a link; `chat` joined it with the live window.
+    expect(paneActions).toEqual([
+      "changes", "chat", "close", "focus", "history", "keys", "rename", "reply", "upload",
+    ]);
     for (const action of paneActions) expect(crewRouteFor(`/api/pane/x/${action}`)).toBe(`pane/x/${action}`);
     const tabActions = tab.match(alternation)![1]!.split("|").toSorted();
     expect(tabActions).toEqual(["close", "rename"]);
@@ -214,6 +236,9 @@ describe("which routes cross a link", () => {
   test("read vs write is decided exactly as server.ts decides it — history is a READ", () => {
     expect(forwardKind("pane/w1:p1")).toBe("read");
     expect(forwardKind("pane/w1:p1/history")).toBe("read");
+    // `chat` is the same log read at its newest end, and it is the one READ on the poll path — so it
+    // must be attempted against a stale member rather than refused before it is tried (§10.3).
+    expect(forwardKind("pane/w1:p1/chat")).toBe("read");
     expect(forwardKind("pane/w1:p1/changes")).toBe("read");
     for (const action of ["reply", "keys", "upload", "close", "rename"]) {
       expect(forwardKind(`pane/w1:p1/${action}`)).toBe("write");
@@ -483,6 +508,16 @@ describe("request shaping", () => {
     expect(headers.get("accept-encoding")).toBe("identity");
   });
 
+  test("a device name outside ASCII is forwarded, not thrown on (#324)", () => {
+    // `Headers.set` throws on a value that is not a ByteString, so a phone paired as `폰` turned every
+    // forwarded call into a 500. The name travels percent-encoded and the peer reads it back whole.
+    const req = new Request("https://lead.example/api/pane/w1:p9/reply", { method: "POST" });
+    const headers = forwardHeaders(req, "폰");
+    expect(headers.get("x-crew-device")).toBe("UTF-8''%ED%8F%B0");
+    const atPeer = new Request("https://peer.example/api/pane/w1:p9/reply", { headers });
+    expect(crewDeviceOf(atPeer)).toBe("폰");
+  });
+
   test("no device header at all when the lead's device gate is off", () => {
     const req = new Request("https://lead.example/api/pane/w1:p1");
     expect(forwardHeaders(req, null).get("x-crew-device")).toBeNull();
@@ -516,6 +551,25 @@ describe("a write to a member that is not reachable (§10.3)", () => {
     expect(res.status).toBe(503);
     expect((await failureBody(res)).code).toBe("host_incompatible");
     expect(calls).toHaveLength(0);
+  });
+
+  test("a star onto a member that is not reachable is refused before it is attempted", async () => {
+    const { transport, calls } = transportOf(() => ok(new Response("{}")));
+    const [req, url] = post("/api/folders/star?host=laptop", `{"folder":"/srv/a","starred":true}`);
+    const res = await forward(req, url, { transport, state: DEAD });
+    expect(res.status).toBe(503);
+    expect((await failureBody(res)).code).toBe("host_unreachable");
+    expect(calls).toHaveLength(0);
+  });
+
+  test("the folder list of a dead member is still asked for, and its own answer — a 404 from an older build included — comes back", async () => {
+    const { transport, calls } = transportOf(() => ok(new Response(`{"error":"not found"}`, { status: 404 })));
+    const [req, url] = get("/api/folders?host=laptop");
+    const res = await forward(req, url, { transport, state: DEAD });
+    // An older member answers 404; the phone reads it as "no list for this machine".
+    expect(res.status).toBe(404);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.route).toBe("folders");
   });
 
   test("a READ to a dead member is still attempted — a stale mirror is worth asking for", async () => {
@@ -619,6 +673,7 @@ describe("a forwarded write carries its own budget (§10.1)", () => {
       "/api/tab/w1/close",
       "/api/workspace",
       "/api/launch",
+      "/api/folders/star",
     ];
     for (const path of writes) {
       const { transport, calls } = transportOf(() => ok(new Response("{}")));
@@ -632,7 +687,7 @@ describe("a forwarded write carries its own budget (§10.1)", () => {
   test("a read passes NO budget, so it keeps the poll budget and its bootstrap credit", async () => {
     // The transport's own default is `PeerClient.proxy`'s: the strict per-poll budget plus the one
     // patient attempt a cold link is owed. Passing anything here would take that credit away.
-    for (const path of ["/api/pane/w1:p1", "/api/pane/w1:p1/history", "/api/launchers"]) {
+    for (const path of ["/api/pane/w1:p1", "/api/pane/w1:p1/history", "/api/launchers", "/api/folders"]) {
       const { transport, calls } = transportOf(() => ok(new Response("{}")));
       const [req, url] = get(`${path}?host=laptop`);
       await forward(req, url, { transport });
@@ -729,6 +784,15 @@ describe("the lead audits the forward, and the peer audits the action (§12)", (
       const [req, url] = get(path);
       await forward(req, url, { transport, audit: (e) => void lines.push(e) });
     }
+    expect(lines).toEqual([]);
+  });
+
+  test("a star is a write the lead does not audit either — a preference, like notifications/prefs", async () => {
+    const lines: unknown[] = [];
+    const { transport, calls } = transportOf(() => ok(new Response(`{"recent":[],"favourites":["/srv/a"],"home":"/home/p"}`)));
+    const [req, url] = post("/api/folders/star?host=laptop", `{"folder":"/srv/a","starred":true}`);
+    expect((await forward(req, url, { transport, audit: (e) => void lines.push(e) })).status).toBe(200);
+    expect(calls).toHaveLength(1);
     expect(lines).toEqual([]);
   });
 });

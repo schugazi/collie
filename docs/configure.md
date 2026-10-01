@@ -208,8 +208,14 @@ A Switch button sits at the belt's right end, as tall as both rows, and opens th
 draws the layers mark alone, behind a hairline, and carries no word. A drag up, anywhere on the
 belt, opens the same switcher.
 
+While the text box holds text or an attachment, an X takes the Changes button's place above the
+Switch button. One tap
+empties the box and its saved draft, and sends nothing to the pane. The X then becomes Undo, which
+puts the text and the attachments back. Undo stays until your next act: a keystroke, an attachment,
+a send, a tap on another belt button, or leaving the pane. Scrolling the belt keeps it.
+
 To verify, open a pane running Claude Code, Codex, pi or omp; the tinted segment is the second row
-above the keyboard. Turn that segment off per device in **Settings → Harness shortcuts**;
+above the keyboard. Turn that segment off per device in **Settings → Appearance → Harness shortcuts**;
 Collie's own controls stay.
 
 ## Your own key presets
@@ -294,8 +300,8 @@ Either way the bridge types the `command` into the fresh shell and sends Enter. 
 its own lifetime: one that closes itself takes the Space or tab with it, and `htop` stays until you
 quit it.
 
-`cwd` is where that new Space or tab opens. Pin one (as `htop` does above) and it wins wherever you
-tap the row.
+`cwd` is where that new Space or tab opens. Give a row a fixed folder (as `htop` does above) and it
+wins wherever you tap the row.
 
 Leave it out and it means "here": the dashboard opens it in your home dir, a pane opens it in
 *that pane's own* cwd — one cwd-less row follows you around your checkouts instead of always
@@ -306,8 +312,8 @@ exactly, so a phone can start nothing that is not in the file. Changes apply imm
 restart, but an already-open tab re-reads the rows only on its next load.
 
 Your rows appear in two places: a **Launch** section on the dashboard, which folds like Spaces,
-and a **Launch** section in the switcher sheet (swipe up from a pane). A pinned row shows
-its folder, shortened under home; a cwd-less row says "here" in the switcher (the dashboard already
+and a **Launch** section in the switcher sheet (swipe up from a pane). A row with a fixed folder
+shows it, shortened under home; a cwd-less row says "here" in the switcher (the dashboard already
 implies home, so it says nothing there). Declare no rows and neither section appears.
 
 On a crew (several machines, one phone-facing lead), each machine reads its own copy of this file —
@@ -318,7 +324,7 @@ To verify, reload the dashboard and look under the herd. If a row fails to load,
 
 ## Your own typefaces
 
-The interface font is a per-device setting. Under **Settings → Typeface**, you can choose between
+The interface font is a per-device setting. Under **Settings → Appearance → Typeface**, you can choose between
 System, Space Grotesk (the default), and Aldrich. You can add custom fonts in `theme.toml`, the
 fourth configuration file:
 
@@ -497,6 +503,28 @@ that enforces them. The lead refuses an oversize body before forwarding it, to s
 it refuses it against its own number. Set the same values on every member, or a peer will refuse
 what its lead let through.
 
+## Favourite and recent folders
+
+The new-space sheet lists the folders you opened spaces in before, so you tap one instead of typing
+a path.
+
+Under the Directory field sit two lists for the machine the space goes to. **Recent** holds the last
+8 folders a space was created in, newest first. It counts only creates that worked and named a
+folder, and it never lists your home dir, because a blank field already means home.
+
+A tap on a row fills the Directory field and creates nothing, so you can still add a label. The star
+beside a row moves it to **Favourites**, up to 12, in the order you starred them. A second tap on the
+star moves it back to the top of Recent.
+
+The list belongs to the machine, not to the phone. Each machine keeps its own in `folders.json` in
+its state directory, `~/.local/state/collie/folders.json` unless `COLLIE_STATE_DIR` moves it. Every
+device you use sees the same list, and the file appears only after the first space created in a
+folder or the first star.
+
+In a [crew](crew.md), each machine keeps the folders that exist on it, and the sheet shows the list
+of the machine you picked. A machine that runs an older Collie has no list, and the sheet then shows
+none for it.
+
 ## Multi-session
 
 By default, one Collie instance serves every Herdr session it finds.
@@ -510,7 +538,7 @@ sessions. [Security](security.md) lists this behavior as a sharp edge.
 
 > **Note.** Collie follows your phone's appearance by default.
 
-To pin it, open **Settings → Appearance** and pick **System**, **Light** or **Dark**. The setting is
+To pin it, open **Settings → Appearance → Theme** and pick **System**, **Light** or **Dark**. The setting is
 stored **per device** in the browser rather than on the bridge. Your phone can remain on Dark while
 a laptop tracks the OS. The preference persists across reloads and PWA reinstalls on the same
 device.
@@ -541,7 +569,7 @@ This implementation has two practical consequences:
 
 > **Note.** Zen mode is off by default.
 
-Enable it in **Settings → Zen mode** (stored per device in the browser). This adds a **Zen mode**
+Enable it in **Settings → Device → Zen mode** (stored per device in the browser). This adds a **Zen mode**
 option to the pane menu, under the ⋮ beside Find and History. Tapping it hides all Collie UI
 elements: the header, tab and pane strips, agent statusline, and composer docks. Only the terminal
 mirror remains visible. A floating button in the top-right corner or the Escape key restores the
@@ -556,41 +584,19 @@ they are part of the content stream rather than chrome.
 
 ## Changes
 
-The pane menu's **Changes** row shows what changed in the pane's workspace since the last commit.
-
-Open a pane, tap the ⋮, then **Changes**. The list groups the changed files by git repo, with
-added and removed line counts. Tap a file to read its diff, and use **Previous file** and
-**Next file** to step through the list. The refresh button reads the folder again; the list does
-not update on its own.
-
-The diff is against the last commit, so staged and unstaged changes show together. A new file
-shows as all added lines. A binary file shows no lines.
-
-The list covers the pane's whole workspace, so every pane in one workspace shows the same list.
-The header names the workspace and its folder. Collie picks that folder in this order:
-
-| Order | Folder |
-| --- | --- |
-| 1 | The workspace's own folder, when the multiplexer keeps one: herdr's worktree, tmux's session folder |
-| 2 | The deepest folder that holds every pane of the workspace |
-| 3 | The pane's own folder, when the first two would be `/`, your home folder, or above it |
+The [Changes view](changes.md) shows what an agent changed in its workspace's git repos. Two
+per-device settings decide how far it looks for repos, in **Settings → Device → Changes**:
 
 | Setting | Default | What it does |
 | --- | --- | --- |
 | Look for repos inside this folder | on | Also lists repos in folders below the workspace folder, even ones the parent repo ignores |
 | How deep to look | 2 | How many folder levels below the workspace folder the search goes, 1 to 4 |
 
-Both live in **Settings → Changes** and are stored per device.
-
-> **Note.** Changes only reads. It never stages, commits or edits, and a repo's own hooks, filters
-> and diff programs never run while Collie reads it
-> ([ADR 0065](../.adr/0065-the-changes-view-reads-git-read-only.md)).
-
-zellij panes have no Changes row, because zellij does not report a pane's folder.
+See [Which folder, and which repos](changes.md#which-folder-and-which-repos) for how the search works.
 
 ## Language
 
-Collie's interface is available in six languages. Configure this under **Settings → Language**.
+Collie's interface is available in six languages. Configure this under **Settings → Appearance → Language**.
 
 - English
 - Deutsch
@@ -602,6 +608,11 @@ Collie's interface is available in six languages. Configure this under **Setting
 The selection is saved locally in the browser per device. The terminal mirror remains untranslated:
 it displays the raw output from the agent, while quick replies, menu labels, and key caps match the
 underlying screen or keyboard names.
+
+A notification's title follows the same choice: "claude needs you" arrives as "claude 입력 대기" on a
+device set to Korean. The device picks up a new choice the next time Collie is open on it, and until
+then its titles stay in the language it had. The body under the title is the pane's own name and
+place, and is never translated ([Web Push](voice-and-push.md#web-push-optional)).
 
 
 ---

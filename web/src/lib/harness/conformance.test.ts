@@ -47,6 +47,12 @@ const NEUTRAL = new Set([
   // negative control for the generic menu grammar — its statusline is `·`-separated like a key-hint
   // footer, and the input-box gate is the only thing that keeps it raw.
   "claude--menu-model-picker-dismissed.txt",
+  // The dynamic-workflow view (ADR 0072). A read-only SCREEN, not a dialog: its footer is a row of
+  // key hints (`↑↓ select · p resume · f filter · esc back · s save`), which is the shape the generic
+  // menu grammar keys on, and it must still decline. There is nothing here to answer. `p` pauses a
+  // run, and offering that from the phone is a feature with its own decision to take, not something
+  // to fall out of a footer that happens to look like a menu.
+  "claude--workflow-view.txt",
   // GHOST TEXT: an input box holding the generated "suggested next prompt" Claude paints when the box
   // is empty, and the same box after typing over it. Both are ordinary idle screens — composer chrome,
   // never a dialog. They exist to pin how the suggestion is PAINTED (faint, SGR 2), which is the only
@@ -86,6 +92,22 @@ const NEUTRAL = new Set([
   // A multiSelect with the pointer on its "Type something" field: a real dialog the adapter declines
   // on purpose, because every toggle digit would be typed into the field. The unread card covers it.
   "claude--v2283-multiselect-type-something-focused.txt",
+  // Claude Code 2.1.283 after the `/plugin` Marketplaces tab applied an update: the menu is closed
+  // and "✔ Updated 1 marketplace" sits in the chat above an ordinary box. Idle, never a dialog.
+  "claude--v2283-plugin-marketplaces-updated--w40.txt",
+  "claude--v2283-plugin-marketplaces-updated--w82.txt",
+  "claude--v2283-plugin-marketplaces-updated--w120.txt",
+  "claude--v2283-fullscreen-plugin-marketplaces-updated--w40.txt",
+  "claude--v2283-fullscreen-plugin-marketplaces-updated--w82.txt",
+  "claude--v2283-fullscreen-plugin-marketplaces-updated--w120.txt",
+  // A marketplace's detail screen in the full-screen renderer, taller than the 40-row pane: Claude
+  // clips it at the bottom, so its footer is not on screen and it names no key. A real dialog that
+  // no grammar may read (ADR 0009), and with no key-hint row in its tail, no unread card either.
+  "claude--v2283-fullscreen-plugin-marketplace-detail--w40.txt",
+  "claude--v2283-fullscreen-plugin-marketplace-detail--w82.txt",
+  // The `/plugin` "Add Marketplace" source field: a text field no grammar reads. The unread card
+  // covers it (unread-dialog.test.ts).
+  "claude--v2283-plugin-marketplaces-add-form--w82.txt",
 ]);
 
 const allClaudeFixtures = readdirSync(PANES_DIR)
@@ -100,13 +122,17 @@ const allCodexFixtures = readdirSync(PANES_DIR)
 const allGrokFixtures = readdirSync(PANES_DIR)
   .filter((f) => f.startsWith("grok--") && f.endsWith(".txt"))
   .toSorted();
+// Every opencode capture must stay raw under the claude adapter too — the cross-adapter leg.
+const allOpencodeFixtures = readdirSync(PANES_DIR)
+  .filter((f) => f.startsWith("oc--") && f.endsWith(".txt"))
+  .toSorted();
 
 const ownFixtures = allClaudeFixtures.filter((f) => !NEUTRAL.has(f));
 const neutralFixtures = allClaudeFixtures.filter((f) => NEUTRAL.has(f));
 
 describeAdapterConformance(claudeAdapter, {
   ownFixtures,
-  foreignFixtures: [...allOmpFixtures, ...allCodexFixtures, ...allGrokFixtures], // the other adapters' captures — cross-adapter fail-closed
+  foreignFixtures: [...allOmpFixtures, ...allCodexFixtures, ...allGrokFixtures, ...allOpencodeFixtures], // the other adapters' captures — cross-adapter fail-closed
   neutralFixtures,
 });
 

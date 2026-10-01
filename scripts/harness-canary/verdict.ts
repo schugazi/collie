@@ -10,9 +10,24 @@ import type { KnownGap } from "./known-gaps";
 export type CaseVerdict = "pass" | "fail" | "not-reached";
 export type Verdict = CaseVerdict | "known-gap";
 
-/** The five scenarios of spec M37/02, by the ids the table, the captures and known-gaps.json use. */
-export const SCENARIOS = ["idle", "drafts", "sends", "narrow", "start-exit"] as const;
+/**
+ * Every scenario, by the ids the table, the captures and known-gaps.json use: the five of spec
+ * M37/02, then `journal` (M41/05), then the two of M37/03 (`dialogs`, `busy`), which make more model
+ * turns and run only when asked for (`--dialogs` or `--scenario`).
+ *
+ * `journal` sits next to `sends` because it reads what those sends wrote: it makes no model turn of
+ * its own and it has nothing to read unless `sends` ran in the same pane.
+ */
+export const SCENARIOS = ["idle", "drafts", "sends", "journal", "narrow", "start-exit", "dialogs", "busy"] as const;
 export type ScenarioId = (typeof SCENARIOS)[number];
+
+/** What a run without `--scenario` does: the five screens and sends of M37/02, plus M41/05's read of
+ *  the agent's own log. `journal` makes no model turn itself; it needs the fourth send `sends` makes,
+ *  the one that asks for a file read, so a default run costs four turns per agent rather than three. */
+export const DEFAULT_SCENARIOS: readonly ScenarioId[] = ["idle", "drafts", "sends", "journal", "narrow", "start-exit"];
+
+/** What `--dialogs` adds: real dialogs and a send to a busy agent (spec M37/03). */
+export const DIALOG_SCENARIOS: readonly ScenarioId[] = ["dialogs", "busy"];
 
 export function isScenarioId(value: string): value is ScenarioId {
   return SCENARIOS.some((s) => s === value);

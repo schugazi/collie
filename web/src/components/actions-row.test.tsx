@@ -1,11 +1,11 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Keyboard, Terminal } from "lucide-react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { COLLAPSE_MS } from "@/components/ui/collapse";
 import { __resetHarnessBar, setHarnessBarEnabled } from "@/lib/harness-bar-pref";
-import { ActionsRow, type GeneralAction } from "./actions-row";
+import { ActionsRow, type ActionsRowProps, type GeneralAction } from "./actions-row";
 
 afterEach(() => {
   __resetHarnessBar();
@@ -383,3 +383,122 @@ describe("ActionsRow — the switcher mark's alert", () => {
   });
 });
 
+// THE COMPOSER'S CLEAR SLOT (upstream M40 spec 04, issue #291): an icon-only X at the end of the
+// fork's controls row. The composer decides WHEN (a draft in the box, or the Undo window after a
+// tap); this file decides WHERE and how it is drawn.
+describe("ActionsRow — the composer's clear slot", () => {
+  const handle = () => ({ ref: vi.fn(), onClick: vi.fn(), label: "Switch pane" });
+  const changes = () => ({ onClick: vi.fn(), label: "Changes" });
+  const clearX = (over: Partial<NonNullable<ActionsRowProps["clear"]>> = {}) => ({
+    mode: "clear" as const,
+    onClick: vi.fn(),
+    label: "Clear message",
+    ...over,
+  });
+
+  it("draws no X without the prop: the belt at rest is unchanged", () => {
+    render(<ActionsRow general={[general()]} agent="claude" onRun={took} handle={handle()} changes={changes()} />);
+    expect(screen.queryByRole("button", { name: "Clear message" })).not.toBeInTheDocument();
+  });
+
+  it("takes the Changes half of the Switch cell, so the rows lose no width", async () => {
+    const onClick = vi.fn();
+    const { container } = render(
+      <ActionsRow
+        general={[general()]}
+        agent="claude"
+        onRun={took}
+        handle={handle()}
+        changes={changes()}
+        clear={clearX({ onClick })}
+      />,
+    );
+    const x = screen.getByRole("button", { name: "Clear message" });
+    // Icon-only: the accessible name is the only name it has.
+    expect(x.textContent).toBe("");
+    const controls = container.querySelector<HTMLElement>('[data-slot="composer-controls"]')!;
+    expect(controls.contains(x)).toBe(false);
+    expect(x.nextElementSibling).toBe(screen.getByRole("button", { name: "Switch pane" }));
+    // Changes yields its half while the draft is up.
+    expect(screen.queryByRole("button", { name: "Changes" })).toBeNull();
+    await userEvent.click(x);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("ends the Undo window on a tap on any other belt control, never on its own", async () => {
+    const onOtherPress = vi.fn();
+    render(
+      <ActionsRow
+        general={[general()]}
+        agent="claude"
+        onRun={took}
+        clear={clearX({ mode: "undo", label: "Undo clear", onOtherPress })}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Undo clear" }));
+    expect(onOtherPress).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Keys" }));
+    expect(onOtherPress).toHaveBeenCalledTimes(1);
+  });
+
+  it("swaps the X for Undo in the same slot: same element, same box", () => {
+    const { rerender } = render(
+      <ActionsRow
+        general={[general()]}
+        agent="claude"
+        onRun={took}
+        handle={handle()}
+        changes={changes()}
+        clear={clearX()}
+      />,
+    );
+    const x = screen.getByRole("button", { name: "Clear message" });
+    const before = {
+      className: x.className,
+      children: x.childElementCount,
+      text: x.textContent,
+      icon: x.querySelector("svg")!.getAttribute("class"),
+    };
+    rerender(
+      <ActionsRow
+        general={[general()]}
+        agent="claude"
+        onRun={took}
+        handle={handle()}
+        changes={changes()}
+        clear={clearX({ mode: "undo", label: "Undo clear" })}
+      />,
+    );
+    const undo = screen.getByRole("button", { name: "Undo clear" });
+    // The same DOM node: a reader's focus stays on it and hears the new name.
+    expect(undo).toBe(x);
+    // Only the glyph changed. Box and children are identical.
+    expect(undo.className).toBe(before.className);
+    expect(undo.childElementCount).toBe(before.children);
+    expect(undo.textContent).toBe(before.text);
+    expect(undo.querySelector("svg")!.getAttribute("class")).not.toBe(before.icon);
+  });
+
+  it("refuses its own mousedown, so the field under the thumb keeps focus and the keyboard stays up", () => {
+    render(<ActionsRow general={[general()]} agent="claude" onRun={took} handle={handle()} clear={clearX()} />);
+    const x = screen.getByRole("button", { name: "Clear message" });
+    // `fireEvent` answers false when a listener called preventDefault.
+    expect(fireEvent.mouseDown(x)).toBe(false);
+    // …and NOT its pointerdown: WebKit on a phone drops the whole click after a cancelled one.
+    expect(fireEvent.pointerDown(x)).toBe(true);
+    // The Switch mark refuses neither: it opens a sheet, and the keyboard going down there is right.
+    expect(fireEvent.mouseDown(screen.getByRole("button", { name: "Switch pane" }))).toBe(true);
+  });
+
+  it("an inert X is aria-disabled and dimmed, and ignores the tap", async () => {
+    const onClick = vi.fn();
+    render(<ActionsRow general={[general()]} agent="claude" onRun={took} clear={clearX({ onClick, inert: true })} />);
+    const x = screen.getByRole("button", { name: "Clear message" });
+    expect(x).toHaveAttribute("aria-disabled", "true");
+    // Not `disabled`: a disabled button takes no mousedown, and the tap would drop the keyboard.
+    expect(x).not.toBeDisabled();
+    expect(x.className).toMatch(/(?:^|\s)opacity-50(?=\s|$)/);
+    await userEvent.click(x);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+});

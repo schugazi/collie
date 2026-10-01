@@ -69,6 +69,24 @@ test("both rows show every pill without scrolling, left of the Switch cell", asy
   }
 });
 
+// THE COMPOSER'S X (upstream M40 spec 04) takes the Changes half of the Switch cell while the box
+// holds a draft. With it up, the controls row still fits without scrolling.
+test("with the composer's X up, the controls row still fits left of the Switch cell", async ({ page }) => {
+  await page.goto("/pane/w1:p1");
+  const switchButton = page.getByRole("button", { name: en["chat.switcher.aria"] });
+  await expect(switchButton).toBeVisible();
+  await page.getByRole("textbox", { name: en["composer.placeholder.reply"] }).fill("a draft");
+  const clear = page.getByRole("button", { name: en["composer.controls.clear"], exact: true });
+  await expect(clear).toBeVisible();
+
+  const overflows = await page.locator(ROWS).first().evaluate((el) => el.scrollWidth > el.clientWidth + 1);
+  expect(overflows).toBe(false);
+  // The X stands directly above the Switch mark, in the same cell.
+  const [x, mark] = [await clear.boundingBox(), await switchButton.boundingBox()];
+  expect(x?.x).toBe(mark?.x);
+  expect((x?.y ?? NaN) + (x?.height ?? NaN)).toBeLessThanOrEqual((mark?.y ?? NaN) + 1);
+});
+
 // ONE SCALE FOR THE WHOLE BELT (operator, 2026-09-23). The Settings row "Action belt size" stores
 // `beltScale` in the dash prefs; the belt's root carries it as `--belt-scale`, and index.css derives
 // each row's band, the pills and the icons from it. Measured at 375x812 in Chromium: a row, a pill

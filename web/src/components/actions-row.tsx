@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { GitCompare, Layers } from "lucide-react";
+import { GitCompare, Layers, Undo2, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -205,9 +205,32 @@ export interface ActionsRowProps {
     /** ALREADY TRANSLATED. The button's accessible name, `chat.changes.label`. */
     label: string;
   };
+  /**
+   * THE COMPOSER'S CLEAR SLOT (upstream M40 spec 04, issue #291). An icon-only X in the Switch
+   * cell's top half, in place of Changes, while the box holds text or chips (`mode: "clear"`), and
+   * Undo in the same box after a tap (`mode: "undo"`). Absent otherwise, so the belt at rest is
+   * unchanged.
+   *
+   * It keeps the phone keyboard up: the button refuses its own `mousedown`, the event whose default
+   * moves focus. NOT `pointerdown`: under WebKit a tap on a button that cancels its own
+   * `pointerdown` gets no `click` at all (`e2e/composer-clear.spec.ts`).
+   */
+  clear?: {
+    /** `"clear"` draws the X; `"undo"` draws the Undo mark in the same box. */
+    mode: "clear" | "undo";
+    onClick: () => void;
+    /** ALREADY TRANSLATED. "Clear message" or "Undo clear". */
+    label: string;
+    /** Undo only: a tap on any OTHER control on this belt ends the Undo window. A sideways scroll
+     *  fires no click and keeps Undo. */
+    onOtherPress?: () => void;
+    /** Inert (`aria-disabled`, dimmed, the tap ignored) while a send is in flight or Type is armed.
+     *  Not `disabled`: a disabled button takes no `mousedown`, so a tap would drop the keyboard. */
+    inert?: boolean;
+  };
 }
 
-export function ActionsRow({ general, agent, mine, onRun, disabled, handle, changes }: ActionsRowProps) {
+export function ActionsRow({ general, agent, mine, onRun, disabled, handle, changes, clear }: ActionsRowProps) {
   useLocale();
 
   const harnessItems = useHarnessBarItems(agent, mine);
@@ -245,6 +268,16 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, handle, chan
       // through to the style attribute verbatim; `CSSProperties` only declares the known property
       // names, so a `--*` key has no other way to be spelled.
       style={{ "--belt-scale": beltScale } as CSSProperties}
+      // Capture, so the Undo window ends in the same tap as the pill's own act, and only for a
+      // control that is not the Undo button itself (`clear.onOtherPress` above).
+      onClickCapture={
+        clear?.onOtherPress === undefined
+          ? undefined
+          : (e) => {
+              if (e.target instanceof Element && e.target.closest("[data-belt-clear]") !== null) return;
+              clear.onOtherPress?.();
+            }
+      }
       className={cn("-mx-3 mb-1 flex border-b border-border bg-foreground/6", handle && "touch-pan-x")}
     >
       {/* The rows start from their widest row's own width and `grow` into whatever the Switch cell
@@ -329,10 +362,35 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, handle, chan
           there is less than 32px free it holds 32px (`min-w-8`) and the rows pan instead.
           THE CHANGES PILL STANDS ABOVE THE MARK in the same cell, each taking half its height, so
           the rows lose no width to it. It navigates rather than opening a sheet: no
-          `aria-haspopup`. */}
-      {(handle || changes) && (
+          `aria-haspopup`.
+          THE COMPOSER'S X TAKES THE CHANGES HALF WHILE THE BOX HOLDS A DRAFT. In the controls row it
+          was a sixth pill a 390px phone has no room for, so it lived clipped under the fade; here it
+          costs the rows nothing. Changes comes back the moment the box is empty again. ONE element in
+          both modes (X and Undo), so the swap moves nothing and a reader's focus stays put;
+          `onMouseDown` refuses the press's focus move, keeping the phone keyboard up. */}
+      {(handle || changes || clear) && (
         <span className="flex min-w-8 max-w-11 grow-1000 basis-0 flex-col border-l border-border bg-chrome">
-          {changes && (
+          {clear ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              data-belt-clear=""
+              aria-label={clear.label}
+              aria-disabled={clear.inert === true ? true : undefined}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                if (clear.inert !== true) clear.onClick();
+              }}
+              className={cn(CELL_BUTTON, clear.inert === true && "opacity-50")}
+            >
+              {clear.mode === "undo" ? (
+                <Undo2 className={cn(BELT_ICON, "text-primary")} />
+              ) : (
+                <X className={cn(BELT_ICON, "text-primary")} />
+              )}
+            </Button>
+          ) : changes && (
             <Button
               type="button"
               variant="ghost"

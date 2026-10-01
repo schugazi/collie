@@ -1,12 +1,17 @@
+import { useState } from "react";
 import { Loader2, Play, TerminalSquare } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { AgentIcon } from "@/components/agent-icon";
 import { CacheChip } from "@/components/cache-chip";
+import { PaneOrderToggle } from "@/components/pane-order-toggle";
 import { SectionHeader } from "@/components/section-header";
 import { StatusCounts, StatusSummaryLine } from "@/components/status-counts";
+import { pinnedRows, shownGroups } from "@/lib/dash-view";
 import { paneRowKey } from "@/lib/hosts";
 import { groupPanesByWorkspace } from "@/lib/pane-groups";
+import { activityRanks, cacheRanks, inRankOrder, type PaneOrder } from "@/lib/pane-order";
+import { pinMatcher, type Pin } from "@/lib/pins";
 import { paneName, panePlaceParts } from "@/lib/pane-name";
 import { shortenHome } from "@/lib/shorten-home";
 import { bucketOf, isAttention, worstTriage, type TriageKey } from "@/lib/triage";
@@ -39,12 +44,18 @@ interface ThreadSidebarProps {
   shellsOpen?: boolean;
   onShellsOpenChange?: (open: boolean) => void;
   /**
+   * This device's pins (lib/pins.ts, ADR 0070). A Pinned section then leads, under the summary line,
+   * in the dashboard's place order, and each pinned pane leaves its workspace section or Shells, so
+   * it is listed once. Omit, or pass none, and the sheet renders as it did.
+   */
+  pins?: readonly Pin[];
+  /**
    * The operator's own launcher rows (`launchers.toml`). A trailing "Launch" section renders only
    * when this is non-empty AND `onLaunch` is given, since the caller (agent-chat) withholds `onLaunch` on
    * a read-only device, which is what keeps a write this device cannot make from being offered here.
    */
   launchers?: readonly Launcher[];
-  /** The bridge's own home dir, for shortening a pinned row's `cwd` with a leading `~`. */
+  /** The bridge's own home dir, for shortening a row's fixed `cwd` with a leading `~`. */
   launchersHome?: string;
   /** Fired with the row's command. The caller owns the write (useSpaceActions().launch). */
   onLaunch?: (command: string) => void;
@@ -55,6 +66,17 @@ interface ThreadSidebarProps {
   /** Whether the Launch section is expanded, and how to fold it. Omit to leave it always open. */
   launchOpen?: boolean;
   onLaunchOpenChange?: (open: boolean) => void;
+  /**
+   * Which way the rows run: `place` (the default, and ADR 0063's order) or `activity`. Activity
+   * folds the workspace sections and Shells into ONE list, newest first.
+   */
+  order?: PaneOrder;
+  /**
+   * Store a new order. Given, the sheet draws the Place/Activity toggle above the rows; withheld,
+   * it draws no control and keeps whatever `order` says — which is how a list with nowhere to store
+   * the answer avoids offering a choice that would not survive the next render.
+   */
+  onOrderChange?: (order: PaneOrder) => void;
   /** Override the list container padding (e.g. flush inside a bottom sheet). */
   className?: string;
 }
@@ -72,15 +94,47 @@ interface ThreadSidebarProps {
 // dashboard: the row's alarm edge, the lit heading, and one summary line on top that counts what
 // needs you and jumps to the first of it.
 //
+// THE ORDER IS THE OPERATOR'S, AND IT STILL DOES NOT MOVE (ADR 0071). Place order is the default and
+// is unchanged. Activity and Cache are the alternatives ADR 0063's closing clause allows, "a toggle
+// the operator taps and watches": each reads the clock once, when the sheet opens, and holds that
+// reading until the operator taps again. So the sentence above survives the new settings rather than
+// being weakened by them. A pane that finishes a turn while the sheet is up still repaints where it
+// stands, and so does one whose cache window ticks down under the reader's thumb.
+//
 // The two long tails still fold: 30-odd bare shells, and the Launch rows, using the dashboard's own
-// header primitive and remembering it.
+// header primitive and remembering it. In either ranked order the sections and the Shells fold give
+// way to one list, for the reason at `rankedRows`.
+//
+// This device's pinned panes lead the sheet in a Pinned section (ADR 0070), in the dashboard's place
+// order, each listed once. The sheet stays switch-only: pinning lives in the pane menu.
 // A module-level empty list, not a `= []` default in the parameter list: a fresh array literal on
 // every render is a new reference, which defeats memoisation downstream for no benefit here.
 const NO_PANES: AgentView[] = [];
 const NO_LAUNCHERS: readonly Launcher[] = [];
+const NO_PINS: readonly Pin[] = [];
 
 /** The buckets that mean "a human is required here" — the same two the dashboard's line counts. */
 const URGENT: ReadonlySet<TriageKey> = new Set<TriageKey>(["needs", "ready"]);
+
+/** No reading taken, which is what place order passes to `inRankOrder` to get the identity back. */
+const NO_RANKS: ReadonlyMap<string, number> = new Map();
+
+/** One reading of the clock, tagged with the order it was taken FOR. */
+interface FrozenOrder {
+  /** The order this reading answers. A different one means the operator tapped, so re-read. */
+  order: PaneOrder;
+  /** Row key against position, newest first. Empty for place order. */
+  ranks: ReadonlyMap<string, number>;
+}
+
+function readOrder(order: PaneOrder, agents: readonly AgentView[], shells: readonly AgentView[]): FrozenOrder {
+  if (order === "place") return { order, ranks: NO_RANKS };
+  const panes = [...agents, ...shells];
+  // `Date.now()` and not the cache clock's tick: this is the FREEZE, taken once when the operator
+  // opens the list or taps. Subscribing to a clock that moves every second is the exact fault
+  // ADR 0063 closes.
+  return { order, ranks: order === "activity" ? activityRanks(panes) : cacheRanks(panes, Date.now()) };
+}
 
 /** A DOM id for a pane row, so the summary line can scroll to it and focus it. */
 function rowDomId(pane: AgentView): string {
@@ -96,6 +150,7 @@ export function ThreadSidebar({
   servers,
   shellsOpen = true,
   onShellsOpenChange,
+  pins = NO_PINS,
   launchers = NO_LAUNCHERS,
   launchersHome = "",
   onLaunch,
@@ -103,6 +158,8 @@ export function ThreadSidebar({
   launchRefusal,
   launchOpen = true,
   onLaunchOpenChange,
+  order = "place",
+  onOrderChange,
   className,
 }: ThreadSidebarProps) {
   useLocale();
@@ -121,9 +178,54 @@ export function ThreadSidebar({
 
   // The dashboard's grouping, so the switcher and the dashboard list the same panes in the same place.
   const groups = groupPanesByWorkspace(agents, [], { order: "fixed", tabs, servers });
+  // PINNED LEADS (ADR 0070): the dashboard's place order over agents AND shells (a shell sits after
+  // its tab's agents, as on the dashboard), so the two surfaces agree by construction. Each pinned
+  // pane then leaves its workspace section or Shells: listed once. A workspace section left with no
+  // rows is dropped, as on the dashboard; its heading would count panes listed elsewhere.
+  const isPinned = pinMatcher(pins);
+  const pinned =
+    pins.length === 0
+      ? NO_PANES
+      : pinnedRows(groupPanesByWorkspace(agents, shellPanes, { order: "fixed", tabs, servers }), isPinned);
+  const sections = shownGroups(groups, false, isPinned);
+  const shellRows = pins.length === 0 ? shellPanes : shellPanes.filter((p) => !isPinned(p));
+
+  // ── THE ORDER, AND WHY IT IS READ ONCE ───────────────────────────────────────
+  // ADR 0063 took status out of every list because a row that moves while its state changes is a row
+  // the thumb misses, and on THIS sheet a missed tap opens another terminal. Its closing clause
+  // leaves one door open: an order the operator asks for and watches. ADR 0071 walks through it.
+  //
+  // So activity order reads the clock ONCE, when the sheet opens, and draws from that reading until
+  // the operator taps the toggle. A pane that finishes a turn while the sheet is up repaints where
+  // it stands; it does not climb past the row a thumb is already reaching for. The sheet unmounts on
+  // close (ui/sheet.tsx returns null), so the next open is a fresh reading by construction, and the
+  // one thing that re-reads while it is open is the operator's own tap.
+  //
+  // The state-adjustment-on-a-changed-prop shape, not a `useMemo` with a lie in its deps: the reading
+  // must survive a poll and must NOT survive a tap, which is exactly one dependency.
+  const [frozen, setFrozen] = useState<FrozenOrder>(() => readOrder(order, agents, shellPanes));
+  if (frozen.order !== order) setFrozen(readOrder(order, agents, shellPanes));
+
+  const pinnedShown = inRankOrder(pinned, frozen.ranks);
+  // ONE LIST IN ACTIVITY ORDER: every workspace section and the Shells fold together, because "when
+  // did anything last happen here" is not a question a workspace heading can answer, and a shell you
+  // used a minute ago has to be able to outrank an agent you have not opened all day. The fold goes
+  // with the sections and is not missed: the long tail it protected against is precisely what sinks
+  // to the bottom once the newest rows lead.
+  // Place keeps its workspace sections; BOTH ranked orders collapse to one list, for the same reason:
+  // a rank crosses every workspace, and a heading cannot answer a question asked across all of them.
+  const ranked = order !== "place";
+  const rankedRows = ranked
+    ? inRankOrder([...sections.flatMap((g) => g.rows), ...shellRows], frozen.ranks)
+    : NO_PANES;
+
   const urgent = agents.filter((a) => URGENT.has(bucketOf(a)));
-  // The first urgent row in DISPLAY order, not in the order the list arrived in.
-  const firstUrgent = groups.flatMap((g) => g.panes).find((a) => URGENT.has(bucketOf(a)));
+  // The first urgent row in DISPLAY order, not in the order the list arrived in: in Pinned when a
+  // pinned pane needs you, and in whichever order the rows below it are running in.
+  const firstUrgent = [
+    ...pinnedShown,
+    ...(ranked ? rankedRows : sections.flatMap((g) => g.rows)),
+  ].find((a) => URGENT.has(bucketOf(a)));
   const jumpTo = (pane: AgentView) => {
     const row = document.getElementById(rowDomId(pane));
     row?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -136,28 +238,38 @@ export function ThreadSidebar({
         <p className="px-2 py-2 text-sm text-muted-foreground">{t("home.empty.noAgents")}</p>
       )}
 
-      {agents.length > 0 && (
-        // ONE slot, always drawn while there are agents, so the groups below never shift when the
-        // first pane needs you or the last one is answered. The dashboard's own line, over the urgent
-        // panes alone: "Nothing needs you", or the counts with their words.
-        <StatusSummaryLine
-          panes={urgent}
-          allClear={firstUrgent === undefined}
-          onJump={firstUrgent === undefined ? undefined : () => jumpTo(firstUrgent)}
-          className="px-2"
-        />
+      {/* ONE CHROME ROW, not two. The summary line is the alarm and keeps the left, where ADR 0063
+          point 3 puts urgency; the order control takes the right as glyphs. Stacked, these cost two
+          full rows plus a heading before the first pane, which on a phone was most of what the sheet
+          had to give (reported 2026-09-30). The heading below still names the order in words, so
+          dropping the labels here loses nothing a reader needs.
+
+          The row is drawn while EITHER half has something, and the summary line keeps a slot of its
+          own while there are agents, so the rows below never shift when the first pane needs you or
+          the last one is answered. */}
+      {(agents.length > 0 || (onOrderChange && !noPanes)) && (
+        <div className="flex items-center justify-between gap-2 px-2">
+          {agents.length > 0 ? (
+            <StatusSummaryLine
+              panes={urgent}
+              allClear={firstUrgent === undefined}
+              onJump={firstUrgent === undefined ? undefined : () => jumpTo(firstUrgent)}
+              className="min-w-0 flex-1"
+            />
+          ) : (
+            <span className="flex-1" />
+          )}
+          {onOrderChange && !noPanes && (
+            <PaneOrderToggle order={order} onChange={onOrderChange} compact />
+          )}
+        </div>
       )}
 
-      {groups.map((g) => (
-        <Section
-          key={g.key}
-          id={`switch-ws-${g.key.replace(/[^A-Za-z0-9_-]/gu, "_")}`}
-          label={g.label}
-          tone="strong"
-          dot={worstTriage(g.panes) === "needs" ? "bg-status-blocked" : undefined}
-          trailing={<StatusCounts panes={g.panes} className="shrink-0 text-[11px] text-muted-foreground" />}
-        >
-          {g.panes.map((a) => (
+      {/* The Pinned section, in the section voice Shells and Launch wear, with no dot and no count,
+          and it does not fold: a pin is the one thing this sheet was opened to reach. */}
+      {pinned.length > 0 && (
+        <Section id="switch-pinned" headingId="switch-pinned-heading" label={t("home.pinned.title")}>
+          {pinnedShown.map((a) => (
             <PaneRow
               key={paneRowKey(a)}
               id={rowDomId(a)}
@@ -167,25 +279,75 @@ export function ThreadSidebar({
             />
           ))}
         </Section>
-      ))}
+      )}
 
-      {shellPanes.length > 0 && (
-        <Section
-          id="switch-shells"
-          label={t("home.sidebar.shells")}
-          count={shellPanes.length}
-          dot="bg-status-unknown"
-          {...(onShellsOpenChange ? { open: shellsOpen, onToggle: onShellsOpenChange } : {})}
-        >
-          {shellPanes.map((p) => (
-            <PaneRow
-              key={paneRowKey(p)}
-              pane={p}
-              active={paneRowKey(p) === currentPaneKey}
-              onSelect={onSelect}
-            />
+      {ranked ? (
+        // The one flat list. It keeps the workspace sections' own row ink and marks — a row still
+        // wears its alarm edge and the place under its name — so only the ORDER differs from place
+        // order, never what a row says about itself. No dot on the heading: the summary line above
+        // already counts what needs you, and a heading over every pane would always carry one.
+        //
+        // The heading NAMES THE ORDER, which is what pays for the compact glyphs in the row above.
+        rankedRows.length > 0 && (
+          <Section
+            id="switch-activity"
+            label={t(order === "cache" ? "paneOrder.coldest" : "paneOrder.recent")}
+            count={rankedRows.length}
+            tone="strong"
+          >
+            {rankedRows.map((a) => (
+              <PaneRow
+                key={paneRowKey(a)}
+                id={rowDomId(a)}
+                pane={a}
+                active={paneRowKey(a) === currentPaneKey}
+                onSelect={onSelect}
+              />
+            ))}
+          </Section>
+        )
+      ) : (
+        <>
+          {sections.map(({ group: g, rows }) => (
+            <Section
+              key={g.key}
+              id={`switch-ws-${g.key.replace(/[^A-Za-z0-9_-]/gu, "_")}`}
+              label={g.label}
+              tone="strong"
+              dot={worstTriage(g.panes) === "needs" ? "bg-status-blocked" : undefined}
+              trailing={<StatusCounts panes={g.panes} className="shrink-0 text-[11px] text-muted-foreground" />}
+            >
+              {rows.map((a) => (
+                <PaneRow
+                  key={paneRowKey(a)}
+                  id={rowDomId(a)}
+                  pane={a}
+                  active={paneRowKey(a) === currentPaneKey}
+                  onSelect={onSelect}
+                />
+              ))}
+            </Section>
           ))}
-        </Section>
+
+          {shellRows.length > 0 && (
+            <Section
+              id="switch-shells"
+              label={t("home.sidebar.shells")}
+              count={shellRows.length}
+              dot="bg-status-unknown"
+              {...(onShellsOpenChange ? { open: shellsOpen, onToggle: onShellsOpenChange } : {})}
+            >
+              {shellRows.map((p) => (
+                <PaneRow
+                  key={paneRowKey(p)}
+                  pane={p}
+                  active={paneRowKey(p) === currentPaneKey}
+                  onSelect={onSelect}
+                />
+              ))}
+            </Section>
+          )}
+        </>
       )}
 
       {launchers.length > 0 && onLaunch && (
@@ -214,9 +376,10 @@ export function ThreadSidebar({
 
 // Uses the dashboard's own header primitive so the fold affordance is identical in both places —
 // level 3 because the sheet's own title is the h2. Passing no `open`/`onToggle` renders a plain
-// pinned heading with nothing to press.
+// heading that does not fold, with nothing to press.
 function Section({
   id,
+  headingId,
   label,
   count,
   dot,
@@ -227,6 +390,8 @@ function Section({
   children,
 }: {
   id: string;
+  /** The heading's id. Given, the section takes its name from it (`aria-labelledby`). */
+  headingId?: string;
   label: string;
   count?: number;
   /** Status-palette bullet beside the header — the same colors the status badges use. A workspace
@@ -240,11 +405,12 @@ function Section({
 }) {
   const foldable = open !== undefined && onToggle !== undefined;
   return (
-    <section className="flex flex-col gap-0.5">
+    <section className="flex flex-col gap-0.5" aria-labelledby={headingId}>
       <SectionHeader
         level={3}
         label={label}
         className="px-2"
+        {...(headingId !== undefined ? { id: headingId } : {})}
         {...(count !== undefined ? { count } : {})}
         {...(dot !== undefined ? { dot } : {})}
         {...(tone !== undefined ? { tone } : {})}
@@ -362,9 +528,9 @@ function LaunchRow({
   refusal: string | undefined;
   onLaunch: (command: string) => void;
 }) {
-  // Pinned → the folder, shortened under home; absent → "here" (opens beside this pane, wherever it
-  // is), which is the one thing the switcher can say that the dashboard's "here" cannot — there,
-  // home is already implied and this suffix is withheld instead (launch-strip.tsx).
+  // A fixed folder → that folder, shortened under home; absent → "here" (opens beside this pane,
+  // wherever it is), which is the one thing the switcher can say that the dashboard's "here"
+  // cannot — there, home is already implied and this suffix is withheld instead (launch-strip.tsx).
   const suffix = launcher.cwd !== undefined ? shortenHome(launcher.cwd, home) : t("chat.switcher.launch.here");
   const disabled = busy || refusal !== undefined;
   return (

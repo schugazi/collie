@@ -12,14 +12,16 @@ import {
 } from "lucide-react";
 import { useKeyboardOpen } from "@/hooks/use-keyboard";
 import { useSheetPull } from "@/hooks/use-sheet-pull";
-import { useSpaceActions } from "@/hooks/use-spaces";
+import { tabCreateKey, useSpaceActions } from "@/hooks/use-spaces";
 import { useNav } from "@/hooks/use-nav";
 import { useDashPrefs, openForCount } from "@/hooks/use-dash-prefs";
+import { useAgentStart } from "@/hooks/use-agent-start";
 import { useLaunchers } from "@/lib/launchers";
 import { buzz } from "@/lib/haptics";
 import { mirrorFont, useDisplayPrefs } from "@/hooks/use-display-prefs";
+import { useChatWindow } from "@/hooks/use-chat-window";
 import { useLatestReply } from "@/hooks/use-latest-reply";
-import { useMirrorImages } from "@/hooks/use-mirror-images";
+import { finishedTurnKey, useMirrorImages } from "@/hooks/use-mirror-images";
 import { useStableTerminalDraft } from "@/hooks/use-terminal-draft";
 import { useLocale } from "@/hooks/use-locale";
 import { isConnecting } from "@/lib/connection";
@@ -31,9 +33,12 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { setStripsCollapsed, useStripsCollapsed } from "@/lib/strips-collapsed";
 import { ChatMessageList, type ChatMessageListHandle } from "@/components/ui/chat/chat-message-list";
 import { BottomSheet } from "@/components/ui/sheet";
+import { DisplayPrefsContent } from "@/components/display-prefs";
 import { Collapse, CollapseSwap } from "@/components/ui/collapse";
+import { ImageCard } from "@/components/ui/image-card";
 import { RouteHeader } from "@/components/app-header";
 import { HeaderStatus } from "@/components/header-status";
+import { AgentStart } from "@/components/agent-start";
 import { AnsiOutput } from "@/components/ansi-output";
 import { CardDock } from "@/components/card-dock";
 import { MIRROR_SPACE, MIRROR_INVERT, MUSE_MIRROR, segmentStyle } from "@/components/mirror-space";
@@ -54,6 +59,7 @@ import { StripsSummary } from "@/components/strips-summary";
 import { PaneMeta } from "@/components/pane-meta";
 import { CacheSheet } from "@/components/cache-sheet";
 import { PaneActionsSheet } from "@/components/pane-actions-sheet";
+import { SessionStream } from "@/components/session-stream";
 import { PaneSettingsSheet } from "@/components/pane-settings-sheet";
 import { CompactStripLabels, TAB_ROW_SQUARE_TAP_TARGET } from "@/components/ui/labelled-strip";
 import { ReadOnlyBanner } from "@/components/read-only-banner";
@@ -79,6 +85,8 @@ import { panesOfTab } from "@/lib/pane-ordinal";
 import { useMuxCapability } from "@/lib/mux-capability";
 import { hasJournalAdapter, reportsSessionOnFirstPrompt } from "@/lib/journal-agents";
 import { paneRowKey, paneScope } from "@/lib/hosts";
+import { paneScopeKey } from "@/lib/scope";
+import { usePins } from "@/lib/pins";
 import { changesPath, historyPath, panePath, spacePath } from "@/lib/nav";
 import { isReadOnly, statusLabel } from "@/lib/types";
 import { usePairing } from "@/lib/pairing";
@@ -147,7 +155,7 @@ function foldLabelKey(tabCount: number, paneCount: number): MessageKey {
 
 // At most one drawer/sheet is open at a time; null = none. (The composer's own Keys/Quick/Agent
 // sheets are separate and live inside <Composer>.)
-type Drawer = "switcher" | "paneMenu" | "paneSettings" | null;
+type Drawer = "switcher" | "paneMenu" | "paneSettings" | "display" | null;
 
 /**
  * Is the caret in the MESSAGE COMPOSER's field, as opposed to any other input on the screen?
@@ -247,7 +255,7 @@ export function AgentChat({
 
   const { launchers, home: launchersHome } = useLaunchers(scope);
   // Single display-prefs instance: the View controls (in <Composer>) write it, the mirror reads it.
-  const { prefs, setWrap, stepFontSize, setRawTerminal, setTapToFocus, setExpandClippedReply } =
+  const { prefs, setWrap, stepFontSize, stepChatFontSize, setRawTerminal, setTapToFocus, setExpandClippedReply } =
     useDisplayPrefs();
   // The chosen terminal font (Settings → Terminal font), applied by re-pointing `--font-mono` on
   // the two mirror surfaces below and NOWHERE else — see mirrorFont() for how, and why it is not a
@@ -258,6 +266,10 @@ export function AgentChat({
   // so a mis-detected/mis-rendered dialog can always be driven by hand with the keys pad.
   const grammarsOn = !prefs.rawTerminal;
   const isShell = agent?.kind === "shell";
+  // A bare shell that just became an agent pane. The hook is the EDGE and nothing else: opening a
+  // pane that has been running Claude for an hour announces nothing, because this mount never
+  // watched it turn over (hooks/use-agent-start.ts).
+  const agentStart = useAgentStart(paneId, agent?.agent, isShell);
   // LINE 1 IS THE NAME, LINE 2 IS THE PLACE — the one rule every other surface follows
   // (lib/pane-name.ts). The header used to lead with the ADDRESS and never consult the terminal
   // title at all, so a pane the dashboard called "Collie playground sync check" was called
@@ -272,6 +284,10 @@ export function AgentChat({
     () => (agent === undefined ? [] : panesOfTab(agent, agents, shellPanes)),
     [agent, agents, shellPanes],
   );
+  // Every pane of the herd, for the pane menu's Pin to top row on both doors (lib/pins.ts reads it to
+  // tell a live pin from a dormant one), and this device's pins, for the switcher's Pinned section.
+  const herd = useMemo(() => [...agents, ...shellPanes], [agents, shellPanes]);
+  const pins = usePins();
   // This device may not type into agents: the backend rejects every write, so the composer drops to
   // read-only (and shows a banner). The mirror still polls (reading is fine). Either write gate puts
   // us here — the proxy-asserted allowlist, or a missing/rejected pairing credential — and the
@@ -760,6 +776,23 @@ export function AgentChat({
     setFindQuery("");
   }
 
+  // Copy the pane's buffered terminal output to the clipboard, from the FROZEN snapshot the operator
+  // is looking at (`shown`, not the live props) so a poll landing mid-tap can't swap what gets
+  // copied. Prefer the unwrapped logical text — the buffer without the phone-width hard wraps, so a
+  // paste reads as real lines — and fall back to the display text when the agent reports no unwrapped
+  // form. `navigator.clipboard` is absent over plain HTTP (an insecure context, a supported deploy —
+  // see status-detail-sheet's copy), so this can reject; `canCopyOutput` keeps the row off that
+  // deploy, and the catch keeps a failure honest rather than claiming a copy that never happened.
+  const canCopyOutput = !!navigator.clipboard;
+  async function copyOutput() {
+    try {
+      await navigator.clipboard.writeText(shown.logicalText || shown.text);
+      setStatus(t("chat.copyOutput.done"), "success");
+    } catch {
+      setStatus(t("chat.copyOutput.failed"), "error");
+    }
+  }
+
   // What the top of the buffer can offer — see the JSX for why these are mutually exclusive.
   // `historyAvailable`: the pane reported an agent session, so a transcript exists to open.
   // `moreScrollback`: Herdr says this pane can still yield lines beyond the window we've asked for,
@@ -795,6 +828,44 @@ export function AgentChat({
   const noSessionKey = reportsSessionOnFirstPrompt(agent?.agent)
     ? "chat.scrollback.noSessionYet"
     : "chat.scrollback.noSessionReported";
+  // ── THE PANE'S SECOND BODY: CHAT (M41/11) ───────────────────────────────────
+  //
+  // Chat is a MODE, not a route: `nav.ts`'s two leaf lists are untouched, and nothing below this
+  // line moves the header, the strips, the card dock, the belt or the composer. What swaps is the
+  // box between the mirror's own top rule and the chrome block, and only that.
+  //
+  // TWO VALUES DECIDE IT, and they are different questions (lib/pane-view.ts). `chatExperiment` is
+  // whether this device has opted in at all — off by default, written from Settings → Experiments,
+  // and while it is off the pane menu shows no switch and this whole block is inert. `paneView` is
+  // which body, once opted in, and the pane's ⋮ menu is the one place it is written.
+  //
+  // `historyAvailable` is the third gate and it is about the PANE rather than the device: the chat
+  // route reads the same journal the History page does, so a pane that has no transcript to open
+  // has no session to stream either. A pane like that falls back to the terminal and the ⋮ row
+  // carries the reason — it never hides, because a control that disappears on some panes is how an
+  // operator concludes the app is broken.
+  const chatOffered = dash.prefs.chatExperiment;
+  const chatChosen = chatOffered && dash.prefs.paneView === "chat";
+  const chatBody = chatChosen && historyAvailable;
+  // The live window, moved by the poll that already exists (ADR 0073). Disabled is free: no fetch,
+  // no timer, the empty window.
+  const chatFeed = useChatWindow({ paneId, scope, enabled: chatBody });
+  // Why this pane keeps the terminal, in the operator's own terms — and ONLY for the half of that
+  // question this side can answer. There are two layers and the split is deliberate: a pane with no
+  // journal at all never asks the bridge, so the reason belongs on the ⋮ row here, while a pane
+  // that DOES ask and is told `available: false` or handed a 404 is drawing the chat body, and the
+  // stream says so in its own words there. Saying both would put "this pane keeps the terminal" on
+  // a menu row above a chat stream.
+  //
+  // The multiplexer's own words come first where it has any, because a multiplexer that keeps no
+  // agent session log at all is not Collie's fault and Collie does not say it is.
+  const chatReason = historyAvailable
+    ? null
+    : sessionLog.capable
+      ? t("history.unavailable.noSession")
+      : sessionLog.note || t("history.unavailable.noLog");
+  const chatNote = chatReason === null ? undefined : t("chat.mode.noChat", { reason: chatReason });
+
   // Scrollback has its own capability, and it is a genuinely different one: a multiplexer can keep
   // screen history while knowing nothing about agents. Hidden rather than explained when absent —
   // "there is nothing older to load" is not a fact anyone comes looking for.
@@ -833,15 +904,21 @@ export function AgentChat({
   );
 
   // Terminal graphics: the mirror tells us how many image placeholders it is showing, and only a
-  // count that GREW costs a journal read. The pane read carries no image field and the bridge does
-  // no journal work on the poll path — see hooks/use-mirror-images.ts for the whole cadence.
+  // count that GREW costs a journal read. An agent that draws pictures with no placeholder (pi,
+  // #292) costs one read per finished turn instead, for its newest turn's picture. The pane read
+  // carries no image field and the bridge does no journal work on the poll path — see
+  // hooks/use-mirror-images.ts for the whole cadence.
   const [imageClusterCount, setImageClusterCount] = useState(0);
   const mirrorImages = useMirrorImages({
     paneId,
     scope,
-    enabled: historyAvailable && imageClusterCount > 0,
+    enabled: historyAvailable,
     clusterCount: imageClusterCount,
+    finishedTurn: finishedTurnKey(agent),
   });
+  // A picture whose load failed stands down rather than show a broken-image glyph.
+  const [failedTurnImage, setFailedTurnImage] = useState<string | null>(null);
+  const turnImage = mirrorImages.turnImage !== failedTurnImage ? mirrorImages.turnImage : null;
   // Find searches the mirror, so while it is open the mirror is WHOLE and the card stands down —
   // otherwise a hit inside the reply would be unfindable in the one surface find can highlight.
   const clippedReply = placement?.fit === "clipped" && !findOpen ? latestReply : null;
@@ -1647,6 +1724,13 @@ export function AgentChat({
             zen && "[padding-bottom:env(safe-area-inset-bottom)]",
           )}
         >
+          {/* THE HANDOFF. A shell pane became an agent pane, so the Collie mark flies out of the
+              header's own mark, blooms over the mirror and hands the pane to the agent's mark. It is
+              absolutely positioned against this region, holds no space and moves nothing (§2), and a
+              tap ends it at once. It marks a fact the poll has already found; it never predicts one. */}
+          {agentStart.started !== null && (
+            <AgentStart harness={agentStart.started} onDone={agentStart.clear} />
+          )}
           {/* THE ONE WAY OUT OF ZEN. A single floating affordance over the mirror rather than a
               strip, so "everything hides" stays literally true, and TOP-right so entering (the ⋮ that
               opened the sheet) and leaving happen in the same corner — opposite corners would make
@@ -1770,7 +1854,7 @@ export function AgentChat({
                     selected={agent.tabId}
                     onSelect={(id) => id && goToTab(id)}
                     onNewTab={newTab}
-                    creatingTab={creatingTab.has(agent.workspaceId)}
+                    creatingTab={creatingTab.has(tabCreateKey(agent.workspaceId, scope))}
                     allowAll={false}
                     scope={scope}
                     readOnly={readOnly}
@@ -1817,6 +1901,7 @@ export function AgentChat({
                     onRenamed={() => revalidator.revalidate()}
                     // Mirror closePane's success branch: closing the open pane returns Home, else revalidate.
                     onClosed={(id) => (id === paneId ? onBack() : revalidator.revalidate())}
+                    herd={herd}
                   />
                 )}
                 </div>
@@ -1899,6 +1984,25 @@ export function AgentChat({
             style={mirrorFace.style}
             onClick={focusFromMirror}
           >
+            {/* THE TWO BODIES. One box, one top rule, one face, one list handle — a send snaps
+                whichever body is on screen back to its tail without knowing which one it is. The
+                draft-notice slot below is outside the swap on purpose: the composer portals into it
+                and the notice floats over both bodies alike (ADR 0061). */}
+            {chatBody ? (
+              <SessionStream
+                feed={chatFeed}
+                address={paneScopeKey(scope, paneId)}
+                // The pane record's own status, the one live fact both bodies share. The mirror gets
+                // this for free — the agent's spinner is in the output it draws — so only this body
+                // has to be told (session-stream.tsx § LIVE_ROW). `connecting` withholds it for the
+                // same reason the status dot dims: a frozen reading must not animate as if it were
+                // arriving.
+                working={agent?.status === "working" && !connecting}
+                showToolCalls={dash.prefs.showToolCalls}
+                fontSize={prefs.chatFontSize}
+                listRef={listRef}
+              />
+            ) : (
             <ChatMessageList
               ref={listRef}
               dep={display}
@@ -2006,9 +2110,28 @@ export function AgentChat({
                     nativeMirror={mirrorOverride}
                     blocks={blocks}
                     hideLeadingLines={hiddenMirrorLines}
-                    images={mirrorImages}
+                    images={mirrorImages.images}
                     onImageClusterCount={setImageClusterCount}
                   />
+                  {/* THE NEWEST TURN'S PICTURE, RIGHT AFTER THE MIRROR (M39, #292). pi draws a
+                      picture by direct placement, which leaves only blank rows on the grid, so
+                      there is no row to put it at; it comes from the journal instead. Placement
+                      was decided between three (2026-09-26, after a live pi run): A, the full-reply
+                      card's slot above the mirror, is the top of pi's scrollback (pi renders
+                      inline), so the card sat out of sight; C, at the reply's own rows, needs a
+                      text probe too fragile for a two-letter reply; B, here, is what the
+                      bottom-pinned view shows a few rows under the reply. A direct child of the
+                      scroller, so ChatMessageList re-pins when it appears or its picture loads,
+                      and only while the operator is following the tail. */}
+                  {turnImage && (
+                    <ImageCard
+                      src={turnImage}
+                      alt={t("mirror.imageAlt")}
+                      caption={t("mirror.turnImageCaption")}
+                      surface="page"
+                      onError={() => setFailedTurnImage(turnImage)}
+                    />
+                  )}
                 </>
               ) : (
                 <div className="py-16 text-center text-sm text-muted-foreground">
@@ -2016,6 +2139,7 @@ export function AgentChat({
                 </div>
               )}
             </ChatMessageList>
+            )}
             {/* THE TERMINAL-DRAFT NOTICE FLOATS HERE (ADR 0061). The composer portals the notice
                 into this box, pinned to the mirror's bottom edge: above the card dock when a card
                 is docked, else above the chrome block and its belt. Absolute, so it covers the
@@ -2237,13 +2361,12 @@ export function AgentChat({
                   terminalDraft={terminalDraft}
                   rawTerminalDraft={rawTerminalDraft}
                   prefs={prefs}
-                  setWrap={setWrap}
-                  stepFontSize={stepFontSize}
-                  setRawTerminal={setRawTerminal}
-                  setTapToFocus={setTapToFocus}
-                  mirrorNative={mirrorNative}
-                  setMirrorNative={setMirrorNative}
-                  setExpandClippedReply={setExpandClippedReply}
+                  // The belt's ⚙: the button is the composer's, the sheet it opens is mounted below
+                  // beside the switcher's, for the stacking-context reason the pane-menu note gives.
+                  display={{
+                    open: drawer === "display",
+                    onToggle: () => setDrawer(drawer === "display" ? null : "display"),
+                  }}
                   onSent={onSent}
                   // The switcher mark, for the actions belt's top rule — see the condition at
                   // `pullHandle` above, and actions-row.tsx for what it draws.
@@ -2286,6 +2409,9 @@ export function AgentChat({
             onSelect={switchToPane}
             tabs={tabs}
             servers={servers}
+            // This device's pins lead the sheet in a Pinned section (ADR 0070). The sheet itself
+            // stays switch-only: pinning is the pane menu's row, never a hold here.
+            pins={pins}
             // Shells fold on the same count rule Spaces uses: on a herd with dozens of bare shells
             // they'd otherwise bury the agents you opened this sheet to reach.
             shellsOpen={openForCount(dash.prefs.shellsOpen, shellPanes.length)}
@@ -2314,7 +2440,55 @@ export function AgentChat({
             launchRefusal={hostBlock}
             launchOpen={openForCount(dash.prefs.launchOpen, launchers.length)}
             onLaunchOpenChange={dash.setLaunchOpen}
+            // Place or activity (ADR 0071), the operator's own standing choice, stored per device
+            // beside the two folds above. The sheet's toggle and the Settings row write this same
+            // value, so a person who taps it here finds it there.
+            order={dash.prefs.paneOrder}
+            onOrderChange={dash.setPaneOrder}
             className="px-0 py-1"
+          />
+        </BottomSheet>
+
+        {/* The belt's ⚙ — how this pane is DRAWN, which body and how that body reads.
+            A sheet and no longer the in-flow ComposerDock it rode until 2026-09-30. The dock took
+            its height out of the mirror, so opening the settings moved the thing you had opened them
+            to look at, and the two row lists are different lengths, so switching bodies moved it
+            again. This covers instead of pushing, and nothing above it shifts by a pixel.
+            Mounted HERE and not in the composer, for the reason the pane-menu sheet below states:
+            a BottomSheet is a plain `fixed inset-0` element with no portal, so it is positioned by
+            the nearest transformed ancestor, and the composer sits inside an animating Collapse. */}
+        <BottomSheet
+          open={drawer === "display"}
+          onClose={closeDrawer}
+          title={t("composer.controls.display")}
+        >
+          <DisplayPrefsContent
+            prefs={prefs}
+            mirrorNative={mirrorNative}
+            setMirrorNative={setMirrorNative}
+            setWrap={setWrap}
+            stepFontSize={stepFontSize}
+            setRawTerminal={setRawTerminal}
+            setTapToFocus={setTapToFocus}
+            setExpandClippedReply={setExpandClippedReply}
+            // THE BODY SWITCH, second door. The ⋮ menu writes the same value; this is the one an
+            // operator opens to change how a pane LOOKS, which is the question it answers. `chosen`
+            // and `showing` are both passed because they differ on a pane with no journal, and the
+            // sheet draws rows for what is on screen, not for what was picked.
+            paneView={
+              chatOffered
+                ? {
+                    chosen: dash.prefs.paneView,
+                    showing: chatBody ? "chat" : "terminal",
+                    onChange: dash.setPaneView,
+                    note: chatNote,
+                    showToolCalls: dash.prefs.showToolCalls,
+                    setShowToolCalls: dash.setShowToolCalls,
+                    chatFontSize: prefs.chatFontSize,
+                    stepChatFontSize,
+                  }
+                : undefined
+            }
           />
         </BottomSheet>
 
@@ -2351,8 +2525,15 @@ export function AgentChat({
           readOnly={readOnly}
           onRenamed={() => revalidator.revalidate()}
           onClosed={(id) => (id === paneId ? onBack() : revalidator.revalidate())}
-          onFind={display ? openFind : undefined}
+          // Find searches the MIRROR, and highlights its hits there. In chat mode the mirror is
+          // not on screen, so the row would open a bar over a surface with nothing to show —
+          // withheld, the way the sheet withholds every row it was given nothing for.
+          onFind={display && !chatBody ? openFind : undefined}
           onHistory={historyAvailable ? () => nav.down(historyPath(paneId, scope)) : undefined}
+          // Copy the buffered output — gated on there being output AND a clipboard to write to (absent
+          // over plain HTTP), so the row hides where it could only fail, the way find hides with no
+          // output. Same read-row family as find and history.
+          onCopyOutput={display && canCopyOutput ? copyOutput : undefined}
           // ZEN'S ONE ENTRY POINT, and the absence of this callback IS the gate — the sheet hides a
           // row it was given nothing for, exactly as it does for find and history. Gated twice: the
           // Settings toggle decides whether this phone offers zen at all, and `display` keeps it off
@@ -2369,6 +2550,15 @@ export function AgentChat({
           // already spent. It hands over to the sheet below in one React event, so the actions sheet
           // unmounts in the same commit the settings sheet mounts.
           onSettings={() => setDrawer("paneSettings")}
+          // THE BODY SWITCH. `undefined` while Settings → Experiments has Chat off, which is what
+          // keeps the row off the sheet entirely; `chatNote` is why this pane keeps the terminal
+          // when it does. One standing per-device value, written here and nowhere else.
+          paneView={chatOffered ? dash.prefs.paneView : undefined}
+          onPaneViewChange={chatOffered ? dash.setPaneView : undefined}
+          paneViewNote={chatOffered ? chatNote : undefined}
+          // Pin to top / Unpin, the last read row (ADR 0070). No `onPinChange`: the Pinned group is
+          // on the dashboard and in the switcher, not on this screen, so the sheet says it in a toast.
+          herd={herd}
         />
         {/* This pane's own settings — one switch today, the prompt-cache warning (ADR 0042). Scoped to
             the PANE's machine, because `?host=` there names where the pane lives; the preference itself

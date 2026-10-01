@@ -4,6 +4,7 @@
 import type { Confidence } from "./cache/claims.ts";
 import type { PaneCache } from "./cache/engine.ts";
 import type { ApiErrorDetail, ErrorCode } from "./error-codes.ts";
+import type { ChatBody } from "./journal/live.ts";
 import type { AgentSessionRef, TranscriptEntry } from "./journal/types.ts";
 import type { MuxCapability, MuxSpaceCapacity, MuxTopologyLatency } from "./mux/capabilities.ts";
 import type { UpdateRun } from "./update-run.ts";
@@ -12,6 +13,7 @@ import type { UpdateRun } from "./update-run.ts";
 // entry shape from here too, without reaching into an adapter module. `PaneCache` rides along for the
 // same reason — it is a pane field now, so a reader of this module needs no second import.
 export type { TranscriptEntry, TranscriptPart } from "./journal/types.ts";
+export type { ChatBody, ChatEntry, ChatOlderBody, ChatWindowBody } from "./journal/live.ts";
 export type { CacheStateName, PaneCache } from "./cache/engine.ts";
 export type { Confidence } from "./cache/claims.ts";
 
@@ -656,6 +658,28 @@ export type PaneHistoryResponse =
     };
 
 /**
+ * GET /api/pane/:id/chat — the same conversation as `history`, asked the other way round.
+ *
+ * `history` answers "show me this session" and pays a bounded whole-window read for it. This answers
+ * "anything after this?", every poll, and costs the change: a session that gained one turn costs one
+ * turn (bridge/journal/live.ts). The two share the grammar, the containment rule and the
+ * `available:false` vocabulary, and they differ in exactly that question.
+ *
+ * The body is one of two shapes, told apart by `page`. `page:"live"` is the tail plus its three
+ * positions; `page:"older"` is a backwards page off disk. Both carry `upserts`, because both are
+ * "turns to put in the thread at their `seq`".
+ *
+ * **A member one release behind answers 404 to this route, and that is not an empty session.** The
+ * route is additive-optional over the crew link (CREW_PROTOCOL.md §7.1), so a lead that has it and a
+ * peer that does not is an ordinary version skew: the client must read a 404 here as "update this
+ * member" and never as "this pane has nothing to show". `available:false` is the answer for a pane
+ * with no session; a 404 is the answer for a bridge with no route.
+ */
+export type PaneChatResponse =
+  | { paneId: string; available: false; reason: "disabled" | "no-session" | "no-log" }
+  | ({ paneId: string; available: true } & ChatBody);
+
+/**
  * One changed file in a Changes list (ADR 0065). `status` is the file's state against HEAD, staged
  * and unstaged together: Modified, Added, Deleted, Renamed, or `?` untracked. An untracked FOLDER
  * (git lists one entry for a new folder under `--untracked-files=normal`) keeps its trailing `/`.
@@ -1094,6 +1118,21 @@ export interface LaunchersResponse {
   home: string;
   /** Visible immediate directories under this host’s home; absent on older bridges. */
   directories?: string[];
+}
+
+/**
+ * GET /api/folders, and the answer to POST /api/folders/star — THIS host's own folder list for the
+ * new-space sheet (#289), read from its `folders.json` (bridge/folders.ts). Session-scoped only so a
+ * `?host=` call forwards to the peer whose folders they are (CREW_PROTOCOL.md §5); the list itself is
+ * one per machine, never per session. `recent` is newest first, at most eight, and holds only folders
+ * a space was created in; `favourites` is in starred order, at most twelve, and never overlaps it.
+ * `home` is that host's home dir, never an entry, so the client can shorten a folder with a leading
+ * `~` without knowing which machine answered — `LaunchersResponse.home`'s reason.
+ */
+export interface FoldersResponse {
+  recent: string[];
+  favourites: string[];
+  home: string;
 }
 
 /**

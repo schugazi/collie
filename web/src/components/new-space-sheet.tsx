@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Server } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import type { HostHealth } from "@/lib/host-health";
 import type { ServerSummary, WorktreeView } from "@/lib/types";
 import { Collapse } from "@/components/ui/collapse";
 import { BottomSheet } from "@/components/ui/sheet";
+import { FolderSections } from "@/components/new-space-folders";
+import { useFolders } from "@/lib/folders";
 import { useHoldReload } from "@/lib/reload-guard";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/hooks/use-locale";
@@ -123,6 +125,22 @@ export function NewSpaceSheet({
   // The refusal for the machine actually selected. On a solo install there is no host dimension at
   // all, so there is nothing to refuse and the button behaves exactly as it did.
   const refusal = chosenServer ? writeRefusal(memberHealth(health, chosenServer)) : undefined;
+  // The scope a create would be ADDRESSED to. The lead carries no `?h=` — absent means the lead — so
+  // selecting it restores the bare URL, exactly as `server-switcher.tsx` does. Solo has no picker and
+  // keeps the ambient scope.
+  const target: Scope | undefined = multiHost
+    ? { ...scope, host: chosen === leadHost(servers) ? undefined : chosen }
+    : scope;
+  // That machine's own folder list (#289): read when the sheet opens and when the picker moves, never
+  // polled. A machine on an older version has none, and the sheet then renders as it always did.
+  const { folders, star } = useFolders(target, open);
+  // What the list holds NOW, for a tap that lands on a row the Collapse is still fading out after the
+  // picker moved: a folder from the previous machine must never reach this machine's field.
+  const shownFolders = useRef(folders);
+  shownFolders.current = folders;
+  const isShown = (folder: string): boolean =>
+    shownFolders.current.recent.includes(folder) || shownFolders.current.favourites.includes(folder);
+  const createButton = useRef<HTMLButtonElement>(null);
   /**
    * Worktrees of the chosen repo that NOTHING is showing.
    *
@@ -169,10 +187,8 @@ export function NewSpaceSheet({
     };
   }, [open, mode, repo, scope]);
 
-  const directoryHost = multiHost
-    ? chosen === leadHost(servers) ? undefined : chosen
-    : scope?.host;
-  const directorySession = scope?.session;
+  const directoryHost = target?.host;
+  const directorySession = target?.session;
   useEffect(() => {
     if (!open) return;
     // A path belongs to the selected host. Clear it when that host changes or the sheet reopens.
@@ -193,14 +209,24 @@ export function NewSpaceSheet({
 
   function create() {
     if (refusal !== undefined) return;
-    // The lead carries no `?h=` — absent means the lead — so selecting it restores the bare URL,
-    // exactly as `server-switcher.tsx` does. Solo passes nothing and keeps the ambient scope.
-    const at: Scope | undefined = multiHost
-      ? { ...scope, host: chosen === leadHost(servers) ? undefined : chosen }
-      : undefined;
+    // Solo passes nothing and keeps the ambient scope, exactly as before the picker existed.
+    const at: Scope | undefined = multiHost ? target : undefined;
     const selectedCwd = directory === "custom" ? cwd : directory;
     onCreate({ label: label.trim() || undefined, cwd: selectedCwd.trim() || undefined }, at);
     onClose();
+  }
+
+  /** A folder row's tap: fill the custom field and move to Create. Never a create by itself. */
+  function fillFolder(folder: string) {
+    if (!isShown(folder)) return;
+    setDirectory("custom");
+    setCwd(folder);
+    createButton.current?.focus();
+  }
+
+  function toggleStar(folder: string, starred: boolean) {
+    if (!isShown(folder)) return;
+    void star(folder, starred);
   }
 
   function createWorktree() {
@@ -400,6 +426,7 @@ export function NewSpaceSheet({
             />
           </label>
         )}
+        <FolderSections folders={folders} onUse={fillFolder} onStar={toggleStar} />
         <label className="flex flex-col gap-1">
           <span className="text-xs font-medium text-muted-foreground">{t("space.new.label.label")}</span>
           <input
@@ -409,7 +436,7 @@ export function NewSpaceSheet({
             className="h-11 rounded-lg border border-border bg-background px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           />
         </label>
-        <Button onClick={create} disabled={refusal !== undefined} className="mt-1 h-11">
+        <Button ref={createButton} onClick={create} disabled={refusal !== undefined} className="mt-1 h-11">
           {t("space.new.create")}
         </Button>
         </>

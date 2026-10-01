@@ -1,6 +1,6 @@
 import type { JsonObject } from "../json.ts";
 import { MAX_UPLOAD_OVERHEAD, uploadTooLarge } from "../uploads.ts";
-import { DEVICE_HEADER } from "./admission.ts";
+import { DEVICE_HEADER, encodeDeviceHeader } from "./admission.ts";
 import { type CrewLink, type PeerFailure, type PeerOutcome, WRITE_BUDGET_MS } from "./peer-client.ts";
 import { HOST_PARAM, type PeerState } from "./registry.ts";
 
@@ -52,7 +52,7 @@ export function crewRouteFor(pathname: string): string | null {
  * but not across a link (or, worse, the reverse).
  */
 const FORWARDABLE: readonly RegExp[] = [
-  /^pane\/[^/]+(?:\/(?:reply|keys|upload|close|rename|history|changes|focus))?$/,
+  /^pane\/[^/]+(?:\/(?:reply|keys|upload|close|rename|history|chat|changes|focus))?$/,
   /^tab$/,
   /^tab\/[^/]+\/(?:rename|close)$/,
   /^workspace$/,
@@ -65,6 +65,12 @@ const FORWARDABLE: readonly RegExp[] = [
   // lead's. Both ride the crew link exactly like `workspace` does.
   /^launch$/,
   /^launchers$/,
+  // The new-space sheet's folder list (#289): folders exist on ONE machine, so the list is that
+  // machine's own `folders.json`, read and starred on the member that holds it — the lead keeps no
+  // copy. Additive-optional (CREW_PROTOCOL.md §7.1): a member that predates it answers 404, and the
+  // phone reads that as "no list", never as an error.
+  /^folders$/,
+  /^folders\/star$/,
   // A blob is bytes on ONE machine's disk: the journal that named it is that member's journal, and
   // the lead holds no copy. So a `?host=` blob read is proxied byte for byte exactly like
   // `history` (CREW_PROTOCOL.md §9.1). The hash is matched as an opaque segment, mirroring
@@ -95,6 +101,11 @@ export function forwardKind(route: string): ForwardKind {
   // this lead has not heard from in a while, never refused before it is tried (§10.3's "a READ to a
   // dead member is still attempted").
   if (route === "launchers") return "read";
+  // The folder list is a GET that changes nothing, read even from a stale member like the rows
+  // above; a star writes that member's file, so it is a write and a member not taking writes
+  // refuses it before it is tried (§10.3), as a read-only device does on the member itself.
+  if (route === "folders") return "read";
+  if (route === "folders/star") return "write";
   // A blob read serves a file off the owning member's disk and changes nothing there — the same
   // shape as `pane/:id/history`, and attempted against a stale member for the same reason (§10.3).
   if (route.startsWith("blobs/")) return "read";
@@ -103,7 +114,11 @@ export function forwardKind(route: string): ForwardKind {
   if (!route.startsWith("pane/")) return "write";
   const action = route.split("/")[2];
   // `changes` is read-only git over the owning member's folder (ADR 0065): a read, like history.
-  return action === undefined || action === "history" || action === "changes" ? "read" : "write";
+  // `chat` is the same log `history` reads, asked for its newest end (journal/live.ts): a read too,
+  // and the one on the poll path — so it must never be refused before it is tried (§10.3).
+  return action === undefined || action === "history" || action === "chat" || action === "changes"
+    ? "read"
+    : "write";
 }
 
 /** The pane id a route addresses, for the lead's own audit line. `undefined` for tab/workspace. */
@@ -119,7 +134,10 @@ export function forwardPaneId(route: string): string | undefined {
  * the two independent logs can be read against each other without a translation table.
  *
  * `null` ⇒ a read, which is not audited on either side today and does not become audited by crossing
- * a link.
+ * a link — or a write neither side audits, which is one only: a star on the folder list. It is a
+ * preference, like `notifications/prefs`, and the audit log records what reaches a terminal
+ * (keystrokes, replies, uploads, pane and tab lifecycle), so the peer writes no line for it and the
+ * lead's line would have nothing to be read against.
  */
 export function forwardAuditAction(route: string): string | null {
   if (route === "tab") return "tab.create";
@@ -129,11 +147,14 @@ export function forwardAuditAction(route: string): string | null {
   // target host"), and the peer's own audit line is the accurate record of which one ran.
   if (route === "launch") return "launch";
   if (route === "launchers") return null;
+  if (route === "folders" || route === "folders/star") return null; // a read, and a preference
   if (route.startsWith("blobs/")) return null; // a read
   if (isWorkspaceChanges(route)) return null; // a read
   if (route.startsWith("tab/")) return route.endsWith("/close") ? "tab.close" : "tab.rename";
   const action = route.split("/")[2];
-  if (action === undefined || action === "history" || action === "changes") return null;
+  if (action === undefined || action === "history" || action === "chat" || action === "changes") {
+    return null; // reads, and a read is audited on neither side
+  }
   if (action === "close" || action === "rename") return `pane.${action}`;
   return action; // reply | keys | upload
 }
@@ -201,7 +222,9 @@ export function forwardHeaders(req: Request, device?: string | null): Headers {
     const value = req.headers.get(name);
     if (value !== null) headers.set(name, value);
   }
-  if (device !== null && device !== undefined && device !== "") headers.set(DEVICE_HEADER, device);
+  if (device !== null && device !== undefined && device !== "") {
+    headers.set(DEVICE_HEADER, encodeDeviceHeader(device));
+  }
   headers.set("accept-encoding", "identity");
   return headers;
 }
