@@ -10,9 +10,10 @@ import {
   resolveHookCommand,
   type HookTarget,
 } from "./hooks.ts";
+import { HOST, type Host } from "../bridge/host.ts";
 import { beaconReader } from "../bridge/beacon-io.ts";
 import { readBeacons, type BeaconSweepDeps } from "../bridge/beacon/reader.ts";
-import { envBool, nonLoopbackBindRefusal, resolveBridgeHost } from "../bridge/config.ts";
+import { DEFAULT_PORT, envBool, nonLoopbackBindRefusal, resolveBridgeHost } from "../bridge/config.ts";
 import { configFilePaths } from "../bridge/config-source.ts";
 import type { MuxCapabilityDeclaration } from "../bridge/mux/capabilities.ts";
 import {
@@ -127,6 +128,8 @@ export interface DoctorDeps {
    */
   readonly beacons: BeaconSweepDeps;
   readonly now: () => number;
+  /** The path rules and binary name this run judges the install by (`bridge/host.ts`). */
+  readonly host: Host;
   /**
    * The terminal renderer, when this run landed on one (`cli/render.ts`). Absent — which is what
    * every test and every piped run sees — means the plain lines below, unchanged.
@@ -431,7 +434,7 @@ function webDist(deps: DoctorDeps): Finding {
  */
 function pathLink(deps: DoctorDeps): Finding {
   const at = linkPath(deps.ctx.home);
-  const own = publishedBinary(deps.ctx.root, deps.link);
+  const own = publishedBinary(deps.ctx.root, deps.link, deps.host);
   const verdict = classifyLink(deps.link.probe(at), own);
   switch (verdict.action) {
     case "create":
@@ -477,7 +480,7 @@ function pathLink(deps: DoctorDeps): Finding {
  * as "no PATH name points at it" rather than claimed.
  */
 function packageSymlink(deps: DoctorDeps): string | null {
-  const own = collieBinary(deps.ctx.root);
+  const own = collieBinary(deps.ctx.root, deps.host);
   const candidates = ["/usr/bin/collie", "/usr/local/bin/collie", "/opt/homebrew/bin/collie", linkPath(deps.ctx.home)];
   for (const at of candidates) {
     const probe = deps.link.probe(at);
@@ -491,7 +494,7 @@ function installKind(deps: DoctorDeps, install: InstallKind): Finding {
   const version = collieVersionBare(root, (p) => deps.files.read(p));
   switch (install.kind) {
     case "binary": {
-      const layout = binaryLayout(root);
+      const layout = binaryLayout(root, deps.host);
       const kept = deps.files.list(layout.versionsDir).filter((v) => v !== layout.version).length;
       return ok(
         "install",
@@ -503,7 +506,7 @@ function installKind(deps: DoctorDeps, install: InstallKind): Finding {
       if (isStagedCheckout(deps, root)) {
         // The normal shape since M15/02: a git WORKTREE of a release tag, under this install's own
         // `versions/`, with `current` beside it. Both signals are true here on purpose.
-        const layout = binaryLayout(root);
+        const layout = binaryLayout(root, deps.host);
         return ok(
           "install",
           `staged checkout, version ${layout.version} at ${layout.installRoot} (worktree of ${root})`,
@@ -546,7 +549,7 @@ function installKind(deps: DoctorDeps, install: InstallKind): Finding {
       if (install.why === "orphan-layout") {
         return warn(
           "install",
-          `binary layout with no \`current\` symlink (${binaryLayout(root).installRoot})`,
+          `binary layout with no \`current\` symlink (${binaryLayout(root, deps.host).installRoot})`,
           "reinstall: curl -fsSL https://colliepwa.dev/install.sh | sh",
         );
       }
@@ -614,7 +617,7 @@ function versionsLayout(deps: DoctorDeps, install: InstallKind): Finding {
     return ok("versions", `in place at ${root} — no versions/ layout yet; the next \`collie update\` stages one`);
   }
   const kind = staged ? "checkout" : "binary";
-  const layout = binaryLayout(root);
+  const layout = binaryLayout(root, deps.host);
   const versions = listVersions(deps, layout, kind);
   const at = currentVersionDir(deps, layout);
   const live = versions.find((v) => v.dir === at);
@@ -721,7 +724,7 @@ function updateSource(deps: DoctorDeps, install: InstallKind): Finding {
 function quarantine(deps: DoctorDeps, install: InstallKind): Finding[] {
   if (install.kind !== "binary") return [];
   if (deps.exec.which("xattr") === null) return [];
-  const binary = join(binaryLayout(deps.ctx.root).currentLink, "bin", "collie");
+  const binary = collieBinary(binaryLayout(deps.ctx.root, deps.host).currentLink, deps.host);
   const r = deps.exec.capture("xattr", ["-p", "com.apple.quarantine", binary]);
   if (!r.found || r.code !== 0) return [];
   return [
@@ -1139,7 +1142,7 @@ function restartPending(
   }
   const own = bridgeRestartVerdict(read);
   if (own !== null) {
-    const binary = collieBinary(deps.ctx.root);
+    const binary = collieBinary(deps.ctx.root, deps.host);
     if (own.restartNeeded) {
       return warn(
         "restart-pending",
@@ -1161,7 +1164,7 @@ function restartPending(
   }
   const pid = bridgePid(deps, marker);
   const evidence = exeEvidence(deps, pid, marker);
-  const installed = exePathOf(evidence.exeLink) ?? collieBinary(deps.ctx.root);
+  const installed = exePathOf(evidence.exeLink) ?? collieBinary(deps.ctx.root, deps.host);
   switch (classifyExe(evidence)) {
     case "replaced":
       return warn(
@@ -1224,7 +1227,7 @@ function exeEvidence(deps: DoctorDeps, pid: number | null, marker: CrewRuntimeMa
   }
   const procExe = `/proc/${String(pid)}/exe`;
   const exeLink = deps.files.readlink(procExe);
-  const installedPath = exePathOf(exeLink) ?? collieBinary(deps.ctx.root);
+  const installedPath = exePathOf(exeLink) ?? collieBinary(deps.ctx.root, deps.host);
   const installed = deps.files.stat(installedPath);
   return {
     exeLink,
@@ -1746,6 +1749,18 @@ function secretGeneration(data: TrustStoreData, members: readonly TrustedMember[
 }
 
 /**
+ * ` → \`collie crew set-address <member> <address>:8787\``, for a silent PEER row on a lead whose
+ * stored address has no port and no scheme: the one repair that can be named exactly, because the
+ * default port is what a member answers on unless it set `COLLIE_PORT`. Empty for everything else,
+ * and for an address with any `:` in it, which may be an IPv6 literal that `:8787` would change.
+ */
+function portlessRepair(data: TrustStoreData, m: TrustedMember): string {
+  if (data.lead !== null || m.role === "lead" || m.address === "" || m.address.includes(":")) return "";
+  if (m.address.includes("/")) return "";
+  return ` → \`collie crew set-address ${m.memberId} ${m.address}:${DEFAULT_PORT}\` (${DEFAULT_PORT} unless that machine set COLLIE_PORT)`;
+}
+
+/**
  * The link, not the machine: `member-reach` on a lead, `lead-reach` on a peer.
  *
  * **Both halves of {@link MemberReach}, because `hello` alone was a lie.** The verdict probe runs on
@@ -1774,7 +1789,7 @@ function reach(data: TrustStoreData, members: readonly TrustedMember[], reaches:
       continue;
     }
     if (!answered.hello.ok) {
-      silent.push(`${m.memberId} at ${m.address} — ${failureLine(answered.hello)}`);
+      silent.push(`${m.memberId} at ${m.address} — ${failureLine(answered.hello)}${portlessRepair(data, m)}`);
       continue;
     }
     // F21: on a peer the one enrolled member is the LEAD, and a peer asks its lead for no snapshot —
@@ -1793,7 +1808,12 @@ function reach(data: TrustStoreData, members: readonly TrustedMember[], reaches:
     return bad(
       check,
       `${silent.length} of ${enrolled.length} did not answer: ${silent.join("; ")}${note}`,
-      "`collie reconnect <member> <address>` if the address moved; otherwise `collie restart` on that machine",
+      // On a lead every row is a PEER, and `set-address` refuses an address a crew link cannot dial
+      // where `reconnect` takes anything (a portless one included). A peer's one row is its lead, and
+      // `set-address` is the lead's verb, so there `reconnect` stays.
+      (data.lead === null
+        ? "`collie crew set-address <member> <host:port>` if the address is wrong or moved"
+        : "`collie reconnect <address>` if the address moved") + "; otherwise `collie restart` on that machine",
     );
   }
   if (starved.length > 0) {
@@ -1875,8 +1895,10 @@ export function doctorDeps(base: {
   exec: Exec;
   files: Files;
   ui?: Ui | null;
+  host?: Host;
 }): DoctorDeps {
   return {
+    host: HOST,
     ...base,
     link: realLinkFs,
     store: new TrustStore(base.ctx.stateDir),

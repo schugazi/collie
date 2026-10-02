@@ -1,6 +1,7 @@
 import { lstatSync, mkdirSync, readlinkSync, rmSync, symlinkSync } from "node:fs";
 import { delimiter, dirname, isAbsolute, join, resolve } from "node:path";
 
+import { binaryName, HOST, type Host } from "../bridge/host.ts";
 import type { CliContext } from "./context.ts";
 import { EXIT, type Io } from "./io.ts";
 import type { Files } from "./sys.ts";
@@ -54,10 +55,14 @@ export function resolveLinkTarget(linkAt: string, rawTarget: string): string {
 /**
  * Does this target name SOME collie checkout's compiled binary? That — not equality with our own —
  * is what makes a destination one Collie published and may therefore replace. Both separators are
- * accepted because the CLI runs on Windows too.
+ * accepted because the CLI runs on Windows too, and `collie.exe` there.
  */
-export function isCollieBinaryPath(target: string): boolean {
-  return /[/\\]bin[/\\]collie$/.test(target);
+export function isCollieBinaryPath(target: string, host: Host = HOST): boolean {
+  // `collieBinary` spells `bin/collie.exe` on Windows, so the bare name alone would reject our own.
+  const names = [binaryName(host), binaryName({ ...host, exeSuffix: "" })];
+  const parts = target.split(/[/\\]/);
+  // Something must sit before `bin`, even if only the empty string of a leading slash.
+  return parts.length >= 3 && parts.at(-2) === "bin" && names.includes(parts.at(-1)!);
 }
 
 export type LinkVerdict =
@@ -139,6 +144,8 @@ export interface LinkDeps {
   /** Only to answer "has this checkout been built yet?". */
   readonly files: Files;
   readonly fs: LinkWriter;
+  /** Names the binary (`collie.exe` on Windows); the running machine's when absent. */
+  readonly host?: Host;
 }
 
 /** The PATH warning, printed after a successful link. A fact and a hint — never a profile edit. */
@@ -149,7 +156,7 @@ function pathNote(deps: LinkDeps, dir: string): void {
 
 /** `collie link` — publish `~/.local/bin/collie` → this checkout's `bin/collie`. */
 export function cmdLink(deps: LinkDeps): number {
-  const own = publishedBinary(deps.ctx.root, deps.fs);
+  const own = publishedBinary(deps.ctx.root, deps.fs, deps.host);
   if (!deps.files.exists(own)) {
     deps.io.err(`error: no binary at ${own} — run the build first (\`bin/collie build\`).`);
     return EXIT.FAIL;
@@ -190,7 +197,7 @@ export function cmdLink(deps: LinkDeps): number {
 
 /** `collie unlink` — remove the published name, but only when it is this checkout's. */
 export function cmdUnlink(deps: LinkDeps): number {
-  const own = publishedBinary(deps.ctx.root, deps.fs);
+  const own = publishedBinary(deps.ctx.root, deps.fs, deps.host);
   const at = linkPath(deps.ctx.home);
   const verdict = classifyUnlink(deps.fs.probe(at), own);
 

@@ -1,4 +1,5 @@
 import { normaliseBasePath } from "../bridge/config.ts";
+import type { Host } from "../bridge/host.ts";
 import { type OpsRecord, CrewOpsStore } from "../bridge/crew/ops-store.ts";
 import { emptyConfigLayer } from "../bridge/config-source.ts";
 import type { CliContext, Environment } from "./context.ts";
@@ -20,6 +21,46 @@ export const CONFIG = "/cfg";
 export const HOME = "/home/pat";
 export const HANDLER_FILE = `${CONFIG}/tailscale-managed-handler`;
 export const STATE = "/state";
+
+/**
+ * The key a fake filesystem stores a path under: POSIX, no drive. On Windows `join` and `resolve`
+ * return `C:\opt\collie\bin\collie`; the fakes model a POSIX box, so that folds back to
+ * `/opt/collie/bin/collie`. Without a host the fold always runs, because a test that pins a Windows
+ * host on Linux hands the fakes Windows spellings too. Pass a host to ask what that host would do:
+ * only `win32` folds.
+ */
+export function posixKey(p: string, host?: Host): string {
+  return host === undefined || host.platform === "win32" ? p.replace(/^[A-Za-z]:/, "").replaceAll("\\", "/") : p;
+}
+
+/** A map that folds its keys with {@link posixKey}, so a test may name a path in either spelling. */
+class PathMap<V> extends Map<string, V> {
+  override get(key: string): V | undefined {
+    return super.get(posixKey(key));
+  }
+  override set(key: string, value: V): this {
+    return super.set(posixKey(key), value);
+  }
+  override has(key: string): boolean {
+    return super.has(posixKey(key));
+  }
+  override delete(key: string): boolean {
+    return super.delete(posixKey(key));
+  }
+}
+
+/** A set of paths that folds its members the same way. */
+class PathSet extends Set<string> {
+  override add(value: string): this {
+    return super.add(posixKey(value));
+  }
+  override has(value: string): boolean {
+    return super.has(posixKey(value));
+  }
+  override delete(value: string): boolean {
+    return super.delete(posixKey(value));
+  }
+}
 
 export interface FakeExec extends Exec {
   /**
@@ -213,25 +254,25 @@ export interface FakeFiles extends Files {
 }
 
 export function fakeFiles(seed: SeededFiles = {}): FakeFiles {
-  const entries = new Map<string, { text: string; mode?: number }>();
+  const entries = new PathMap<{ text: string; mode?: number }>();
   for (const [p, text] of Object.entries(seed)) entries.set(p, { text });
-  const undeletable = new Set<string>();
-  const rootOwned = new Set<string>();
-  const readOnly = new Set<string>();
-  const notExecutable = new Set<string>();
-  const stats = new Map<string, { inode: number; mtimeMs: number }>();
-  const links = new Map<string, string>();
-  const entryTypes = new Map<string, "directory" | "symlink" | "other">();
-  const realPaths = new Map<string, string>();
-  const unlistable = new Set<string>();
-  const unrenamable = new Set<string>();
+  const undeletable = new PathSet();
+  const rootOwned = new PathSet();
+  const readOnly = new PathSet();
+  const notExecutable = new PathSet();
+  const stats = new PathMap<{ inode: number; mtimeMs: number }>();
+  const links = new PathMap<string>();
+  const entryTypes = new PathMap<"directory" | "symlink" | "other">();
+  const realPaths = new PathMap<string>();
+  const unlistable = new PathSet();
+  const unrenamable = new PathSet();
   const ops: string[] = [];
   let tempDirs = 0;
   // Paths are a flat set, so a "directory" is whatever entries sit under it — enough to model the
   // staging swap, whose whole content is `web/dist/**`.
   const under = (p: string): string[] =>
     [...new Set([...entries.keys(), ...entryTypes.keys()])].filter((k) => k === p || k.startsWith(`${p}/`));
-  return {
+  const raw: FakeFiles = {
     entries,
     undeletable,
     rootOwned,
@@ -304,6 +345,33 @@ export function fakeFiles(seed: SeededFiles = {}): FakeFiles {
       }
     },
   };
+  // The seeded keys are POSIX. Code under test builds paths with `join` and `resolve`, which hand
+  // back `C:\opt\collie\bin` on Windows, so every path that comes in is folded to the key a test wrote.
+  const one = <A extends unknown[], R>(f: (p: string, ...rest: A) => R) =>
+    (p: string, ...rest: A): R => f(posixKey(p), ...rest);
+  return {
+    ...raw,
+    ownerUid: one(raw.ownerUid),
+    writable: one(raw.writable),
+    exists: one(raw.exists),
+    executable: one(raw.executable),
+    read: one(raw.read),
+    entryType: one(raw.entryType),
+    list: one(raw.list),
+    listStrict: one(raw.listStrict),
+    // These two RETURN a path the code under test then compares with one it built itself (`compilePaths`:
+    // `realpath(bin) !== bin`; `createOwnedDirectory`: `dirname(mkdtemp(prefix)) !== bin`), so the answer
+    // keeps the caller's spelling; only the lookup is folded.
+    realpath: (p) => (raw.realpath(posixKey(p)) === null ? null : (raw.realPaths.get(p) ?? p)),
+    mkdtemp: (prefix) => `${prefix}${raw.mkdtemp(posixKey(prefix)).slice(posixKey(prefix).length)}`,
+    write: one(raw.write),
+    mkdirp: one(raw.mkdirp),
+    remove: one(raw.remove),
+    removeTree: one(raw.removeTree),
+    stat: one(raw.stat),
+    readlink: one(raw.readlink),
+    rename: (from, to) => raw.rename(posixKey(from), posixKey(to)),
+  };
 }
 
 export interface FakeLinkFs extends LinkWriter {
@@ -320,22 +388,27 @@ export interface FakeLinkFs extends LinkWriter {
  * because every decision this seam feeds is made from the destination alone.
  */
 export function fakeLinkFs(seed: Record<string, LinkProbe> = {}): FakeLinkFs {
-  const entries = new Map<string, LinkProbe>(Object.entries(seed));
+  // Keys fold through `posixKey` like every other fake path (see `fakeFiles`): a seed or a probe may
+  // spell a path either way. A link TARGET is stored as written, because the code under test compares
+  // it against a path it built itself (`classifyLink`: `probe.target === own`) and a folded target
+  // would never match on Windows.
+  const entries = new PathMap<LinkProbe>();
+  for (const [p, probe] of Object.entries(seed)) entries.set(p, probe);
   const ops: string[] = [];
-  const readonlyPaths = new Set<string>();
+  const readonlyPaths = new PathSet();
   return {
     entries,
     ops,
     readonly: readonlyPaths,
     probe: (p) => entries.get(p) ?? { kind: "absent" },
-    mkdirp: (p) => void ops.push(`mkdirp ${p}`),
+    mkdirp: (p) => void ops.push(`mkdirp ${posixKey(p)}`),
     symlink(target, at) {
-      ops.push(`symlink ${target} ${at}`);
+      ops.push(`symlink ${posixKey(target)} ${posixKey(at)}`);
       if (readonlyPaths.has(at)) throw new Error("EACCES: permission denied");
       entries.set(at, { kind: "symlink", target });
     },
     remove(at) {
-      ops.push(`rm ${at}`);
+      ops.push(`rm ${posixKey(at)}`);
       if (readonlyPaths.has(at)) throw new Error("EACCES: permission denied");
       entries.delete(at);
     },

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { join } from "node:path";
 
 import {
-  BINARY,
   capture,
   CONFIG,
   context,
@@ -15,9 +15,19 @@ import {
   type Scripted,
 } from "./fakes.ts";
 import { leadStore, member, peerStore } from "../bridge/crew/fixtures.ts";
+import { hostFor, type Host } from "../bridge/host.ts";
 import { serializeTrustStore } from "../bridge/crew/trust-store.ts";
 import { EXIT, type Io } from "./io.ts";
 import { PROCESS_QUERY_SLOW_START_MS } from "./sys.ts";
+import { collieBinary } from "./unit.ts";
+
+// The binary, spelled the way the code under test spells it. `collieBinary` joins with the host
+// separator, so a POSIX literal like `/opt/collie/bin/collie` never matches on a Windows host, and it
+// names `bin/collie.exe` for a `win32` platform. Everything here asks for the binary of the platform
+// the harness injects (`deps.host`), never the host's: `BINARY` is the one every non-Windows
+// harness platform shares, and `binaryOn` is the one for a platform a test pins.
+const binaryOn = (platform: NodeJS.Platform): string => collieBinary(ROOT, hostFor(platform));
+const BINARY = binaryOn("linux");
 
 /** The `Io` a nested `serve` was handed — `null` until it has been called. */
 interface SeenIo {
@@ -59,7 +69,7 @@ interface Harness {
 
 type HarnessOptions = Partial<
   Scripted & {
-    platform: NodeJS.Platform;
+    host: Host;
     ready: boolean;
     env: Record<string, string | undefined>;
     /** The `COLLIE_INSTANCE` suffix this Collie was resolved with. Absent = the solo instance. */
@@ -74,7 +84,7 @@ function harness(over: HarnessOptions = {}): Harness {
   const exec = fakeExec(over);
   // The binary exists unless a test deliberately removes it — every other test would otherwise be
   // asserting the "no binary" guard by accident.
-  const files = fakeFiles({ [BINARY]: "", ...over.files });
+  const files = fakeFiles({ [BINARY]: "", [collieBinary(ROOT, over.host ?? hostFor("linux"))]: "", ...over.files });
   const readyCalls: Array<{ port: number; host: string }> = [];
   const deps: LifecycleDeps = {
     // Every fixture here is a Collie that has already chosen its multiplexer, so `start`'s first-run
@@ -94,7 +104,7 @@ function harness(over: HarnessOptions = {}): Harness {
     },
     sleep: () => Promise.resolve(),
     uid: () => 501,
-    platform: over.platform ?? "linux",
+    host: over.host ?? hostFor("linux"),
     serve: over.serve ?? (() => Promise.resolve(EXIT.OK)),
   };
   return { deps, io, exec, files, readyCalls };
@@ -166,22 +176,22 @@ describe("the Host allowlist discovery", () => {
 
 describe("supervision tiers", () => {
   test("systemd requires the user instance to answer, not just the binary to exist", () => {
-    expect(supervisionTier(fakeExec(), "linux")).toBe("systemd");
-    expect(supervisionTier(fakeExec({ answers: NO_SYSTEMD }), "linux")).toBe("unsupervised");
-    expect(supervisionTier(fakeExec({ absent: ["systemctl"] }), "linux")).toBe("unsupervised");
+    expect(supervisionTier(fakeExec(), hostFor("linux"))).toBe("systemd");
+    expect(supervisionTier(fakeExec({ answers: NO_SYSTEMD }), hostFor("linux"))).toBe("unsupervised");
+    expect(supervisionTier(fakeExec({ absent: ["systemctl"] }), hostFor("linux"))).toBe("unsupervised");
   });
 
   test("launchd is gated on Darwin — the gui/<uid> domain is Darwin-only", () => {
-    expect(supervisionTier(fakeExec({ answers: NO_SYSTEMD }), "darwin")).toBe("launchd");
+    expect(supervisionTier(fakeExec({ answers: NO_SYSTEMD }), hostFor("darwin"))).toBe("launchd");
     // launchctl exists on this Linux box (it doesn't, but prove the platform gate is what decides).
-    expect(supervisionTier(fakeExec({ answers: NO_SYSTEMD }), "linux")).toBe("unsupervised");
-    expect(supervisionTier(fakeExec({ answers: NO_SYSTEMD, absent: ["launchctl"] }), "darwin")).toBe(
+    expect(supervisionTier(fakeExec({ answers: NO_SYSTEMD }), hostFor("linux"))).toBe("unsupervised");
+    expect(supervisionTier(fakeExec({ answers: NO_SYSTEMD, absent: ["launchctl"] }), hostFor("darwin"))).toBe(
       "unsupervised",
     );
   });
 
   test("COLLIE_SUPERVISOR pins the tier, and a typo is ignored rather than fatal", () => {
-    const pin = (v: string): string => supervisionTier(fakeExec(), "linux", { COLLIE_SUPERVISOR: v });
+    const pin = (v: string): string => supervisionTier(fakeExec(), hostFor("linux"), { COLLIE_SUPERVISOR: v });
     expect(pin("launchd")).toBe("launchd");
     expect(pin("unsupervised")).toBe("unsupervised");
     // This decides where the bridge runs; a typo must not take the host down.
@@ -227,7 +237,7 @@ describe("systemdUserReachable's session-env retry (#194)", () => {
   test("a probe that still fails with the derived env reports unsupervised — the container case", () => {
     const exec = fakeExec({ answers: NO_SYSTEMD });
     expect(systemdUserReachable(exec, {})).toBe(false);
-    expect(supervisionTier(exec, "linux", {})).toBe("unsupervised");
+    expect(supervisionTier(exec, hostFor("linux"), {})).toBe("unsupervised");
   });
 });
 
@@ -267,6 +277,24 @@ describe("the pidfile guard", () => {
     expect(h.exec.probed).toEqual([{ pid: 4242 }]);
   });
 
+  test("recognises its bridge by the injected platform's binary name, `collie.exe` on win32", () => {
+    const win = harness({
+      host: hostFor("win32"),
+      files: { [`${CONFIG}/collie.pid`]: "4242\n" },
+      ps: { 4242: `${binaryOn("win32")} _exec-bridge` },
+    });
+    stopPidfileProcess(win.deps);
+    expect(win.exec.killed).toEqual([4242]);
+    // Under win32 the binary this install has is `collie.exe`; the bare name is somebody else's.
+    const bare = harness({
+      host: hostFor("win32"),
+      files: { [`${CONFIG}/collie.pid`]: "4242\n" },
+      ps: { 4242: `${binaryOn("linux")} _exec-bridge` },
+    });
+    stopPidfileProcess(bare.deps);
+    expect(bare.exec.killed).toEqual([]);
+  });
+
   test("never signals a pid the OS recycled to something else", () => {
     const h = harness({
       files: { [`${CONFIG}/collie.pid`]: "4243\n" },
@@ -301,9 +329,9 @@ describe("start, on systemd", () => {
 
   test("refuses to install a unit pointing at a binary that isn't there", async () => {
     const h = harness();
-    h.files.remove(BINARY);
+    h.files.remove(binaryOn("linux"));
     expect(await cmdStart(h.deps)).toBe(EXIT.FAIL);
-    expect(h.io.stderr.join("\n")).toContain(`no collie binary at ${BINARY}`);
+    expect(h.io.stderr.join("\n")).toContain(`no collie binary at ${binaryOn("linux")}`);
     expect(h.exec.calls).not.toContain("systemctl --user enable --now collie");
   });
 
@@ -344,7 +372,8 @@ describe("start, on systemd", () => {
     expect(await cmdStart(h.deps)).toBe(EXIT.OK);
     expect(h.io.stdout.join("\n")).toContain("building web UI (first run)");
 
-    const broken = harness({ answers: [[`${ROOT}/web$ bun run build --`, { code: 1 }]] });
+    // The answer is matched against the raw call line, which spells the cwd with `join`.
+    const broken = harness({ answers: [[`${join(ROOT, "web")}$ bun run build --`, { code: 1 }]] });
     expect(await cmdStart(broken.deps)).toBe(EXIT.OK);
     expect(broken.io.stderr.join("\n")).toContain("the UI will 503");
     expect(broken.io.stdout.join("\n")).toContain("bridge started");
@@ -353,7 +382,7 @@ describe("start, on systemd", () => {
 
 describe("start, on launchd", () => {
   const darwin = (over: HarnessOptions = {}): Harness =>
-    harness({ ...over, platform: "darwin", answers: [...NO_SYSTEMD, ...(over.answers ?? [])] });
+    harness({ ...over, host: hostFor("darwin"), answers: [...NO_SYSTEMD, ...(over.answers ?? [])] });
 
   test("installs the plist mode 644 and bootstraps it, idempotently", async () => {
     const h = darwin();
@@ -366,7 +395,7 @@ describe("start, on launchd", () => {
     expect(h.exec.calls).toContain("launchctl bootout gui/501/herdr.collie");
     expect(h.exec.calls).toContain("launchctl enable gui/501/herdr.collie");
     expect(h.exec.calls).toContain(
-      `launchctl bootstrap gui/501 ${HOME}/Library/LaunchAgents/herdr.collie.plist`,
+      `launchctl bootstrap gui/501 ${join(HOME, "Library", "LaunchAgents", "herdr.collie.plist")}`,
     );
     expect(h.io.stdout).toContain("bridge started (launchd: herdr.collie)");
   });
@@ -426,7 +455,7 @@ describe("start, unsupervised", () => {
     expect(h.exec.spawned[0]?.command).toEqual([BINARY, "_exec-bridge"]);
     expect(h.exec.spawned[0]?.env.COLLIE_PLUGIN_ROOT).toBe(ROOT);
     expect(h.exec.spawned[0]?.env.COLLIE_PORT).toBe("8787");
-    expect(h.exec.spawned[0]?.logPath).toBe(`${CONFIG}/collie.log`);
+    expect(h.exec.spawned[0]?.logPath).toBe(join(CONFIG, "collie.log"));
     expect(h.io.stdout).toContain("bridge started (pid 4242, unsupervised)");
   });
 
@@ -451,7 +480,7 @@ describe("the first-run multiplexer gate", () => {
     expect(await cmdStart(h.deps)).toBe(EXIT.FAIL);
     expect(h.exec.spawned).toHaveLength(0);
     expect(h.io.stderr.join("\n")).toContain("no COLLIE_MUX is set");
-    expect(h.io.stderr.join("\n")).toContain(`${CONFIG}/.env`);
+    expect(h.io.stderr.join("\n")).toContain(join(CONFIG, ".env"));
   });
 
   test("auto-selects the only multiplexer running, writes it down, and hands it to the bridge", async () => {
@@ -493,9 +522,9 @@ describe("restart, under the Windows community supervisor", () => {
   const windows = (over: HarnessOptions = {}): Harness =>
     harness({
       ...over,
-      platform: "win32",
+      host: hostFor("win32"),
       answers: [...NO_SYSTEMD, ...(over.answers ?? [])],
-      files: { [`${BINARY}.exe`]: "", ...over.files },
+      files: { [binaryOn("win32")]: "", ...over.files },
     });
 
   test("kills the recorded bridge and nothing else, then leaves the relaunch to the supervisor", async () => {
@@ -650,7 +679,7 @@ describe("stop", () => {
   });
 
   test("launchd: disable AND bootout — together they are `disable --now`", () => {
-    const h = harness({ platform: "darwin", answers: NO_SYSTEMD });
+    const h = harness({ host: hostFor("darwin"), answers: NO_SYSTEMD });
     expect(cmdStop(h.deps)).toBe(EXIT.OK);
     expect(h.exec.calls).toContain("launchctl disable gui/501/herdr.collie");
     expect(h.exec.calls).toContain("launchctl bootout gui/501/herdr.collie");
@@ -755,7 +784,7 @@ describe("the status banner", () => {
 
   test("the launchd line covers loaded, loaded-but-stopped, absent, and the fallback", () => {
     const darwin = (answers: Scripted["answers"], files?: Record<string, string>): LifecycleDeps =>
-      harness({ platform: "darwin", answers: [...NO_SYSTEMD, ...(answers ?? [])], files }).deps;
+      harness({ host: hostFor("darwin"), answers: [...NO_SYSTEMD, ...(answers ?? [])], files }).deps;
 
     expect(
       serviceDescription(
@@ -782,7 +811,7 @@ describe("the status banner", () => {
     ["loaded, not running", "\tstate = waiting\n"],
   ])("discovers background user agents: %s", (state, stdout) => {
     const h = harness({
-      platform: "darwin",
+      host: hostFor("darwin"),
       answers: [
         ...NO_SYSTEMD,
         ["launchctl print gui/501/herdr.collie", { code: 1 }],
@@ -796,7 +825,7 @@ describe("the status banner", () => {
 
   test("reports both domains instead of hiding a running user agent behind a stopped GUI agent", () => {
     const h = harness({
-      platform: "darwin",
+      host: hostFor("darwin"),
       answers: [
         ...NO_SYSTEMD,
         ["launchctl print gui/501/herdr.collie", { stdout: "\tstate = waiting\n" }],
@@ -811,7 +840,7 @@ describe("the status banner", () => {
 
   test("does not treat failed launchctl output as a loaded service", () => {
     const h = harness({
-      platform: "darwin",
+      host: hostFor("darwin"),
       answers: [
         ...NO_SYSTEMD,
         ["launchctl print gui/501/herdr.collie", { code: 1, stdout: "\tpid = 9999\n" }],
@@ -825,7 +854,7 @@ describe("the status banner", () => {
     const plist = `${HOME}/Library/LaunchAgents/herdr.collie-next.plist`;
     const h = harness({
       instance: "next",
-      platform: "darwin",
+      host: hostFor("darwin"),
       env: { COLLIE_SKIP_SERVE: "1" },
       answers: [
         ...NO_SYSTEMD,
@@ -952,13 +981,13 @@ describe("uninstall", () => {
     // `uninstall` removes only what `start` created.
     expect(h.files.exists(`${CONFIG}/.env`)).toBe(true);
     expect(h.io.stdout.join("\n")).toContain("✓ uninstalled:");
-    expect(h.io.stdout.join("\n")).toContain(`kept: ${CONFIG}/.env and the checkout`);
+    expect(h.io.stdout.join("\n")).toContain(`kept: ${join(CONFIG, ".env")} and the checkout`);
   });
 
   test("on launchd: the plist goes, then `enable` clears the disable record a reinstall would inherit", () => {
     const h = harness({
       answers: NO_SYSTEMD,
-      platform: "darwin",
+      host: hostFor("darwin"),
       files: { [PLIST]: "<plist/>" },
     });
     expect(cmdUninstall(h.deps)).toBe(EXIT.OK);
@@ -1021,7 +1050,7 @@ describe("the COLLIE_INSTANCE knob", () => {
   });
 
   test("the launchd label, plist and target are the instance's own", () => {
-    const h = harness({ instance: "v1", answers: NO_SYSTEMD, platform: "darwin" });
+    const h = harness({ instance: "v1", answers: NO_SYSTEMD, host: hostFor("darwin") });
     expect(cmdStop(h.deps)).toBe(EXIT.OK);
     expect(h.exec.calls).toContain("launchctl bootout gui/501/herdr.collie-v1");
     expect(h.exec.calls).not.toContain("launchctl bootout gui/501/herdr.collie");

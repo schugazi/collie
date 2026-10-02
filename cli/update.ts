@@ -1,5 +1,6 @@
 import { basename, dirname, join } from "node:path";
 
+import { binaryName, collieBinary, HOST, type Host } from "../bridge/host.ts";
 import type { JsonValue } from "../bridge/json.ts";
 import {
   type ApiTag,
@@ -47,7 +48,7 @@ import {
   resolveRunnableBun,
 } from "./sys.ts";
 import { tagRemote } from "./update-remote.ts";
-import { collieBinary, unitName } from "./unit.ts";
+import { unitName } from "./unit.ts";
 import {
   driveApply,
   HEALTH_POLL_MS,
@@ -98,9 +99,9 @@ export interface UpdateDeps extends BuildDeps {
   link: LinkWriter;
   /** The two anonymous HTTPS GETs the binary path makes (`cli/sys.ts`). No test may reach a network. */
   net: Net;
-  /** `process.platform` / `process.arch`, injected so a test pins a platform rather than inheriting
-   *  the host's — the artifact this install may take is decided from them. */
-  platform: string;
+  /** The host (`bridge/host.ts`) and `process.arch`, injected so a test pins a platform rather than
+   *  inheriting the machine's — the artifact this install may take is decided from them. */
+  host: Host;
   arch: string;
   /** The clock and the wait the detached runner's health gate is driven by (M15/04). Injected for
    *  the same reason everything else here is: a test drives a 30 s budget in no time at all. */
@@ -844,7 +845,7 @@ const releaseCore = (v: string): string => (v.split("+")[0] ?? v).replace(/-(?:d
  */
 function installIsIntact(deps: UpdateDeps): boolean {
   const root = deps.ctx.root;
-  if (!deps.files.exists(collieBinary(root, deps.platform))) return false;
+  if (!deps.files.exists(collieBinary(root, deps.host))) return false;
   const manifest = manifestVersionFrom(deps.files.read(join(root, "herdr-plugin.toml")));
   const built = readBuildInfo(deps.files.read(join(root, "web", "dist", "build-info.json")));
   if (manifest === null || built === null) return false;
@@ -928,7 +929,7 @@ export async function cmdApplyUpdate(deps: UpdateDeps, args: readonly string[] =
   refreshRegistry(deps);
   deps.io.out("✓ update complete");
   // `build` just wrote this binary from the code we are running, so it is the new list, not ours.
-  nudgeHooks(deps, collieBinary(deps.ctx.root));
+  nudgeHooks(deps, collieBinary(deps.ctx.root, deps.host));
   return EXIT.OK;
 }
 
@@ -1016,8 +1017,8 @@ export async function cmdUpdate(deps: UpdateDeps, args: readonly string[] = []):
   // route every second update back into the in-place path it just left. A checkout that is not under
   // the layout stages only when it is a LINKED CLONE: a Herdr-managed checkout keeps ADR 0006's
   // in-place advancement for this milestone (see that ADR's 2026-09-03 amendment).
-  const staged = isCheckout && (underVersions(deps.ctx.root) || install.kind === "linked-clone");
-  const layout = isCheckout ? layoutForCheckout(deps.ctx.root) : null;
+  const staged = isCheckout && (underVersions(deps.ctx.root, deps.host) || install.kind === "linked-clone");
+  const layout = isCheckout ? layoutForCheckout(deps.ctx.root, deps.host) : null;
   // The record, not the act — `--status` reads `<state dir>/update.json` and touches nothing, so it
   // is answered before the lock, before the install kind matters and before any network call.
   if (wantsStatus(args)) return cmdUpdateStatus(deps, args);
@@ -1176,7 +1177,7 @@ function unknownEvidence(
     case "no-marker":
       return `no herdr-plugin.toml at ${root}`;
     case "orphan-layout":
-      return `a versions/ layout at ${binaryLayout(root).installRoot} with no \`current\` symlink`;
+      return `a versions/ layout at ${binaryLayout(root, deps.host).installRoot} with no \`current\` symlink`;
     case "broken-checkout":
       return `${root}/.git exists but git will not read it`;
     case "loose-binary":
@@ -1268,10 +1269,10 @@ export function currentVersionDir(deps: { readonly link: LinkReader }, layout: B
  * implementation would be a second thing to get atomic.
  */
 function flipCurrent(deps: UpdateDeps, layout: BinaryLayout, version: string): boolean {
-  const staged = join(layout.installRoot, ".current.new");
+  const staged = deps.host.path.join(layout.installRoot, ".current.new");
   try {
     deps.link.remove(staged);
-    deps.link.symlink(join("versions", version), staged);
+    deps.link.symlink(deps.host.path.join("versions", version), staged);
     deps.files.rename(staged, layout.currentLink);
     return true;
   } catch (err) {
@@ -1334,10 +1335,15 @@ export type SmokeResult =
  * failure says why and keeps the child's last lines, because "did not run" with nothing after it is
  * the report that took a macOS operator three attempts and a log dive to not explain.
  */
-export function smoke(deps: Pick<UpdateDeps, "exec">, dir: string, version: string): SmokeResult {
+export function smoke(
+  // `host` picks the binary's name (`collie.exe` on Windows); the running machine's when absent.
+  deps: Pick<UpdateDeps, "exec"> & { readonly host?: Host },
+  dir: string,
+  version: string,
+): SmokeResult {
   let r: ExecResult;
   try {
-    r = deps.exec.capture(join(dir, "bin", "collie"), ["version"], SMOKE_TIMEOUT_MS, undefined, ITS_OWN_ROOT);
+    r = deps.exec.capture(collieBinary(dir, deps.host), ["version"], SMOKE_TIMEOUT_MS, undefined, ITS_OWN_ROOT);
   } catch (err) {
     // `capture` throws when the child cannot even start (ENOEXEC, EACCES).
     return { ok: false, why: `it could not be started: ${err instanceof Error ? err.message : String(err)}`, tail: [] };
@@ -1376,11 +1382,11 @@ export function smokeReason(result: Extract<SmokeResult, { ok: false }>): string
  * only then collect old versions.
  */
 async function updateBinary(deps: UpdateDeps, args: readonly string[]): Promise<number> {
-  const layout = binaryLayout(deps.ctx.root);
+  const layout = binaryLayout(deps.ctx.root, deps.host);
   const repo = updateRepoOf(deps.ctx.env);
   // 1. A redirected updater is never silent — the repo IS the trust boundary on this path.
   if (repo !== DEFAULT_UPDATE_REPO) deps.io.out(`update source: github.com/${repo} (COLLIE_UPDATE_REPO)`);
-  const platform = platformId(deps.platform, deps.arch);
+  const platform = platformId(deps.host.platform, deps.arch);
   if (platform === null) {
     deps.io.err("error: Collie publishes no release artifact for this platform.");
     deps.io.err("       Update by pulling and rebuilding a checkout — see docs/install.md.");
@@ -1513,7 +1519,7 @@ async function updateBinary(deps: UpdateDeps, args: readonly string[]): Promise<
     return EXIT.FAIL;
   }
   const payload = join(unpacked, artifact.payloadRoot);
-  const required = ["bin/collie", "web/dist/index.html", "herdr-plugin.toml", "package.json"];
+  const required = [`bin/${binaryName(deps.host)}`, "web/dist/index.html", "herdr-plugin.toml", "package.json"];
   const missing = required.filter((rel) => !deps.files.exists(join(payload, ...rel.split("/"))));
   if (missing.length > 0) {
     deps.files.removeTree(layout.stagingDir);
@@ -1522,8 +1528,9 @@ async function updateBinary(deps: UpdateDeps, args: readonly string[]): Promise<
     return EXIT.FAIL;
   }
   // tar carries the mode, and every runner that builds one sets it — but a umask or a re-packed
-  // archive can still land a non-executable binary, and the cost of being sure is one call.
-  deps.exec.capture("chmod", ["0755", join(payload, "bin", "collie")]);
+  // archive can still land a non-executable binary, and the cost of being sure is one call. NTFS has
+  // no mode bit, so Windows skips it.
+  if (deps.host.platform !== "win32") deps.exec.capture("chmod", ["0755", collieBinary(payload, deps.host)]);
   const laid = join(layout.versionsDir, target.version);
   if (deps.files.exists(laid)) toTrash(deps, layout, target.version);
   deps.files.mkdirp(layout.versionsDir);
@@ -1596,7 +1603,7 @@ function collectOldVersions(deps: UpdateDeps, layout: BinaryLayout, keepVersion:
  * want back once the bug is understood.
  */
 async function rollbackBinary(deps: UpdateDeps): Promise<number> {
-  const layout = binaryLayout(deps.ctx.root);
+  const layout = binaryLayout(deps.ctx.root, deps.host);
   const at = currentVersionDir(deps, layout) ?? layout.version;
   const older = installedVersions(deps, layout).filter((v) => compareSemver(v, at) < 0);
   const target = older[older.length - 1];
@@ -1665,25 +1672,26 @@ export interface BuildMarker {
  * root. {@link binaryLayout} derives the same five paths from a version DIRECTORY, which is what the
  * running process sits in once the layout exists; this derives them from the root above it.
  */
-export function checkoutLayout(installRoot: string): BinaryLayout {
+export function checkoutLayout(installRoot: string, host: Host = HOST): BinaryLayout {
+  const at = (...parts: string[]): string => host.path.join(installRoot, ...parts);
   return {
     installRoot,
-    versionsDir: join(installRoot, "versions"),
-    currentLink: join(installRoot, "current"),
-    stagingDir: join(installRoot, ".staging"),
-    trashDir: join(installRoot, ".trash"),
+    versionsDir: at("versions"),
+    currentLink: at("current"),
+    stagingDir: at(".staging"),
+    trashDir: at(".trash"),
     version: "",
   };
 }
 
 /** Does `root` sit at `<install-root>/versions/<name>` — i.e. is this install already staged? */
-function underVersions(root: string): boolean {
-  return basename(dirname(root)) === "versions";
+function underVersions(root: string, host: Host = HOST): boolean {
+  return host.path.basename(host.path.dirname(root)) === "versions";
 }
 
 /** The layout a checkout at `root` updates under, whether it has been migrated yet or not. */
-function layoutForCheckout(root: string): BinaryLayout {
-  return underVersions(root) ? binaryLayout(root) : checkoutLayout(root);
+function layoutForCheckout(root: string, host: Host): BinaryLayout {
+  return underVersions(root, host) ? binaryLayout(root, host) : checkoutLayout(root, host);
 }
 
 /** `<dir>/.collie-build`. */
@@ -1742,7 +1750,7 @@ export interface VersionOnDisk {
  * at: `.staging`, a stray note, an operator's backup copy.
  */
 export function listVersions(
-  deps: { readonly files: Files },
+  deps: { readonly files: Files; readonly host?: Host },
   layout: BinaryLayout,
   kind: "binary" | "checkout",
 ): VersionOnDisk[] {
@@ -1754,7 +1762,7 @@ export function listVersions(
       const complete =
         kind === "checkout"
           ? readBuildMarker(deps, at) !== null
-          : deps.files.exists(join(at, "bin", "collie"));
+          : deps.files.exists(collieBinary(at, deps.host));
       return [{ dir, version: kind === "checkout" ? dir.slice(1) : dir, complete }];
     })
     .toSorted((a, b) => compareSemver(a.version, b.version));
@@ -1854,7 +1862,7 @@ function restartThroughCurrent(deps: UpdateDeps, layout: BinaryLayout): boolean 
   // root for its own and write it back into the unit, which is the cosmetic flip this function exists
   // to prevent, arriving by the environment instead.
   const r = deps.exec.runIn(
-    join(layout.currentLink, "bin", "collie"),
+    collieBinary(layout.currentLink, deps.host),
     ["restart"],
     layout.installRoot,
     undefined,
@@ -1875,8 +1883,8 @@ function republishName(deps: UpdateDeps, root: string, previousBinary: string): 
   const at = linkPath(deps.ctx.home);
   const probe = deps.link.probe(at);
   if (probe.kind !== "symlink" || probe.target !== previousBinary) return;
-  if (!isCollieBinaryPath(probe.target)) return;
-  cmdLink({ ctx: { ...deps.ctx, root }, io: deps.io, files: deps.files, fs: deps.link });
+  if (!isCollieBinaryPath(probe.target, deps.host)) return;
+  cmdLink({ ctx: { ...deps.ctx, root }, io: deps.io, files: deps.files, fs: deps.link, host: deps.host });
 }
 
 /** Fetch one release tag and STORE it locally — the refspec `detachOnto` explains at length. */
@@ -1912,7 +1920,7 @@ async function updateStagedCheckout(
   // `ls-remote`, `fetch`, `worktree add` and `worktree prune` are all answered the same from any of
   // them — and using our own root means a migration and a re-stage spell it identically.
   const git = root;
-  const migrating = !underVersions(root);
+  const migrating = !underVersions(root, deps.host);
 
   if (!isGitCheckout(deps.exec, git)) {
     deps.io.err(`error: ${git} is not a git checkout — refresh it with:`);
@@ -2147,13 +2155,13 @@ async function rollbackCheckout(deps: UpdateDeps, layout: BinaryLayout): Promise
  * checkout owns is the right answer.
  */
 function runnerBinary(deps: UpdateDeps): string {
-  return isCollieBinaryPath(deps.execPath) ? deps.execPath : collieBinary(deps.ctx.root);
+  return isCollieBinaryPath(deps.execPath, deps.host) ? deps.execPath : collieBinary(deps.ctx.root, deps.host);
 }
 
 /** The one thing an operator is told to run, and it is a path, not a verb — `current` may be wrong. */
-function recoveryCommand(layout: BinaryLayout, from: string | null): string {
+function recoveryCommand(layout: BinaryLayout, from: string | null, host: Host): string {
   if (from === null) return "collie update  (there is no previous version on disk to flip back to)";
-  return `${join(layout.versionsDir, from, "bin", "collie")} update --rollback`;
+  return `${collieBinary(join(layout.versionsDir, from), host)} update --rollback`;
 }
 
 /** What the runner was asked to do, parsed out of its own argv. */
@@ -2428,7 +2436,7 @@ function handOff(
   writeRun(deps.files, deps.ctx.stateDir, staging);
 
   const plan = launchPlan({
-    platform: deps.platform,
+    host: deps.host,
     binary: runnerBinary(deps),
     args: applyArgv({ ...a, handoff: deps.pid }),
     unit: unitName(deps.ctx.instance),
@@ -2543,7 +2551,7 @@ export const wantsStatus = (args: readonly string[]): boolean => args.includes("
  * {@link driveApply}, which is where the machine lives.
  */
 async function runApply(deps: UpdateDeps, a: ApplyArgs): Promise<number> {
-  const layout = a.kind === "binary" ? binaryLayout(deps.ctx.root) : layoutForCheckout(deps.ctx.root);
+  const layout = a.kind === "binary" ? binaryLayout(deps.ctx.root, deps.host) : layoutForCheckout(deps.ctx.root, deps.host);
   const stateDir = deps.ctx.stateDir;
   // The lock this run inherits is the one the staging process took (`--handoff <pid>`). Any other
   // holder is somebody else's run and refuses us, exactly as it refuses a second `collie update`.
@@ -2597,7 +2605,7 @@ async function runApply(deps: UpdateDeps, a: ApplyArgs): Promise<number> {
       timeoutMs: healthTimeoutMs(deps.ctx.env),
       pollMs: HEALTH_POLL_MS,
     },
-    { to: a.to, from: a.from, version: a.version, commit: a.commit, recovery: recoveryCommand(layout, a.from) },
+    { to: a.to, from: a.from, version: a.version, commit: a.commit, recovery: recoveryCommand(layout, a.from, deps.host) },
     start,
   );
   releaseLock(deps.files, stateDir);
@@ -2605,13 +2613,13 @@ async function runApply(deps: UpdateDeps, a: ApplyArgs): Promise<number> {
   if (run.state === "done") {
     // The two names that must follow a flip, and the nudge that must be asked of the NEW binary.
     if (a.kind === "checkout") {
-      if (!underVersions(deps.ctx.root)) {
-        republishName(deps, join(layout.versionsDir, a.to), collieBinary(deps.ctx.root));
+      if (!underVersions(deps.ctx.root, deps.host)) {
+        republishName(deps, deps.host.path.join(layout.versionsDir, a.to), collieBinary(deps.ctx.root, deps.host));
       }
       refreshRegistry(deps, layout.currentLink);
     }
     deps.io.out(`✓ updated to ${a.version === "" ? a.to : a.version}`);
-    nudgeHooks(deps, join(layout.currentLink, "bin", "collie"));
+    nudgeHooks(deps, collieBinary(layout.currentLink, deps.host));
     return EXIT.OK;
   }
   if (run.state === "rolled-back") {
@@ -2621,6 +2629,6 @@ async function runApply(deps: UpdateDeps, a: ApplyArgs): Promise<number> {
   }
   deps.io.err(`error: ${a.to} did not come up, and neither did the rollback. Nothing will restart again.`);
   deps.io.err(`       ${run.reason ?? "no reason recorded"}`);
-  deps.io.err(`       Recover with: ${run.recovery ?? recoveryCommand(layout, a.from)}`);
+  deps.io.err(`       Recover with: ${run.recovery ?? recoveryCommand(layout, a.from, deps.host)}`);
   return EXIT.FAIL;
 }

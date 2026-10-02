@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { CREW_PROTOCOL_VERSION } from "../bridge/crew/enrollment.ts";
+import { hostFor } from "../bridge/host.ts";
 import { leadStore, member, peerStore } from "../bridge/crew/fixtures.ts";
 import type { OpsRecord } from "../bridge/crew/ops-store.ts";
 import type { TrustStoreData } from "../bridge/crew/trust-store.ts";
@@ -176,7 +178,7 @@ function harness(
     files,
     link: fakeLinkFs(),
     net: over.net ?? deadNet,
-    platform: "linux",
+    host: hostFor("linux"),
     store: { load: () => Promise.resolve(over.store ?? null) },
     ops: { get: (id) => Promise.resolve(over.ops?.[id] ?? null) },
     remote: (host) => {
@@ -395,7 +397,9 @@ describe("preflight — the bun check", () => {
   // #169: PATH alone made this red on a host the shim builds on happily. A Bun at a known candidate
   // is green, and the reason names it — the operator's own shell will not show them that one.
   test("bun off PATH at a known candidate is green, and the reason names the absolute path", () => {
-    const bun = `${HOME}/.bun/bin/bun`;
+    // Spelled the way the code spells it: `join` makes `\home\pat\.bun\bin\bun` on Windows, and the
+    // call line and the reason carry that spelling. The fake filesystem folds it back to its POSIX key.
+    const bun = join(HOME, ".bun", "bin", "bun");
     const h = harness({
       absent: ["bun"],
       answers: [[`${bun} --version`, { stdout: "1.3.14\n" }]],
@@ -410,7 +414,7 @@ describe("preflight — the bun check", () => {
   });
 
   test("$BUN_INSTALL is honoured, exactly as the shim honours it", () => {
-    const bun = "/opt/bun/bin/bun";
+    const bun = join("/opt/bun", "bin", "bun");
     const h = harness({
       absent: ["bun"],
       answers: [[`${bun} --version`, { stdout: "1.3.14\n" }]],
@@ -615,11 +619,11 @@ describe("preflight — the service check", () => {
 
   test("on macOS the LaunchAgent is what is asked about", async () => {
     const h = harness({ answers: [["systemctl --user show-environment", { code: 1 }]] });
-    const deps: UpdateCheckDeps = { ...h.deps, platform: "darwin" };
+    const deps: UpdateCheckDeps = { ...h.deps, host: hostFor("darwin") };
     const check = byId(await preflight(deps), "service");
     expect(check.verdict).toBe("red");
     expect(check.reason).toContain("LaunchAgent");
-    expect(check.reason).toContain("Library/LaunchAgents");
+    expect(check.reason).toContain(join("Library", "LaunchAgents"));
   });
 });
 
