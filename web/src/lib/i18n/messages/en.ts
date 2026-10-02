@@ -27,6 +27,8 @@ export const en = {
   "transcript.tools.hidden.other": "{count} steps hidden — tap to show",
   "settings.tools.title": "Tool calls",
   "settings.tools.description": "Draw the reads, searches, commands and edits an agent ran. Off keeps the thread to what it said.",
+  "settings.compactions.title": "Compaction summaries",
+  "settings.compactions.description": "Keep the recap an agent writes when it compacts its context. Off leaves one marker line where it happened.",
   // --- settings.experiments (the fifth section) ---
   // The contract is the SECTION'S, said once at the top rather than repeated on every card.
   "settings.experiments.contract": "Anything here may change, lose settings, or be withdrawn in a patch release.",
@@ -439,6 +441,13 @@ export const en = {
   "chat.card.status.failed": "failed",
   "chat.card.status.denied": "denied",
   "chat.card.status.exit": "exit {code}",
+  // A question tool call's card. The agent's own `header` names the card when it sent one; the
+  // dialog the reader answers in lives in the dock below the stream, never on the card.
+  "chat.tool.question": "Question",
+  "chat.question.waiting": "Waiting for an answer",
+  "chat.question.answerBelow": "Answer in the card below",
+  "chat.question.dismissed": "Dismissed",
+  "chat.question.multiple": "Pick any that apply",
   "chat.card.output.hide": "Hide output",
   "chat.card.output.show.one": "Output · {count} line",
   "chat.card.output.show.other": "Output · {count} lines",
@@ -888,6 +897,7 @@ export const en = {
   "dialog.incomplete": "You have not answered all questions",
   "dialog.submitAnswers": "Submit answers",
   "dialog.cancel": "Cancel",
+  "dialog.backToOptions": "Back to the options",
   "dialog.endsQuestionsSuffix": "— ends the questions",
   "dialog.autocomplete.title": "Slash commands",
   "dialog.menu.moveUp": "Move up",

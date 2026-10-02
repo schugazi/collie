@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { parseAnsi } from "../../ansi";
 import { splitLines, type StyledLine } from "../../blocks";
 import { detectAutocompleteRegion } from "./autocomplete";
-import { extractInputDraft, extractStatusLines, hasInputBox, inputBoxTail, tailNamesAMenu } from "./chrome";
+import { extractInputDraft, extractStatusLines, hasInputBox, inputBoxTail, namesAModalKey } from "./chrome";
 import { draftCarriesSend } from "../../reply-action";
 import { claudeAdapter, claudeBuildBlocks } from "./index";
 import { lineText } from "./markers";
@@ -71,13 +71,16 @@ describe("parity with the old walk on the real corpus", () => {
     "claude--draft-paste-split-partial.txt",
     "claude--draft-paste-split-tail.txt",
     "claude--draft-wrapped.txt",
-    // Not the old walk's: its footer hints refused these live boxes (tailNamesAMenu's exemptions).
+    // Not the old walk's: its footer hints refused these live boxes (namesAModalKey's exemptions).
     "claude--footer-hints-idle--w45.txt",
     "claude--footer-hints-working--w60.txt",
     "claude--footer-hints-working.txt",
     "claude--fresh-idle.txt",
     "claude--ghost-suggestion.txt",
     "claude--ghost-typed-over.txt",
+    // Claude Code 2.1.287 default footer: "esc to interrupt" mid-turn and "↓ to manage" with a
+    // background task are the composer's own status hints, not a modal's keys.
+    "claude--idle-background-shell.txt",
     "claude--menu-model-picker-dismissed.txt",
     "claude--model-alias.txt",
     "claude--rename-resolved.txt",
@@ -94,6 +97,7 @@ describe("parity with the old walk on the real corpus", () => {
     "claude--v2283-plugin-marketplaces-updated--w120.txt",
     "claude--v2283-plugin-marketplaces-updated--w40.txt",
     "claude--v2283-plugin-marketplaces-updated--w82.txt",
+    "claude--working-esc-to-interrupt.txt",
     "claude--working.txt",
   ]);
 
@@ -279,7 +283,7 @@ describe("a statusline-shaped tail still carries no menu", () => {
       for (const row of extractStatusLines(lines).map(lineText)) {
         rows++;
         // A footer's own composer hints (`esc to interrupt`, `↓ to manage`) are exempt; any other key.
-        expect(tailNamesAMenu(row), `${name}: ${row}`).toBe(false);
+        expect(namesAModalKey(row), `${name}: ${row}`).toBe(false);
         expect(/^\s*(?:❯\s*)?\d+\.\s+\S/.test(row), `${name}: ${row}`).toBe(false);
       }
     }

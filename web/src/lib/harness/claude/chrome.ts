@@ -10,7 +10,7 @@
 // matched by POSITION (below the box's bottom border), never by its content strings.
 
 import type { StyledLine } from "../../blocks";
-import { namesAMenuKey } from "../menu-hints";
+import { namesAMenuKey, SEGMENT_SPLIT } from "../menu-hints";
 import { findAutocompleteRun, MAX_AUTOCOMPLETE_LINES } from "./autocomplete";
 import {
   classifyFooter,
@@ -306,6 +306,18 @@ export function inputBoxTail(lines: StyledLine[]): InputBoxTail | null {
   return locateInputBox(lines, texts, end)?.tail ?? null;
 }
 
+/** Whether a live input box sits under a footer whose task pill is selected (footerPillSelected): the
+ *  one case the box locator refuses with no modal key on screen, so the adapter's `modalOnScreen`
+ *  asks it directly to keep offering Esc. */
+export function taskPillSelected(lines: StyledLine[]): boolean {
+  const texts = lines.map(lineText);
+  let end = lines.length;
+  while (end > 0 && isBlank(texts[end - 1]!)) end--;
+  if (end === 0) return false;
+  const box = locateInputBox(lines, texts, end, true);
+  return box !== null && box.tail !== "autocomplete" && footerPillSelected(lines[box.statusEnd - 1]);
+}
+
 /**
  * The rows under the bottom border, labelled:
  *  - `statusline`: the bounded statusline + hint run, with the optional background-agents footer
@@ -392,7 +404,7 @@ const MAX_TAIL_LINES = MAX_AUTOCOMPLETE_LINES;
  * tailLooksModal refuses any other rule in an `unknown` tail (a `statusline` tail is exempt from it).
  * A popup tail is not checked, but a popup is only named under a slash-command draft.
  */
-function locateInputBox(lines: StyledLine[], texts: string[], end: number): InputBox | null {
+function locateInputBox(lines: StyledLine[], texts: string[], end: number, ignorePill = false): InputBox | null {
   // 1. The lowest frame mark, within the tail bound. A mark a statusline may draw is stepped over and
   //    remembered; it is judged once the tail is labelled (below).
   let b = end - 1;
@@ -423,7 +435,7 @@ function locateInputBox(lines: StyledLine[], texts: string[], end: number): Inpu
     if (tail !== "autocomplete" && tailNamesAMenu(texts[j]!)) return null;
     if (tail === "unknown" && tailLooksModal(texts[j]!)) return null;
   }
-  if (tail !== "autocomplete" && footerPillSelected(lines[statusEnd - 1])) return null;
+  if (!ignorePill && tail !== "autocomplete" && footerPillSelected(lines[statusEnd - 1])) return null;
   if (dialogOnScreen(lines)) return null;
 
   return { top: frame.top, prompt: frame.prompt, bottomBorder: b, tail, statusEnd, agentsStart };
@@ -489,10 +501,8 @@ function steppedMarksAreStatusline(
  *  `statusline` tail as well as an `unknown` one: a dialog under a stale box can fit the statusline
  *  walk (its footer split off by a blank, like the background-agents footer), and only these rows
  *  tell it apart. A popup tail is exempt, because its grammar named every row. */
-export function tailNamesAMenu(text: string): boolean {
-  if (NUMBERED_OPTION_ROW.test(text)) return true;
-  const segments = text.trim().split(/\s+·\s+/);
-  return segments.some((s, i) => !isComposerFooterHint(s, i === segments.length - 1) && namesAMenuKey(s));
+function tailNamesAMenu(text: string): boolean {
+  return NUMBERED_OPTION_ROW.test(text) || namesAModalKey(text);
 }
 
 // The hints Claude's prompt footer prints beside the mode pill while the composer is LIVE, read off
@@ -521,12 +531,29 @@ function isComposerFooterHint(segment: string, last: boolean): boolean {
   return / to \S/.test(head) && COMPOSER_FOOTER_HINTS.some((h) => h.startsWith(head));
 }
 
+/**
+ * `namesAMenuKey` for a Claude row, minus Claude's own composer footer hints. The generic test stays
+ * loose on purpose (a lone "Esc to cancel" must refuse), so the exemption is a closed list of the hints
+ * the composer's footer prints, not a loosening of the key grammar. Shared with the adapter's
+ * `modalOnScreen` so the box locator and the unread-dialog card agree on what a modal footer is.
+ */
+export function namesAModalKey(text: string): boolean {
+  const segments = text.trim().split(SEGMENT_SPLIT);
+  const kept = segments.filter((s, i) => !isComposerFooterHint(s, i === segments.length - 1));
+  if (kept.length === segments.length) return namesAMenuKey(text);
+  return kept.length > 0 && namesAMenuKey(kept.join(" · "));
+}
+
+// The task pill's text: a count and what it counts ("1 shell", "2 local agents").
+const TASK_PILL = /^\d+ [a-z][a-z ]*$/i;
+
 /** Whether the footer row (the statusline run's last row) paints its task pill in inverse video:
  *  Down moved focus onto the pill, and typed text now goes to the pill, not the box. The row's
  *  `Enter to view tasks` says so too, but a narrow pane cuts that hint off (`ctrl+t to hi…`), so the
- *  paint is the evidence that survives (claude--footer-pill-selected--w45.txt). */
+ *  paint is the evidence that survives (claude--footer-pill-selected--w45.txt). Only a segment that
+ *  reads as the pill counts (`1 shell`, `2 agents`): a custom statusline may paint other text inverse. */
 function footerPillSelected(row: StyledLine | undefined): boolean {
-  return row !== undefined && row.segments.some((s) => s.inverse === true && s.text.trim() !== "");
+  return row !== undefined && row.segments.some((s) => s.inverse === true && TASK_PILL.test(s.text.trim()));
 }
 
 /**

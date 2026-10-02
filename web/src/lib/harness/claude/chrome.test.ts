@@ -710,6 +710,13 @@ describe("the background-task pill's hint is statusline, not a menu footer", () 
     expect(hasInputBox(boxWithStatusRows("❯ ", ["  1 shell · esc to inter…"]))).toBe(true);
     expect(hasInputBox(boxWithStatusRows("❯ ", ["  1 shell · Esc to …"]))).toBe(false);
   });
+
+  it("reads only the pill's inverse paint as a selected pill, not a custom statusline's", () => {
+    expect(hasInputBox(boxWithStatusRows("❯ ", ["  \x1b[7mOpus 5.5\x1b[0m · 20% context"]))).toBe(true);
+    expect(hasInputBox(boxWithStatusRows("❯ ", ["  ⏵⏵ auto mode on · \x1b[7m1 shell\x1b[0m · ctrl+t to hi…"]))).toBe(
+      false,
+    );
+  });
 });
 
 describe("dialogs are refused by the border and blank checks — not by the row bound", () => {
@@ -834,6 +841,7 @@ describe("real corpus — pinned so any change to the walk shows up as a diff", 
     { fixture: "footer-pill-selected--w60", statusRows: 0, draft: null, stripped: 1 },
     { fixture: "ghost-suggestion", statusRows: 4, draft: null, stripped: 21 },
     { fixture: "ghost-typed-over", statusRows: 4, draft: "hello real draft text", stripped: 21 },
+    { fixture: "idle-background-shell", statusRows: 1, draft: null, stripped: 5 },
     { fixture: "draft-footer-empty", statusRows: 2, draft: null, stripped: 9 },
     { fixture: "draft-footer-single", statusRows: 2, draft: "remember to update the changelo", stripped: 9 },
     { fixture: "draft-footer-wrapped", statusRows: 2, draft: "this stranded draft is long eno", stripped: 11 },
@@ -991,6 +999,7 @@ describe("real corpus — pinned so any change to the walk shows up as a diff", 
     // under it. All three zeros are the honest reading, not a gap.
     { fixture: "workflow-view", statusRows: 0, draft: null, stripped: 0 },
     { fixture: "working", statusRows: 2, draft: null, stripped: 6 },
+    { fixture: "working-esc-to-interrupt", statusRows: 1, draft: null, stripped: 5 },
   ];
 
   it("pins every claude fixture on disk, so a new capture can't slip past this table", () => {

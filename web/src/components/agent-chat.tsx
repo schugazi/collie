@@ -20,6 +20,7 @@ import { useLaunchers } from "@/lib/launchers";
 import { buzz } from "@/lib/haptics";
 import { mirrorFont, useDisplayPrefs } from "@/hooks/use-display-prefs";
 import { useChatWindow } from "@/hooks/use-chat-window";
+import { useChatReady } from "@/hooks/use-chat-ready";
 import { useLatestReply } from "@/hooks/use-latest-reply";
 import { finishedTurnKey, useMirrorImages } from "@/hooks/use-mirror-images";
 import { useStableTerminalDraft } from "@/hooks/use-terminal-draft";
@@ -47,6 +48,7 @@ import { cn } from "@/lib/utils";
 import { parseAnsi } from "@/lib/ansi";
 import { splitLines } from "@/lib/blocks";
 import { adapterFor, buildBlocks, rendersNativeMirror } from "@/lib/harness";
+import { waitingQuestionNote } from "@/lib/question-waiting";
 import { blockOwnsKeyboard } from "@/lib/harness/dialog-contract";
 import { FindBar } from "@/components/find-bar";
 import { LatestReply } from "@/components/latest-reply";
@@ -59,6 +61,7 @@ import { StripsSummary } from "@/components/strips-summary";
 import { PaneMeta } from "@/components/pane-meta";
 import { CacheSheet } from "@/components/cache-sheet";
 import { PaneActionsSheet } from "@/components/pane-actions-sheet";
+import { CardWaitingCtx } from "@/components/chat-cards";
 import { SessionStream } from "@/components/session-stream";
 import { PaneSettingsSheet } from "@/components/pane-settings-sheet";
 import { CompactStripLabels, TAB_ROW_SQUARE_TAP_TARGET } from "@/components/ui/labelled-strip";
@@ -220,7 +223,7 @@ export function AgentChat({
 }: AgentChatProps) {
   const revalidator = useRevalidator();
   const nav = useNav();
-  useLocale();
+  const { revision: localeRevision } = useLocale();
   // Poll-truth "is the data on screen not live". The one header shell derives the same boolean from
   // the same two root-snapshot fields to drive the Collie mark; here we use it to dim the header's
   // status dot AND its status word, so the pane stops presenting the last snapshot's status as
@@ -849,7 +852,26 @@ export function AgentChat({
   const chatBody = chatChosen && historyAvailable;
   // The live window, moved by the poll that already exists (ADR 0073). Disabled is free: no fetch,
   // no timer, the empty window.
-  const chatFeed = useChatWindow({ paneId, scope, enabled: chatBody });
+  // WARMED BEFORE THE TAP. The read starts when the menu that holds the switch opens, not when the
+  // switch is pressed, so by the time it is the answer is already in hand and the swap lands with the
+  // sheet's own close instead of after it. Only for a pane that has a journal and only while one of
+  // the two sheets that carry the switch is open, so a terminal-only operator pays nothing standing
+  // still on a pane.
+  const switchSheetOpen = drawer === "paneMenu" || drawer === "display";
+  const warming = chatOffered && historyAvailable && switchSheetOpen;
+  const chatFeed = useChatWindow({ paneId, scope, enabled: chatBody || warming });
+  // What the Chat body's running question card says about the dialog below it. Chat body only: the
+  // terminal body draws no cards, so nothing there reads it. `localeRevision` is READ by the note's
+  // `t()` and keys the memo so the sentence follows a language change.
+  const questionNotes = useMemo(() => {
+    void localeRevision;
+    return waitingQuestionNote(chatFeed.window.entries, blocks);
+  }, [chatFeed.window.entries, blocks, localeRevision]);
+  // WHICH BODY IS ON SCREEN. `chatBody` is what was chosen and starts the read above; `chatShown` is
+  // what is drawn, and it lags by one answer. The swap used to land on an empty stream in the same
+  // tick the menu started to close, so the turns popped in after it. The terminal now stays up until
+  // Chat has something to show (hooks/use-chat-ready.ts), with a cap so a failed read cannot strand it.
+  const chatShown = useChatReady(chatBody, chatFeed.window.status.kind !== "empty");
   // Why this pane keeps the terminal, in the operator's own terms — and ONLY for the half of that
   // question this side can answer. There are two layers and the split is deliberate: a pane with no
   // journal at all never asks the bridge, so the reason belongs on the ⋮ row here, while a pane
@@ -1988,20 +2010,23 @@ export function AgentChat({
                 whichever body is on screen back to its tail without knowing which one it is. The
                 draft-notice slot below is outside the swap on purpose: the composer portals into it
                 and the notice floats over both bodies alike (ADR 0061). */}
-            {chatBody ? (
-              <SessionStream
-                feed={chatFeed}
-                address={paneScopeKey(scope, paneId)}
-                // The pane record's own status, the one live fact both bodies share. The mirror gets
-                // this for free — the agent's spinner is in the output it draws — so only this body
-                // has to be told (session-stream.tsx § LIVE_ROW). `connecting` withholds it for the
-                // same reason the status dot dims: a frozen reading must not animate as if it were
-                // arriving.
-                working={agent?.status === "working" && !connecting}
-                showToolCalls={dash.prefs.showToolCalls}
-                fontSize={prefs.chatFontSize}
-                listRef={listRef}
-              />
+            {chatShown ? (
+              <CardWaitingCtx.Provider value={questionNotes}>
+                <SessionStream
+                  feed={chatFeed}
+                  address={paneScopeKey(scope, paneId)}
+                  // The pane record's own status, the one live fact both bodies share. The mirror gets
+                  // this for free — the agent's spinner is in the output it draws — so only this body
+                  // has to be told (session-stream.tsx § LIVE_ROW). `connecting` withholds it for the
+                  // same reason the status dot dims: a frozen reading must not animate as if it were
+                  // arriving.
+                  working={agent?.status === "working" && !connecting}
+                  showToolCalls={dash.prefs.showToolCalls}
+                  showCompactions={dash.prefs.showCompactions}
+                  fontSize={prefs.chatFontSize}
+                  listRef={listRef}
+                />
+              </CardWaitingCtx.Provider>
             ) : (
             <ChatMessageList
               ref={listRef}
@@ -2479,11 +2504,13 @@ export function AgentChat({
               chatOffered
                 ? {
                     chosen: dash.prefs.paneView,
-                    showing: chatBody ? "chat" : "terminal",
+                    showing: chatShown ? "chat" : "terminal",
                     onChange: dash.setPaneView,
                     note: chatNote,
                     showToolCalls: dash.prefs.showToolCalls,
                     setShowToolCalls: dash.setShowToolCalls,
+                    showCompactions: dash.prefs.showCompactions,
+                    setShowCompactions: dash.setShowCompactions,
                     chatFontSize: prefs.chatFontSize,
                     stepChatFontSize,
                   }
@@ -2528,7 +2555,7 @@ export function AgentChat({
           // Find searches the MIRROR, and highlights its hits there. In chat mode the mirror is
           // not on screen, so the row would open a bar over a surface with nothing to show —
           // withheld, the way the sheet withholds every row it was given nothing for.
-          onFind={display && !chatBody ? openFind : undefined}
+          onFind={display && !chatShown ? openFind : undefined}
           onHistory={historyAvailable ? () => nav.down(historyPath(paneId, scope)) : undefined}
           // Copy the buffered output — gated on there being output AND a clipboard to write to (absent
           // over plain HTTP), so the row hides where it could only fail, the way find hides with no

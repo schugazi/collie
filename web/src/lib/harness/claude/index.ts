@@ -10,7 +10,6 @@
 
 import { lineText, trimTrailingBlank, type Block, type StyledLine } from "../../blocks";
 import type { HarnessAdapter } from "../types";
-import { namesAMenuKey } from "../menu-hints";
 import { detectPreviewSelectRegion } from "./preview-select";
 import { detectWizardRegion } from "./wizard";
 import { detectMultiSelectRegion } from "./multi-select";
@@ -26,7 +25,9 @@ import {
   extractAgentsFooter,
   extractInputDraft,
   hasInputBox,
+  namesAModalKey,
   inputBoxTail,
+  taskPillSelected,
 } from "./chrome";
 import { dialogTail } from "./markers";
 import { isPastePlaceholderOnly, pasteCarriesSend } from "./paste";
@@ -190,7 +191,8 @@ function tailNamesAKey(lines: StyledLine[]): boolean {
   for (let i = dialogTail(texts); i >= 0 && rows.length < MODAL_HINT_ROWS; i--) {
     if (texts[i]!.trim() !== "") rows.push(texts[i]!);
   }
-  return rows.some((t) => namesAMenuKey(t) || POINTED_OPTION_ROW.test(t) || PRESS_KEY_PROMPT.test(t));
+  if (rows.some((t) => namesAModalKey(t) || POINTED_OPTION_ROW.test(t) || PRESS_KEY_PROMPT.test(t))) return true;
+  return taskPillSelected(lines);
 }
 
 export const claudeAdapter: HarnessAdapter = {
