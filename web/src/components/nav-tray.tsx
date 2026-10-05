@@ -83,7 +83,7 @@ interface NavTrayProps {
 /** Stable default so an omitted prop never re-renders the pad. */
 const NO_REFUSED_KEYS: readonly string[] = [];
 
-const DIGITS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+const DIGITS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
 
 // F1–F12 — Herdr's send_keys grammar accepts them bare (HERDR_API.md), and harnesses bind them to
 // real actions (tmux windows, CLI hotkeys, agent-extension views like pi's CE Workflow: F7 opens

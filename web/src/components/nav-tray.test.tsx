@@ -36,10 +36,10 @@ describe("NavTray", () => {
 
     await user.click(screen.getByRole("button", { name: "123" }));
 
-    for (const d of ["1", "5", "9"]) {
+    for (const d of ["1", "5", "9", "0"]) {
       await user.click(screen.getByRole("button", { name: d }));
     }
-    expect(onSend.mock.calls).toEqual([[["1"]], [["5"]], [["9"]]]);
+    expect(onSend.mock.calls).toEqual([[["1"]], [["5"]], [["9"]], [["0"]]]);
   });
 
   it("the main grid is 7 cols + a 12px gap + Enter, 2 rows, Enter set apart and tinted (variant 4)", () => {
