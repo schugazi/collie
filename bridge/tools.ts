@@ -1,4 +1,4 @@
-import { accessSync, constants } from "node:fs";
+import { accessSync, constants, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { HOST, type Host } from "./host.ts";
@@ -76,7 +76,7 @@ export function searchDirs(
  * tool search then silently falls back to the POSIX directory list and reports every Windows tool
  * as "not installed on this host".
  */
-function envGet(
+export function envGet(
   env: Record<string, string | undefined>,
   name: string,
   host: Host,
@@ -138,10 +138,17 @@ export function findIn(
   return null;
 }
 
+/**
+ * A regular file the process may execute. A directory passes `access(X_OK)` (it is searchable), so
+ * without the `isFile()` check Windows 11 resolves `powershell` to the directory
+ * `C:\Windows\System32\PowerShell` that PowerShell 7 leaves ahead of `WindowsPowerShell\v1.0` on PATH,
+ * and the spawn that follows fails with "Executable not found" (issue 344). `statSync` follows
+ * symlinks, so a link to a binary still counts; a missing path throws and stays false.
+ */
 export function isExecutableFile(p: string): boolean {
   try {
     accessSync(p, constants.X_OK);
-    return true;
+    return statSync(p).isFile();
   } catch {
     return false;
   }

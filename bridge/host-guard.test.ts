@@ -19,6 +19,16 @@ import { join, relative, sep } from "node:path";
 const ROOT = join(import.meta.dir, "..");
 /** Native path calls left in `cli/update.ts` on 2026-10-02. Only ever lowered. */
 const NATIVE_PATH_CALLS_IN_UPDATE = 24;
+/**
+ * Lines that read `process.platform` outside `bridge/host.ts`, per file, on 2026-10-03: 11 in all.
+ * Only ever lowered; a file not listed here may have none.
+ */
+const RAW_PLATFORM_READS: ReadonlyMap<string, number> = new Map([
+  ["bridge/dial.ts", 2],
+  ["bridge/index.ts", 2],
+  ["cli/doctor.ts", 2],
+  ["cli/sys.ts", 5],
+]);
 const SCANNED = ["bridge", "cli", "scripts"];
 
 const PATTERNS = {
@@ -150,5 +160,36 @@ describe("the host guard: platform-blind spellings in source Windows runs", () =
     const text = readFileSync(join(ROOT, "cli", "update.ts"), "utf8");
     const native = [...text.matchAll(/(?<![.\w])(?:join|dirname|basename)\(/g)].length;
     expect(native).toBeLessThanOrEqual(NATIVE_PATH_CALLS_IN_UPDATE);
+  });
+
+  // A second ratchet: a raw `process.platform` read decides for the machine it runs on, so a test
+  // cannot pin `hostFor("win32")` and reach the Windows branch on Linux. `bridge/host.ts` is the one
+  // place that reads it (`HOST`). Each file's count must EQUAL its allowance: a new read fails, and so
+  // does a removed one until its allowance is lowered in the same commit (a file at 0 leaves the
+  // list). So the allowance can only go down. The target is 0.
+  test("every file reads process.platform exactly as often as its allowance says", () => {
+    const reads = new Map<string, number>();
+    for (const top of SCANNED) {
+      for (const file of sourceFiles(join(ROOT, top))) {
+        const name = relative(ROOT, file).split(sep).join("/");
+        if (name === "bridge/host.ts") continue;
+        const lines = readFileSync(file, "utf8").split("\n");
+        const n = lines.filter((line) => !isCommentLine(line) && /\bprocess\.platform\b/.test(line)).length;
+        if (n > 0) reads.set(name, n);
+      }
+    }
+    const files = new Set([...reads.keys(), ...RAW_PLATFORM_READS.keys()]);
+    const off = [...files]
+      .toSorted()
+      .map((name) => [name, reads.get(name) ?? 0, RAW_PLATFORM_READS.get(name) ?? 0] as const)
+      .filter(([, n, allowance]) => n !== allowance)
+      .map(([name, n, allowance]) =>
+        n > allowance
+          ? `${name}: ${n} lines read process.platform (allowed: ${allowance}). ` +
+            "Read the host instead: `host.platform` from bridge/host.ts, `HOST` at the edge and a `host` parameter below it."
+          : `${name}: ${n} lines read process.platform now (allowed: ${allowance}). ` +
+            `Lower its entry in RAW_PLATFORM_READS in bridge/host-guard.test.ts to ${n}${n === 0 ? " (remove the entry)" : ""}.`,
+      );
+    expect(off).toEqual([]);
   });
 });

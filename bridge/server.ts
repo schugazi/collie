@@ -1,6 +1,7 @@
 import { mkdir, readdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { extname, join, normalize, sep } from "node:path";
+import { createAccessGate } from "./access-jwt.ts";
 import type { JsonObject, JsonValue } from "./json.ts";
 import type { ActivityLedger } from "./activity.ts";
 import { type AuditDetail, type AuditEntry, AuditLog } from "./audit.ts";
@@ -34,8 +35,9 @@ import { createOperatorLaunchers } from "./operator-launchers.ts";
 import {
   DEFAULT_PROMPT_TAIL_LINES,
   TASK_PANEL_MAX_LINES,
-  verifyExpectedPrompt,
-  type PromptBindingResult,
+  verifyPromptBinding,
+  type PromptBindingVerdict,
+  type StyledOutcome,
 } from "./prompt-binding.ts";
 import type { Push, PushSubscription } from "./push.ts";
 import { RefreshCoalescer } from "./refresh.ts";
@@ -137,7 +139,13 @@ export function requestBodyCap(cfg: Config): number {
 }
 // Upper bound on the pane-read `lines` param — don't trust the client (or Herdr) to cap it.
 const MAX_READ_LINES = 10_000;
-const MAX_EXPECTED_PROMPT_CHARS = 8192;
+// A bound region is whatever a dialog card covers, and a full-screen picker covers the whole pane:
+// about rows times columns, so 8192 refused a pane wider than ~134 columns at 59 rows. 32 KiB takes
+// a 220-column pane. A phone newer than this bridge gets the old 400 on such a pane and no key is sent.
+const MAX_EXPECTED_PROMPT_CHARS = 32_768;
+// `expected_styled` carries the same rows as `expected_prompt` plus a style tag per run (about 30
+// extra characters each, and a chip row can hold a dozen runs), so it gets four times the room.
+const MAX_EXPECTED_STYLED_CHARS = 4 * MAX_EXPECTED_PROMPT_CHARS;
 // A screen of blank rows: when a dialog shrinks (a wizard's question step giving way to its shorter
 // review), Claude leaves the rows it vacated blank between the dialog and the task panel under it.
 const PROMPT_BINDING_BLANK_LINE_HEADROOM = 100;
@@ -830,6 +838,8 @@ export function startServer(opts: {
   const live = transcripts === null ? null : new LiveWindows(transcripts);
   /** Does this agent have a journal at all — the snapshot's History-affordance gate. */
   const hasJournal = (agent: string) => adapterFor(journals ?? {}, agent) !== undefined;
+  const discoversSessions = (agent: string) =>
+    adapterFor(journals ?? {}, agent)?.discover !== undefined;
 
   /** One in-flight "look now" per session — see bridge/refresh.ts for why it coalesces. */
   const refreshes = new RefreshCoalescer();
@@ -915,7 +925,7 @@ export function startServer(opts: {
     const paneList = (pick: (rtx: SessionRuntime) => AgentView[]): PaneWire[] => {
       const wired = sources.map((from) => ({
         name: from.name,
-        panes: pick(from).map((p) => toPaneWire(withActivity(from, p), hasJournal)),
+        panes: pick(from).map((p) => toPaneWire(withActivity(from, p), hasJournal, discoversSessions)),
       }));
       // Not widened is not "widened with one source": an unwidened body must carry NO `session` key
       // at all, which is the whole backward-compatibility claim (solo-baseline.test.ts).
@@ -1327,6 +1337,10 @@ export function startServer(opts: {
     return tail === null ? status : { ...status, run: { ...run, logTail: tail } };
   }
 
+  // Cloudflare Access, verified rather than assumed (#341, ADR 0081). Null unless configured.
+  const accessGate = createAccessGate(cfg);
+  accessGate?.start();
+
   const server = Bun.serve({
     hostname: cfg.host,
     port: cfg.port,
@@ -1370,6 +1384,13 @@ export function startServer(opts: {
       // is what that flag has always meant.
       if (!cfg.allowNonLoopbackBind && !isLoopbackPeer(server.requestIP(req)?.address)) {
         return text("non-loopback peer rejected", 403);
+      }
+
+      // The Access gate: after the crew surface (its own admission) and the peer check, before the
+      // deposed page and every route. `/api/health` and local callers are exempt inside it.
+      if (accessGate) {
+        const denied = await accessGate.admit(req, pathname);
+        if (denied) return denied;
       }
 
       // A DEPOSED collie serves one page and fails its health check (§18.12). It sits AFTER the
@@ -2445,9 +2466,7 @@ async function paneHistory(
 
   const { agents, shellPanes } = engine.current();
   const pane = [...agents, ...shellPanes].find((a) => a.paneId === paneId);
-  // No pane, or an agent that named no session (a shell, or a harness whose integration isn't
-  // installed): nothing to read, and that's an ordinary answer rather than an error.
-  if (!pane?.agentSession) return unavailable("no-session");
+  if (pane === undefined) return unavailable("no-session");
   // An agent with no adapter has no journal. Same answer — the UI shouldn't distinguish "this
   // harness isn't supported" from "this pane never started one"; both mean there's nothing to show.
   // NOT `pane.agent`: a pane whose agent EXITED reads as a shell, and the harness that wrote the ref
@@ -2455,9 +2474,16 @@ async function paneHistory(
   // always did — see `journalAgentOf`.
   const adapter = adapterFor(journals, journalAgentOf(pane));
   if (adapter === undefined) return unavailable("no-session");
+  // The ref the pane reported — or, for an adapter that finds its own (Muse, whose panes Herdr
+  // never reports one for), the discovered one. Either way an ordinary id ref from here on:
+  // discovery widens WHICH panes answer, never how an answer is read. A shell, or a harness whose
+  // integration isn't installed, still names nothing discoverable: no-session, an ordinary answer
+  // rather than an error.
+  const ref = pane.agentSession ?? (await adapter.discover?.(pane.cwd)) ?? null;
+  if (ref === null) return unavailable("no-session");
 
   try {
-    const page = await transcripts.page(adapter, pane.agentSession, historyParams(url));
+    const page = await transcripts.page(adapter, ref, historyParams(url));
     if (page === null) return unavailable("no-log");
     return json({ paneId, available: true, ...page } satisfies PaneHistoryResponse, accept);
   } catch (err) {
@@ -2505,16 +2531,21 @@ async function paneChat(
   // Identical to the history route's reading, and deliberately the same words: a pane with no session
   // and a harness with no adapter are both "nothing to show", never an error. `journalAgentOf` rather
   // than `pane.agent`, so a pane whose agent EXITED still reads the journal that agent wrote.
-  if (!pane?.agentSession) return unavailable("no-session");
+  if (pane === undefined) return unavailable("no-session");
   const adapter = adapterFor(journals, journalAgentOf(pane));
   if (adapter === undefined) return unavailable("no-session");
+  // The reported ref, or the discovered one — the history route's rule, word for word. Discovery
+  // runs per poll here, a bounded newest-first walk that costs milliseconds in the common case;
+  // the resolved path below is what the live window holds.
+  const ref = pane.agentSession ?? (await adapter.discover?.(pane.cwd)) ?? null;
+  if (ref === null) return unavailable("no-session");
 
   const params = chatParams(url);
   try {
     const body =
       params.before === undefined
-        ? await live.window(adapter, pane.agentSession, params)
-        : await live.older(adapter, pane.agentSession, params.before, params.limit);
+        ? await live.window(adapter, ref, params)
+        : await live.older(adapter, ref, params.before, params.limit);
     if (body === null) return unavailable("no-log");
     const data = { paneId, available: true, ...body } satisfies PaneChatResponse;
     const etag = computeEtag(JSON.stringify(data));
@@ -2793,6 +2824,8 @@ export async function replyPane(
   const fields = asJsonRecord(body) ?? {};
   const expected = expectedPrompt(fields);
   if (!expected.ok) return text("bad expected_prompt", 400);
+  const styled = expectedStyled(fields, expected.present);
+  if (!styled.ok) return text("bad expected_styled", 400);
   // `text`/`submit` are CHECKED, not assumed. They used only to be declared string/boolean, so a
   // body that lied handed a non-string to `pane.send_text` (herdr refused it one layer down) or
   // made `submit ?? true` follow a truthiness path nobody wrote. A malformed write is refused here,
@@ -2803,7 +2836,7 @@ export async function replyPane(
   const submit = fields.submit ?? true;
   const ae = req.headers.get("accept-encoding");
   const binding = expected.present
-    ? await checkPromptBinding(herdr, cfg, paneId, expected.value)
+    ? await checkPromptBinding(herdr, cfg, paneId, expected.value, styled.value)
     : null;
   if (binding && !binding.ok) {
     audit.record({
@@ -2872,11 +2905,13 @@ export async function keysPane(
   const fields = asJsonRecord(body) ?? {};
   const expected = expectedPrompt(fields);
   if (!expected.ok) return text("bad expected_prompt", 400);
+  const styled = expectedStyled(fields, expected.present);
+  if (!styled.ok) return text("bad expected_styled", 400);
   const keys = Array.isArray(fields.keys) ? fields.keys.filter((k): k is string => typeof k === "string") : [];
   if (keys.length === 0) return text("no keys", 400);
   const ae = req.headers.get("accept-encoding");
   const binding = expected.present
-    ? await checkPromptBinding(herdr, cfg, paneId, expected.value)
+    ? await checkPromptBinding(herdr, cfg, paneId, expected.value, styled.value)
     : null;
   if (binding && !binding.ok) {
     audit.record({
@@ -2933,10 +2968,31 @@ function expectedPrompt(body: JsonObject): ExpectedPrompt {
   return { ok: true, present: true, value };
 }
 
+type ExpectedStyled = { ok: true; value: string | undefined } | { ok: false };
+
+/**
+ * The optional `expected_styled` body field (ADR 0080 point 7): the canonical styled lines of the
+ * region `expected_prompt` names, for a grammar whose pointer is drawn only as a style. It is
+ * honoured only WITH `expected_prompt`, which it refines and never replaces, so a body that names it
+ * alone is malformed. Absent = `{ ok: true, value: undefined }`.
+ */
+function expectedStyled(body: JsonObject, promptPresent: boolean): ExpectedStyled {
+  if (!Object.prototype.hasOwnProperty.call(body, "expected_styled")) {
+    return { ok: true, value: undefined };
+  }
+  const value = body.expected_styled;
+  if (!promptPresent || typeof value !== "string" || value.length > MAX_EXPECTED_STYLED_CHARS) {
+    return { ok: false };
+  }
+  return { ok: true, value };
+}
+
 type PromptBindingCheck =
   | {
       ok: true;
-      audit: { checked: true; passed: true; expected: string };
+      // `styled` is present only when the phone sent `expected_styled`: `checked`, or
+      // `skipped_unknown_version` when the text check alone decided (ADR 0080 point 7).
+      audit: { checked: true; passed: true; expected: string; styled?: StyledOutcome };
     }
   | {
       ok: false;
@@ -2948,7 +3004,7 @@ type PromptBindingCheck =
         checked: true;
         passed: false;
         expected: string;
-        reason: Extract<PromptBindingResult, { ok: false }>["reason"] | "read_failed";
+        reason: Extract<PromptBindingVerdict, { ok: false }>["reason"] | "read_failed";
       };
     };
 
@@ -2978,6 +3034,7 @@ async function checkPromptBinding(
   cfg: Config,
   paneId: string,
   expected: string,
+  expectedStyledLines?: string,
 ): Promise<PromptBindingCheck> {
   let fresh: MuxGrid;
   try {
@@ -3008,7 +3065,10 @@ async function checkPromptBinding(
     return readFailed(herdr, expected, errorText(err));
   }
 
-  const result = verifyExpectedPrompt(fresh.text, expected);
+  // One verdict over the one read: the text check, and, when the phone sent `expected_styled`, the
+  // style check at the same place in the same text. It adds no RPC and no latency before the send. It
+  // exists for a pointer drawn only as a style (opencode's chips), which the text check cannot see.
+  const result = verifyPromptBinding(fresh.text, expected, expectedStyledLines);
   if (!result.ok) {
     return {
       ok: false,
@@ -3022,9 +3082,15 @@ async function checkPromptBinding(
   // RPCs, so a TOCTOU window remains by construction; it shrinks from seconds (poll interval + push
   // latency + human reaction time) to the few milliseconds between two local RPCs. It removes the
   // human-latency portion of the window, which is where essentially all of the real risk lives.
-  // Closing the window completely would need a conditional-input primitive in herdr (send_keys with
-  // a precondition rejected atomically server-side), which does not exist today.
-  return { ok: true, audit: { checked: true, passed: true, expected } };
+  // That holds for a pointer drawn only as a style as well: the style check judges the colours of the
+  // very read the text check used, so such a pointer's window is this same read-to-send gap
+  // and no longer reaches back to the phone's own read. Closing the window completely would need a
+  // conditional-input primitive in herdr (send_keys with a precondition rejected atomically
+  // server-side), which does not exist today.
+  const passed: Extract<PromptBindingCheck, { ok: true }>["audit"] = { checked: true, passed: true, expected };
+  // Assigned, never conditionally spread: a bound send without `expected_styled` records no `styled` key.
+  if (result.styled !== undefined) passed.styled = result.styled;
+  return { ok: true, audit: passed };
 }
 
 function promptBindingFailure(
@@ -3034,6 +3100,9 @@ function promptBindingFailure(
   const failure: ActionResponse = { ok: false, error: result.error, code: result.code };
   // Assigned, never conditionally spread: a refusal with nothing to interpolate carries no `detail`.
   if (result.detail !== undefined) failure.detail = result.detail;
+  // The reason code of a changed prompt, and nothing else: never pane content. A 502 (the read
+  // itself failed) already says so in its own code.
+  if (result.status === 409) failure.reason = result.audit.reason;
   return json(failure, acceptEncoding, result.status);
 }
 

@@ -1,10 +1,10 @@
-import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, isAbsolute, join } from "node:path";
 
 import { describe, expect, test } from "bun:test";
 
-import { hostFor } from "../bridge/host.ts";
+import { HOST, hostFor } from "../bridge/host.ts";
 import { fallbackDirs, findIn, findTool, searchDirs, toolExts } from "./tools.ts";
 
 // The whole reason this module exists: Herdr spawns plugin actions with no login shell, so PATH may
@@ -164,5 +164,38 @@ describe("findTool on win32, from a host that is not Windows", () => {
 
   test("the same shim is not matched on linux — there the bare name is the only candidate", () => {
     expect(findTool("herdr", env, HOME, hostFor("linux"))).toBeNull();
+  });
+});
+
+// Issue 344: Windows 11 with PowerShell 7 has a DIRECTORY `C:\Windows\System32\PowerShell`, and
+// System32 precedes `WindowsPowerShell\v1.0` on PATH. A directory is "executable" to `access(X_OK)`
+// (it is searchable), so the bare name resolved to the directory and the spawn then failed.
+describe("findTool skips a directory that carries the tool's name", () => {
+  function layout(fileName: string) {
+    const root = mkdtempSync(join(tmpdir(), "collie-tools-dir-"));
+    const a = join(root, "a");
+    const b = join(root, "b");
+    mkdirSync(a);
+    mkdirSync(b);
+    mkdirSync(join(a, "powershell"), { mode: 0o755 });
+    const file = join(b, fileName);
+    writeFileSync(file, "MZ");
+    chmodSync(file, 0o755);
+    return { a, b, file };
+  }
+
+  test("win32: a directory `powershell` earlier on PATH does not win over a later `powershell.exe`", () => {
+    const { a, b, file } = layout("powershell.exe");
+    const env = { PATH: [a, b].join(hostFor("win32").path.delimiter), PATHEXT: ".exe" };
+    expect(findTool("powershell", env, HOME, hostFor("win32"))).toBe(file);
+  });
+
+  // Runs on the REAL host, not a pinned one: a pinned `linux` host over real Windows temp paths
+  // splits `C:\...` on `:`. The file name carries the host's own executable suffix, so the same
+  // test asserts "a directory named like the tool never wins" on Linux, macOS and Windows alike.
+  test("host: a directory named like the tool does not win over a later executable file", () => {
+    const { a, b, file } = layout(`powershell${HOST.exeSuffix}`);
+    const env = { PATH: [a, b].join(HOST.path.delimiter), PATHEXT: ".exe" };
+    expect(findTool("powershell", env, HOME, HOST)).toBe(file);
   });
 });

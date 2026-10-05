@@ -6,7 +6,15 @@ import type { OpsRecord } from "../bridge/crew/ops-store.ts";
 import { CrewOpsStore } from "../bridge/crew/ops-store.ts";
 import { TrustStore, type TrustedMember, type TrustStoreData } from "../bridge/crew/trust-store.ts";
 import { CREW_PROTOCOL_VERSION } from "../bridge/crew/enrollment.ts";
-import { compareSemver, githubCredential, githubTagsUrl, parseTagsResponse } from "../bridge/update.ts";
+import {
+  compareSemver,
+  githubCredential,
+  readAllTags,
+  MIRROR_FETCH,
+  mirrorRefusal,
+  UPDATE_MIRROR_ENV,
+  updateMirror,
+} from "../bridge/update.ts";
 import { collieVersionBare, manifestVersionFrom } from "../bridge/version.ts";
 import { loadContext, type CliContext } from "./context.ts";
 import { cmdDoctor, doctorDeps } from "./doctor.ts";
@@ -21,12 +29,14 @@ import {
   originOf,
   probeInstall,
   updateRepoOf,
+  WINDOWS_CHECKOUT_SENTENCE,
 } from "./install-kind.ts";
 import { packageCommand } from "./package-command.ts";
 import { EXIT, type Io } from "./io.ts";
 import { type LinkReader, realLinkFs } from "./link.ts";
-import { agentFilePath, unitFilePath, unitName } from "./unit.ts";
+import { agentFilePath, agentLabel, unitFilePath, unitName } from "./unit.ts";
 import { supervisionTier } from "./lifecycle.ts";
+import { queryTask } from "./task-scheduler.ts";
 import {
   type RemoteResult,
   type RemoteRunner,
@@ -579,8 +589,17 @@ async function listTags(deps: UpdateCheckDeps, install: InstallKind, repo: strin
     }
     return { ok: true, tags: parseRemoteTags(ls.stdout) };
   }
+  // The rehearsal mirror (a loopback-only test seam) is where `update` would ask, so it is asked here.
+  const mirror = updateMirror(deps.ctx.env);
+  if (!mirror.ok) return { ok: false, reason: mirrorRefusal(mirror.value), remedy: `unset ${UPDATE_MIRROR_ENV}` };
   const credential = githubCredential(deps.ctx.env);
-  const response = await deps.net.getJson(githubTagsUrl(repo));
+  const via = mirror.base === null ? undefined : MIRROR_FETCH;
+  const response = await readAllTags(repo, mirror.base, async (url) => {
+    const page = await deps.net.getJson(url, via);
+    // SAFETY: `Net.getJson` hands back what `Response.json()` produced, which IS a JsonValue by
+    // construction; `parseTagsResponse` checks every field it keeps.
+    return page.ok ? { ok: true, value: page.value as JsonValue } : page;
+  });
   if (!response.ok) {
     const status = response.failure.status;
     // The token is named by the variable it came from, never by value (#254). A 401 without one is
@@ -612,9 +631,7 @@ async function listTags(deps: UpdateCheckDeps, install: InstallKind, repo: strin
       remedy: "check this machine's network",
     };
   }
-  // SAFETY: `Net.getJson` hands back what `Response.json()` produced, which IS a JsonValue by
-  // construction; `parseTagsResponse` checks every field it keeps.
-  return { ok: true, tags: parseApiTags(parseTagsResponse(response.value as JsonValue)) };
+  return { ok: true, tags: parseApiTags(response.tags) };
 }
 
 /**
@@ -632,6 +649,19 @@ export function serviceCheck(deps: UpdateCheckDeps): PreflightCheck {
           `no LaunchAgent at ${plist} — an update would have nothing to restart`,
           "collie start",
         );
+  }
+  if (tier === "taskscheduler") {
+    // Windows. The update restarts the bridge through the task's launcher, so the task is what must
+    // be there. This branch was missing, and the systemd one below refused every update from the
+    // phone with "no systemd user unit" (M43 spec 08 rehearsal, 2026-10-02).
+    const name = agentLabel(deps.ctx.instance);
+    const task = queryTask(deps.exec, name, deps.host);
+    if (task === undefined) {
+      return amber("service", `Task Scheduler could not be asked about the task ${name} (no PowerShell), and the update will still try to restart it`);
+    }
+    return task === null
+      ? red("service", `no Task Scheduler task ${name}, so an update would have nothing to restart`, "collie start")
+      : green("service", `the Task Scheduler task ${name} is ${task.state}, and the update can restart it`);
   }
   if (tier === "unsupervised") {
     return amber(
@@ -660,6 +690,9 @@ export function serviceCheck(deps: UpdateCheckDeps): PreflightCheck {
 }
 
 /** Every instance check, in the order they print. */
+/** The preflight check that refuses a source checkout on Windows. */
+export const WINDOWS_CHECKOUT_CHECK_ID = "windows-checkout";
+
 export async function instanceChecks(
   deps: UpdateCheckDeps,
   toTag: string | null = null,
@@ -679,6 +712,11 @@ export async function instanceChecks(
       packagedRemedy(await upstreamCheck(deps, install, toTag), deps.ctx.root),
       serviceCheck(deps),
     ];
+  }
+  if (isCheckout(install) && deps.host.platform === "win32") {
+    // One red and nothing else: no build, tree or upstream check can make this update possible, and
+    // the phone's button prints this check's own sentence.
+    return [red(WINDOWS_CHECKOUT_CHECK_ID, WINDOWS_CHECKOUT_SENTENCE, "install the release zip with install.ps1")];
   }
   const checks: PreflightCheck[] = [await doctorCheck(deps), diskCheck(deps, install)];
   if (buildsFromSource(install)) checks.push(bunCheck(deps));
