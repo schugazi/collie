@@ -154,6 +154,7 @@ function toView(pane: MuxPane, kind: "agent" | "shell"): AgentView {
   // The harness that wrote that ref, when the pane itself no longer names one — a dead agent's pane
   // reads as a shell, and its transcript is still readable. Server-side only, like the ref itself.
   if (pane.sessionAgent) view.sessionAgent = pane.sessionAgent;
+  if (pane.pinnedIdle) view.pinnedIdle = true;
   if (pane.readableLines !== undefined) view.readableLines = pane.readableLines;
   // A finished sentence for the operator, composed server-side and carried through untouched. It is
   // presentation: nothing in this engine reads it, and it never reaches `agent` or `status` above.
@@ -191,6 +192,7 @@ export class StateEngine {
   private tabs: TabView[] = [];
   private bridge: BridgeStatus = "disconnected";
   private readonly prevStatus = new Map<string, AgentStatus>();
+  private readonly prevPinned = new Set<string>();
   // Last-known claude `/rename` session name per pane. Kept sticky so the name doesn't flicker away
   // when a pane momentarily hides its input box (a dialog / working spinner) — only cleared when the
   // pane itself vanishes (see the removal loop). Enriched from pane text each poll (see enrichSessionNames).
@@ -441,18 +443,24 @@ export class StateEngine {
       }
 
       // Detect transitions against the previous poll. First sighting of a pane never fires a
-      // transition (so we don't notify for agents already blocked when the bridge starts).
+      // transition (so we don't notify for agents already blocked when the bridge starts). A pane
+      // pinning itself idle fires one even when its status stands still, so listeners can take back
+      // what they raised before the pin arrived.
       for (const a of agents) {
         const prev = this.prevStatus.get(a.paneId);
-        if (prev !== undefined && prev !== a.status) {
+        const newlyPinned = a.pinnedIdle === true && !this.prevPinned.has(a.paneId);
+        if (prev !== undefined && (prev !== a.status || newlyPinned)) {
           for (const fn of this.transitionListeners) fn(a, prev, a.status);
         }
         this.prevStatus.set(a.paneId, a.status);
+        if (a.pinnedIdle) this.prevPinned.add(a.paneId);
+        else this.prevPinned.delete(a.paneId);
       }
       const live = new Set(agents.map((a) => a.paneId));
       for (const id of this.prevStatus.keys()) {
         if (live.has(id)) continue;
         this.prevStatus.delete(id);
+        this.prevPinned.delete(id);
         this.sessionNames.delete(id); // drop the cached name so a reused pane id starts clean
         this.enrichedAt.delete(id);
         for (const fn of this.removeListeners) fn(id);

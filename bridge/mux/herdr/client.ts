@@ -94,6 +94,13 @@ export interface WirePane {
    */
   terminal_title?: string | null;
   terminal_title_stripped?: string | null;
+  /**
+   * The status a pane asked Herdr to SHOW in place of a detected one, reported through
+   * `herdr pane report-metadata --state-label <detected>=<shown>` — live-observed on the voice-hub
+   * dispatcher, which maps every state to `idle`. Absent unless a pane reported one; a value is free
+   * text on the wire, so the adapter keeps only a known status word.
+   */
+  state_labels?: Partial<Record<AgentStatus, string>> | null;
   revision: number;
   /**
    * The agent's OWN session identity, as the agent reported it to Herdr (herdr ≥ 0.7.2). For Claude

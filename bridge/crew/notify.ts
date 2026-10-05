@@ -41,7 +41,9 @@ import { crewHerdTagFor } from "./tags.ts";
 export interface PeerAgentDiff {
   /** The status of every agent pane in the fresh body: the next call's `prev`. */
   readonly statuses: Map<string, AgentStatus>;
-  /** Panes whose status moved. First sightings are deliberately absent — see {@link diffPeerAgents}. */
+  /** The agent panes pinned idle in the fresh body: the next call's `prevPinned`. */
+  readonly pinned: Set<string>;
+  /** Panes whose status moved, or that just pinned themselves idle. First sightings are deliberately absent — see {@link diffPeerAgents}. */
   readonly transitions: readonly { readonly pane: PaneWire; readonly from: AgentStatus; readonly to: AgentStatus }[];
   /** Previously-seen panes missing from the fresh body — closed or exited. */
   readonly removed: readonly string[];
@@ -66,18 +68,22 @@ export interface PeerAgentDiff {
 export function diffPeerAgents(
   prev: ReadonlyMap<string, AgentStatus>,
   agents: readonly PaneWire[],
+  prevPinned: ReadonlySet<string> = new Set(),
 ): PeerAgentDiff {
   const statuses = new Map<string, AgentStatus>();
+  const pinned = new Set<string>();
   const transitions: { pane: PaneWire; from: AgentStatus; to: AgentStatus }[] = [];
   for (const pane of agents) {
     const before = prev.get(pane.paneId);
-    if (before !== undefined && before !== pane.status) {
+    const newlyPinned = pane.pinnedIdle === true && !prevPinned.has(pane.paneId);
+    if (before !== undefined && (before !== pane.status || newlyPinned)) {
       transitions.push({ pane, from: before, to: pane.status });
     }
     statuses.set(pane.paneId, pane.status);
+    if (pane.pinnedIdle) pinned.add(pane.paneId);
   }
   const removed = [...prev.keys()].filter((id) => !statuses.has(id));
-  return { statuses, transitions, removed };
+  return { statuses, pinned, transitions, removed };
 }
 
 export interface PeerNotifierDeps<H> {
@@ -101,6 +107,7 @@ export interface PeerNotifierDeps<H> {
 type HostEntry<H> = {
   readonly coordinator: NotificationCoordinator<H>;
   statuses: ReadonlyMap<string, AgentStatus>;
+  pinned: ReadonlySet<string>;
 };
 
 export class PeerNotifier<H = unknown> {
@@ -118,8 +125,9 @@ export class PeerNotifier<H = unknown> {
    */
   observe(host: string, body: PeerSnapshotBody): void {
     const entry = this.hosts.get(host) ?? this.create(host);
-    const diff = diffPeerAgents(entry.statuses, body.agents);
+    const diff = diffPeerAgents(entry.statuses, body.agents, entry.pinned);
     entry.statuses = diff.statuses;
+    entry.pinned = diff.pinned;
     for (const t of diff.transitions) {
       // `PaneWire` is `AgentView` minus the server-only session fields, so it is exactly what the
       // coordinator reads (agent, workspaceLabel, cwd, paneId) — no re-hydration, no second shape.
@@ -167,6 +175,7 @@ export class PeerNotifier<H = unknown> {
         this.deps.isNotifiable,
       ),
       statuses: new Map<string, AgentStatus>(),
+      pinned: new Set<string>(),
     } satisfies HostEntry<H>;
     this.hosts.set(host, entry);
     return entry;

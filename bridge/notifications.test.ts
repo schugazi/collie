@@ -371,6 +371,26 @@ describe("NotificationCoordinator — retraction", () => {
     expect(sink.events).toEqual([]);
   });
 
+  // The voice-hub dispatcher labels every status `idle`. Its labels can land after detection already
+  // raised an alert, and a working → idle completion from a labelled pane is no completion.
+  test("a pane pinned idle never alerts, and the pin takes back a pending alert", () => {
+    const { clock, sink, coord } = setup();
+    const pinned = (status: AgentStatus) => agentNamed("p1", "claude", status, { pinnedIdle: true });
+    coord.onTransition(agent("p1", "blocked"), "working", "blocked");
+    coord.onTransition(pinned("idle"), "blocked", "idle");
+    coord.onTransition(pinned("idle"), "working", "idle");
+    clock.fireAll();
+    expect(sink.events).toEqual([]);
+  });
+
+  test("the pin retracts a completion already delivered", () => {
+    const { clock, sink, coord } = setup();
+    coord.onTransition(agent("p1", "idle"), "working", "idle");
+    clock.fireAll();
+    coord.onTransition(agentNamed("p1", "claude", "idle", { pinnedIdle: true }), "idle", "idle");
+    expect(sink.events.at(-1)).toEqual({ kind: "clear" });
+  });
+
   test("a second resolution does not emit a second clear", () => {
     const { clock, sink, coord } = setup();
     coord.onTransition(agent("p1", "blocked"), "working", "blocked");

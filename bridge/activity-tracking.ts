@@ -21,12 +21,17 @@ export function isNewWork(from: AgentStatus, to: AgentStatus): boolean {
 /** Bind a session's activity to observed agent lifecycles, not just terminal lifetimes. */
 export function trackActivity(engine: StateEngine, activity: ActivityLedger, session: string): void {
   engine.onTransition((agent, from, to) => {
-    if (isNewWork(from, to)) activity.noteActive(session, agent.paneId);
+    if (!agent.pinnedIdle && isNewWork(from, to)) activity.noteActive(session, agent.paneId);
   });
   // onRemove also fires when an agent exits to a still-live shell. Forget its unread history before
   // onUpdate seeds the shell as seen, so a new idle agent cannot inherit the old agent's work.
   engine.onRemove((paneId) => activity.forget(session, paneId));
-  engine.onUpdate((snapshot) =>
-    activity.reconcile(session, [...snapshot.agents, ...snapshot.shellPanes].map((p) => p.paneId)),
-  );
+  engine.onUpdate((snapshot) => {
+    activity.reconcile(session, [...snapshot.agents, ...snapshot.shellPanes].map((p) => p.paneId));
+    // A pane pinned idle never has unread work, including any recorded before it pinned itself.
+    for (const a of snapshot.agents) {
+      const entry = a.pinnedIdle ? activity.get(session, a.paneId) : undefined;
+      if (entry && entry.activeAt > entry.seenAt) activity.noteSeen(session, a.paneId);
+    }
+  });
 }

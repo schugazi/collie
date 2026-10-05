@@ -50,6 +50,7 @@ interface FakePane {
   label?: string | null;
   revision: number;
   agent_session?: { source?: string; agent?: string; kind?: string; value?: string } | null;
+  state_labels?: Partial<Record<AgentStatus, string>> | null;
   scroll?: {
     offset_from_bottom: number;
     max_offset_from_bottom: number;
@@ -174,6 +175,57 @@ describe("StateEngine — transition detection", () => {
     herdr.panes = [pane("w1:p1", "w1", "blocked", "claude")];
     await poll();
     expect(transitions).toEqual([{ pane: "w1:p1", from: "working", to: "blocked" }]);
+  });
+
+  // The voice-hub dispatcher reports `--state-label <state>=idle` for every state, which Herdr's
+  // own sidebar honours; Collie must too, or it reads as done/blocked and pushes.
+  test("state labels relabel the status, and labelling every state idle pins the pane", async () => {
+    const { herdr, engine, transitions, poll } = makeEngine();
+    const dir = mkdtempSync(join(tmpdir(), "collie-state-label-"));
+    let now = 100;
+    const activity = new ActivityLedger({ stateDir: dir }, () => now);
+    trackActivity(engine, activity, "default");
+    const pin = { working: "idle", blocked: "idle", done: "idle", unknown: "idle" };
+    // A partial map relabels only the state it names and pins nothing.
+    const partial = (status: AgentStatus) => ({ ...pane("w1:p2", "w1", status, "claude"), state_labels: { done: "idle" } });
+    try {
+      // Unread work on the ledger, then the pin lands while the raw status is `idle`, the one state
+      // the dispatcher leaves unmapped, so the status never moves.
+      herdr.panes = [pane("w1:p1", "w1", "idle", "droid"), partial("working")];
+      await poll();
+      now = 200;
+      activity.noteActive("default", "w1:p1");
+      now = 300;
+      herdr.panes = [{ ...pane("w1:p1", "w1", "idle", "droid"), state_labels: pin }, partial("blocked")];
+      await poll();
+      expect(activity.get("default", "w1:p1")).toEqual({ activeAt: 200, seenAt: 300 });
+      now = 400;
+      herdr.panes = [{ ...pane("w1:p1", "w1", "working", "droid"), state_labels: pin }, partial("done")];
+      await poll();
+      expect(engine.current().agents.map((a) => a.status)).toEqual(["idle", "idle"]);
+      expect(engine.current().agents.map((a) => a.pinnedIdle)).toEqual([true, undefined]);
+      expect(transitions).toEqual([
+        // The pin arriving is one transition, so listeners can take back what they raised.
+        { pane: "w1:p1", from: "idle", to: "idle" },
+        { pane: "w1:p2", from: "working", to: "blocked" },
+        { pane: "w1:p2", from: "blocked", to: "idle" },
+      ]);
+      expect(activity.get("default", "w1:p1")).toEqual({ activeAt: 200, seenAt: 300 });
+      // On the wire, so a crew lead deriving this peer's alerts sees it too.
+      expect(toPaneWire(engine.current().agents[0]!, () => false).pinnedIdle).toBe(true);
+    } finally {
+      activity.stop();
+      engine.stop();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("labels that map idle to anything else pin nothing", async () => {
+    const { herdr, engine, poll } = makeEngine();
+    const labels = { working: "idle", blocked: "idle", done: "idle", unknown: "idle", idle: "blocked" };
+    herdr.panes = [{ ...pane("w1:p1", "w1", "idle", "droid"), state_labels: labels }];
+    await poll();
+    expect(engine.current().agents.map((a) => [a.status, a.pinnedIdle])).toEqual([["blocked", undefined]]);
   });
 
   test("prunes a vanished pane so its return is a fresh first sighting", async () => {

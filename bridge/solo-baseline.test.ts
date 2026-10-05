@@ -313,6 +313,9 @@ const PANE_WIRE_KEYS = {
   // its tab. Computed on the machine the pane lives on; an older peer omits both.
   soleTabName: true,
   tabPosition: true,
+  // Not a crew dimension: set only on a pane whose Herdr state labels pin it idle, so a lead deriving
+  // a peer's alerts can skip it. Absent on every pane here, so no golden byte moved.
+  pinnedIdle: true,
 } satisfies Record<keyof PaneWire, true>;
 
 const DEVICE_AUTH_KEYS = {
@@ -436,6 +439,7 @@ describe("solo zero-tax — wire shapes carry no crew dimension", () => {
       "lastSeenAt",
       "paneId",
       "paneLabel",
+      "pinnedIdle",
       "readableLines",
       "session",
       "sessionName",

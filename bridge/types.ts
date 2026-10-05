@@ -63,6 +63,11 @@ export interface AgentView {
    */
   sessionAgent?: string;
   /**
+   * The pane pinned itself `idle` (MuxPane.pinnedIdle): it never alerts or marks unread. On the
+   * wire so a crew lead deriving a peer's alerts honours it too; the phone ignores it.
+   */
+  pinnedIdle?: true;
+  /**
    * Upper bound on the lines a `recent` read of this pane can return — Herdr's scrollback depth plus
    * the viewport. This is the ONLY reliable "is there more scrollback" signal: `PaneRead.truncated`
    * is always false even when a read cut history off, which is why the mirror's "Load older" button

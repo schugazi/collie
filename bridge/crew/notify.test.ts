@@ -215,6 +215,16 @@ describe("PeerNotifier — a peer's alerts on the lead's phone", () => {
     expect(push.sent[0]?.host).toBe("laptop");
   });
 
+  test("a peer pane pinned idle never pushes, even when the pin lands after a completion", () => {
+    const { clock, push, peer } = notifier();
+    peer.observe("laptop", body([pane("p1", "working")]));
+    peer.observe("laptop", body([pane("p1", "idle")]));
+    peer.observe("laptop", body([pane("p1", "idle", "droid", { pinnedIdle: true })]));
+    peer.observe("laptop", body([pane("p1", "idle", "droid", { pinnedIdle: true })]));
+    clock.fireAll();
+    expect(push.sent).toEqual([]);
+  });
+
   test("a pane closing on the peer retracts it too", () => {
     const { clock, push, peer } = notifier();
     peer.observe("laptop", body([pane("p1", "working")]));

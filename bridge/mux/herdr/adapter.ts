@@ -25,6 +25,7 @@
 import { meaningfulTabLabel, meaningfulTerminalTitle } from "../../activity.ts";
 import { isUnnamedTab } from "../../pane-name.ts";
 import type { DialMode } from "../../dial.ts";
+import { STATUS_RANK, type AgentStatus } from "../../types.ts";
 import { declareCapabilities } from "../capabilities.ts";
 import { herdrMachineCandidates } from "./machine-list.ts";
 import { herdrSessionSource } from "./sessions.ts";
@@ -578,8 +579,23 @@ function toMuxPane(
   // Scrollback depth + viewport = what a `recent` read can yield. Omitted when the server predates
   // `scroll`, so an older Herdr reads as "unknown" rather than "zero".
   if (raw.scroll) pane.readableLines = raw.scroll.max_offset_from_bottom + raw.scroll.viewport_rows;
+  // A state label the pane reported replaces the detected status, as in Herdr's own sidebar. A pane
+  // labelling every other state `idle` (the voice-hub dispatcher) has pinned itself idle: it never
+  // alerts and never reads as unread, whatever detection saw before its labels arrived.
+  const labels = raw.state_labels;
+  const shown = labels?.[raw.agent_status];
+  if (shown !== undefined && isAgentStatus(shown)) pane.status = shown;
+  if (labels && NOT_IDLE.every((status) => labels[status] === "idle") && (labels.idle ?? "idle") === "idle") {
+    pane.pinnedIdle = true;
+  }
   pane.revision = raw.revision;
   return pane;
+}
+
+const NOT_IDLE = ["working", "blocked", "done", "unknown"] as const satisfies readonly AgentStatus[];
+
+function isAgentStatus(word: string): word is AgentStatus {
+  return Object.hasOwn(STATUS_RANK, word);
 }
 
 /** One Herdr workspace as a {@link MuxSpace}. `agent_status` is carried on the wire and unused. */

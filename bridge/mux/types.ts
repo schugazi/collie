@@ -169,6 +169,11 @@ export interface MuxPane extends MuxIdentity {
   /** How that agent is doing. `"unknown"` is the honest answer without `agentDetection`. */
   readonly status: AgentStatus;
   /**
+   * True when the pane asked its multiplexer to show every state as `idle` — the voice-hub
+   * dispatcher does. Such a pane never alerts and never reads as unread.
+   */
+  readonly pinnedIdle?: true;
+  /**
    * The operator's own label for this pane — ONLY a name given through Collie's {@link
    * MuxAdapter.renamePane}, and never a title the pane's program printed.
    *
