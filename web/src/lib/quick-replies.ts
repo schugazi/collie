@@ -36,6 +36,7 @@ const AGENT: readonly QuickReplyGroup[] = [
       "have astra review",
       "have fable review",
       "propose the plan",
+      "drastically simplify",
     ],
   },
 ];

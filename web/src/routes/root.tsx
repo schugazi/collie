@@ -140,7 +140,7 @@ export function RootLayout() {
           inside it because it is not a strip: it covers the screen, it does not share the top of
           it. */}
       <TourHost home={data} onDecision={setTourDecision} />
-      <div className="flex h-[100dvh] flex-col overflow-hidden">
+      <div className="flex h-(--app-h) flex-col overflow-hidden">
         {/* THE BAND, and the rule that there is only ever one strip in it. Four facts can be true at
             once above the header — the auth refusal, a lost connection, a degraded one, an update on
             offer — and none of them excludes another. Before this host arbitrated them, each row
@@ -171,6 +171,7 @@ export function RootLayout() {
               same shared-clock signals as the header dog, so the two always agree. */}
           <ConnectionBanner
             bridge={data.bridge}
+            host={data.scope.host}
             error={data.error}
             authError={data.authError}
             lastSeenAt={shownLastSeenAt(data, pane)}
@@ -236,7 +237,7 @@ export function BootSplash() {
   if (!stuck) {
     return (
       <div
-        className="flex h-[100dvh] flex-col items-center justify-center gap-3 text-muted-foreground"
+        className="flex h-(--app-h) flex-col items-center justify-center gap-3 text-muted-foreground"
         style={{ animation: `boot-splash-in 200ms ease-out ${revealDelay}ms both` }}
       >
         {/* The loading border stays coloured with reduced motion. The text names the state. */}
@@ -246,7 +247,7 @@ export function BootSplash() {
     );
   }
   return (
-    <div className="flex h-[100dvh] flex-col items-center justify-center gap-3 p-6 text-center">
+    <div className="flex h-(--app-h) flex-col items-center justify-center gap-3 p-6 text-center">
       {/* A disconnected mark is still and muted; the text names the state. */}
       <CollieMark size={64} weight="header" paper="var(--background)" className="opacity-40 grayscale" />
       <p className="font-medium text-foreground">{t("error.boot.title")}</p>
@@ -271,7 +272,7 @@ export function RootError() {
   // language; anything else (a render-phase throw, a router error) keeps its own message.
   const message = error instanceof Error ? describeThrownError(error) : t("error.root.unknown");
   return (
-    <div className="flex h-[100dvh] flex-col items-center justify-center gap-3 p-6 text-center">
+    <div className="flex h-(--app-h) flex-col items-center justify-center gap-3 p-6 text-center">
       <p className="font-medium text-destructive">{t("error.root.title")}</p>
       <p className="max-w-xs text-sm text-muted-foreground">{message}</p>
       <button

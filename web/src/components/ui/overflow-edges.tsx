@@ -51,7 +51,7 @@ export type OverflowEdge = "none" | "left" | "right" | "both";
  * Full literal class strings on purpose: Tailwind v4 scans source text, so a mask assembled from
  * pieces at runtime compiles to no CSS at all and fails silently.
  */
-const MASK = {
+export const MASK = {
   none: "",
   left: "[mask-image:linear-gradient(to_right,transparent,black_1.5rem)]",
   right: "[mask-image:linear-gradient(to_right,black_calc(100%-1.5rem),transparent)]",

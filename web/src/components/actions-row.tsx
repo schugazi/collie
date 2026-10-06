@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { GitCompare, Layers, Undo2, X } from "lucide-react";
+import { Layers, ListTree, Undo2, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -202,7 +202,7 @@ export interface ActionsRowProps {
   changes?: {
     /** Opens the Changes route for this pane. */
     onClick: () => void;
-    /** ALREADY TRANSLATED. The button's accessible name, `chat.changes.label`. */
+    /** ALREADY TRANSLATED. The button's accessible name, `chat.changes.label` ("Files"). */
     label: string;
   };
   /**
@@ -399,7 +399,7 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, handle, chan
               onClick={changes.onClick}
               className={CELL_BUTTON}
             >
-              <GitCompare className={cn(BELT_ICON, "text-primary")} />
+              <ListTree className={cn(BELT_ICON, "text-primary")} />
             </Button>
           )}
           {handle && (

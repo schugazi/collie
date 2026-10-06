@@ -23,7 +23,7 @@
 #
 # [[replies]]
 # title = "common"
-# items = ["commit and push", "stage the changes", "have astra review", "have fable review", "propose the plan"]
+# items = ["commit and push", "stage the changes", "have astra review", "have fable review", "propose the plan", "drastically simplify"]
 
 # Working in another language? Replace the phrases; the harness reads them as prose either way.
 # [[replies]]
