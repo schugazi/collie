@@ -823,22 +823,11 @@
   --default-font-family: var(--font-sans);
 }
 
-/* THE APP'S HEIGHT, as one token. `100dvh` everywhere but one place: an iOS home-screen launch, where
- * WebKit (iOS 26) reports `100dvh`, `100svh` and `100%` short by the status bar's height, so every
- * screen ended ~59pt above the glass and the tab bar/composer sat on a dead band over the home
- * indicator. Only `100lvh` reads the full height there. Nothing is lost by it: standalone has no
- * browser toolbar to collapse, and iOS never resizes the layout for the keyboard (the visual
- * viewport shrinks instead), so `lvh` and a correct `dvh` would be the same number. Android keeps
- * `dvh`, which is what tracks its keyboard (`interactive-widget=resizes-content`). */
+/* THE APP'S HEIGHT, as one token. Upstream switches an iOS home-screen launch to `100lvh`. The fork
+ * does not: with its `100%` shell (index.html) and `100dvh` content the installed app filled the
+ * screen, and `100lvh` cut the tab bar off the bottom by about a status bar's height. */
 :root {
   --app-h: 100dvh;
-}
-@media (display-mode: standalone) {
-  @supports (-webkit-touch-callout: none) {
-    :root {
-      --app-h: 100lvh;
-    }
-  }
 }
 
 @layer base {

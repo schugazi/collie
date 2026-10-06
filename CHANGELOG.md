@@ -61,6 +61,7 @@ Running a crew? Update the lead first; members follow on their own. Details:
 - **Claude's other footer hints no longer read as a dialog's keys.** Beyond `esc to interrupt` and `↓ to manage`, a Claude footer with no statusline prints `ctrl+t to hide tasks`, `shift+tab to cycle`, `esc to return to team lead` and `ctrl+c to copy`, cut short with `…` on a narrow pane. Those count as composer chrome too, so sends go through and no dialog card covers the mirror.
 - **A selected task pill keeps its dialog card on a narrow pane.** With Down pressed into Claude's task pill, typed text goes to the pill, and the card offers Esc to leave it. A narrow pane cuts the `Enter to view tasks` hint off, so Collie now reads the pill's highlight instead of the hint.
 - **A pane that asks Herdr to show as idle now shows as idle in Collie too.** Herdr's reported state labels replace the detected status, and a pane that labels every state idle, like the voice dispatcher, never reads as done, needs you or unread and never pushes.
+- **The installed iPhone app reaches the bottom of the screen again.** The fork keeps the standard full height on a Home Screen launch instead of upstream's taller one, which cut the tab bar off by about a status bar's height.
 
 ## [1.17.0] - 2026-10-06
 
