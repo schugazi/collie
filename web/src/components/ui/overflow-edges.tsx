@@ -80,8 +80,17 @@ export function useOverflowEdges<T extends HTMLElement = HTMLDivElement>() {
   const measure = useCallback(() => {
     const el = ref.current;
     if (!el) return;
-    const left = el.scrollLeft > 1;
-    const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+    // How far the content has been panned from its LEFT edge. A left-to-right scroller says it in
+    // `scrollLeft`; a right-to-left one rests at its right end with `scrollLeft` 0 and pans into
+    // negative values, so its distance from the left edge is the whole overflow plus that (the
+    // left-hand belt, actions-row.tsx `hand="left"`). The direction is read from the element,
+    // since 0 means "at the start" in both and cannot tell them apart.
+    const panned =
+      getComputedStyle(el).direction === "rtl"
+        ? Math.max(0, el.scrollWidth - el.clientWidth) + el.scrollLeft
+        : el.scrollLeft;
+    const left = panned > 1;
+    const right = panned + el.clientWidth < el.scrollWidth - 1;
     // React bails out of a re-render when the value is unchanged, so this runs on every scroll
     // event without costing a render per frame.
     setEdge(edgeOf(left, right));

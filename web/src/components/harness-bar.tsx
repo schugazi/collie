@@ -6,6 +6,7 @@ import { AgentIcon } from "@/components/agent-icon";
 import { AGENT_BRANDS } from "@/components/agent-icon-data";
 import { Button } from "@/components/ui/button";
 import { BELT_ICON, BELT_SECTION, STRIP_ROW_PILL } from "@/components/ui/labelled-strip";
+import type { Hand } from "@/hooks/use-display-prefs";
 import { useActionEcho } from "@/hooks/use-action-echo";
 import { useLocale } from "@/hooks/use-locale";
 import { usePendingConfirm } from "@/hooks/use-pending-confirm";
@@ -102,6 +103,13 @@ export interface HarnessBarProps {
   onRun: (text: string) => Promise<boolean>;
   /** Bound to the composer's `locked`. Greys every button in place. */
   disabled?: boolean;
+  /**
+   * Which thumb the belt is laid out for (components/actions-row.tsx, `Hand`). `"left"` runs the
+   * section right to left: the mark stands at its RIGHT edge with Model, Effort and the rest to its
+   * left, each pill still reading icon then word, and the muted section's hairline moves to the
+   * edge the mark is on. Default `"right"`, the shipped layout, untouched.
+   */
+  hand?: Hand;
 }
 
 /**
@@ -119,7 +127,7 @@ export function useHarnessBarItems(
   return shown ? barFor(agent, mine) : [];
 }
 
-export function HarnessBar({ agent, mine, onRun, disabled }: HarnessBarProps) {
+export function HarnessBar({ agent, mine, onRun, disabled, hand = "right" }: HarnessBarProps) {
   useLocale();
   const echo = useActionEcho();
   const { pending, confirm, reset } = usePendingConfirm();
@@ -164,6 +172,8 @@ export function HarnessBar({ agent, mine, onRun, disabled }: HarnessBarProps) {
     setAsking(null);
   }
 
+  const left = hand === "left";
+
   function fire(item: HarnessBarItem) {
     reset();
     if (item.command === "/compact") {
@@ -207,8 +217,12 @@ export function HarnessBar({ agent, mine, onRun, disabled }: HarnessBarProps) {
       // the mark starts about where Keys does above it.
       className={cn(
         BELT_SECTION,
-        "h-(--belt-band) -my-(--belt-pad) grow pl-2",
-        accent === undefined && "border-l-border bg-muted",
+        // Under `hand="left"` the row runs right to left (actions-row.tsx), so the gutter moves to
+        // the right with the mark.
+        "h-(--belt-band) -my-(--belt-pad) grow",
+        left ? "pr-2" : "pl-2",
+        accent === undefined && (left ? "border-r-border bg-muted" : "border-l-border bg-muted"),
+        left && "[direction:rtl]",
       )}
       style={
         accent === undefined
@@ -226,13 +240,13 @@ export function HarnessBar({ agent, mine, onRun, disabled }: HarnessBarProps) {
           `mr-3` STANDS IT APART. At 2px from Model it read as one more button (operator, from the
           phone); 12px of clear tint — wider than any pill-to-pill gap on a phone — says it labels
           the row instead. */}
-      <span aria-hidden="true" className="mr-3 flex shrink-0 items-center">
+      <span aria-hidden="true" className={cn("flex shrink-0 items-center", left ? "ml-3" : "mr-3")}>
         <AgentIcon agent={agent} className={BELT_ICON} />
       </span>
       {asked !== undefined && (
         // `contents` keeps the belt's own layout; the group only names Yes and No by the question.
         <div role="group" aria-labelledby={questionId} className="contents">
-          <span id={questionId} className="shrink-0 text-[11px] text-foreground">
+          <span id={questionId} className={cn("shrink-0 text-[11px] text-foreground", left && "[direction:ltr]")}>
             {translate("harnessBar.compactAsk")}
           </span>
           <Button
@@ -287,6 +301,7 @@ export function HarnessBar({ agent, mine, onRun, disabled }: HarnessBarProps) {
                   ? "bg-background border-foreground text-foreground"
                   : "bg-white"),
               !armed && phase === "idle" && "text-foreground",
+              left && "[direction:ltr]",
             )}
             style={
               !armed && phase !== "idle" && accent !== undefined

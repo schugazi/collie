@@ -94,3 +94,29 @@ describe("OverflowEdges", () => {
     });
   });
 });
+
+// A RIGHT-TO-LEFT SCROLLER (the left-hand belt, actions-row.tsx `hand="left"`) rests at its right end
+// with `scrollLeft` 0 and pans into NEGATIVE values. The same rule has to hold in the same words: a
+// side hides something exactly when content is off that side.
+describe("OverflowEdges — a right-to-left scroller", () => {
+  it("reads the rest position as 'content hidden on the left', and the far left as 'on the right'", () => {
+    const { wrapper, scroller } = mount();
+    scroller.style.direction = "rtl";
+    const scrollTo = pinMetrics(scroller, { scrollWidth: 1000, clientWidth: 400 });
+
+    scrollTo(0);
+    expect(wrapper.dataset.overflow).toBe("left");
+    scrollTo(-300);
+    expect(wrapper.dataset.overflow).toBe("both");
+    scrollTo(-600);
+    expect(wrapper.dataset.overflow).toBe("right");
+  });
+
+  it("says nothing when the row fits", () => {
+    const { wrapper, scroller } = mount();
+    scroller.style.direction = "rtl";
+    pinMetrics(scroller, { scrollWidth: 400, clientWidth: 400 })(0);
+    expect(wrapper.dataset.overflow).toBe("none");
+  });
+});
+

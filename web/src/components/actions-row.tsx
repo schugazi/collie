@@ -9,6 +9,7 @@ import { OverflowEdges } from "@/components/ui/overflow-edges";
 import { SectionLabel } from "@/components/ui/section-label";
 import { BELT_ICON, STRIP_ROW_PILL, STRIP_SCROLLER } from "@/components/ui/labelled-strip";
 import { useDashPrefs } from "@/hooks/use-dash-prefs";
+import type { Hand } from "@/hooks/use-display-prefs";
 import { useLocale } from "@/hooks/use-locale";
 import { t as translate } from "@/lib/i18n";
 import type { OperatorCommand } from "@/lib/types";
@@ -94,6 +95,21 @@ import { cn } from "@/lib/utils";
 // has one word of room per pill, and "Type into terminal" and "Display settings" are still what a
 // screen reader hears and what a test addresses.
 
+/**
+ * Which thumb the belt is laid out for (the Settings "Hand" choice, `hooks/use-display-prefs.ts`).
+ * `"right"` is the shipped layout. `"left"` is its mirror: the Switch cell stands at the belt's LEFT
+ * end, still directly above Send (composer.tsx moves Send with the hand), and each row runs right to
+ * left, so Keys is the rightmost pill on top and the harness mark the rightmost thing below. What a
+ * pill SAYS does not mirror: an icon then its word, read left to right.
+ *
+ * The rows are `direction: rtl` (and `ltr` back on each pill), not a render-order reversal: a
+ * right-to-left scroller rests at its right end, which OverflowEdges measures, and the DOM, and so
+ * the tab and reading order, stays the right-hand one. The belt itself is `flex-row-reverse`, which
+ * only moves the cell. Everything below that says "the right end" reads as the left end under
+ * `hand="left"`.
+ */
+export type { Hand };
+
 /** The row's "on" look — an open dock, an armed mode. `hover:` is pinned to the same tint: without
  *  it, hovering an already-on control repaints it with the ghost variant's hover background and it
  *  reads as switching off under the cursor. */
@@ -161,6 +177,8 @@ export interface ActionsRowProps {
   onRun: (text: string) => Promise<boolean>;
   /** Bound to the composer's `locked`. Greys the harness buttons in place. */
   disabled?: boolean;
+  /** Which thumb the belt is laid out for; see {@link Hand}. Default `"right"`, the shipped layout. */
+  hand?: Hand;
   /**
    * THE PANE SWITCHER, AT THE BELT'S RIGHT END. Absent by default, and absent is the whole of the
    * old behaviour: nothing renders and the rows keep their own right gutter.
@@ -230,7 +248,7 @@ export interface ActionsRowProps {
   };
 }
 
-export function ActionsRow({ general, agent, mine, onRun, disabled, handle, changes, clear }: ActionsRowProps) {
+export function ActionsRow({ general, agent, mine, onRun, disabled, hand = "right", handle, changes, clear }: ActionsRowProps) {
   useLocale();
 
   const harnessItems = useHarnessBarItems(agent, mine);
@@ -243,8 +261,9 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, handle, chan
   // The harness row keeps NO gutter: its tinted section grows over the whole row and carries the
   // gutter as its own padding (harness-bar.tsx), so the tint runs from the screen edge to the Switch
   // cell's hairline — or the other screen edge (operator's call from the phone, 2026-09-22).
-  const controlsRowClass = cn(STRIP_SCROLLER, BELT_ROW);
-  const harnessRowClass = cn(STRIP_SCROLLER, BELT_ROW, "px-0");
+  const left = hand === "left";
+  const controlsRowClass = cn(STRIP_SCROLLER, BELT_ROW, left && "[direction:rtl]");
+  const harnessRowClass = cn(STRIP_SCROLLER, BELT_ROW, "px-0", left && "[direction:rtl]");
 
   return (
     <div
@@ -278,7 +297,7 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, handle, chan
               clear.onOtherPress?.();
             }
       }
-      className={cn("-mx-3 mb-1 flex border-b border-border bg-foreground/6", handle && "touch-pan-x")}
+      className={cn("-mx-3 mb-1 flex border-b border-border bg-foreground/6", left && "flex-row-reverse", handle && "touch-pan-x")}
     >
       {/* The rows start from their widest row's own width and `grow` into whatever the Switch cell
           does not take; `min-w-0` still lets them shrink and pan on a phone too narrow for both. */}
@@ -320,7 +339,7 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, handle, chan
                       aria-expanded={action.expanded}
                       aria-pressed={action.pressed}
                       onClick={action.onSelect}
-                      className={cn(`${STRIP_ROW_PILL} gap-1 text-[11px]`, action.on === true ? ON : OFF)}
+                      className={cn(`${STRIP_ROW_PILL} gap-1 text-[11px]`, action.on === true ? ON : OFF, left && "[direction:ltr]")}
                     >
                       <action.icon className={BELT_ICON} />
                       {action.word ?? action.label}
@@ -340,7 +359,7 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, handle, chan
             <OverflowEdges className="flex-none" cue="none">
               {(scrollerRef) => (
                 <div ref={scrollerRef} className={harnessRowClass}>
-                  <HarnessBar agent={agent} mine={mine} onRun={onRun} disabled={disabled} />
+                  <HarnessBar agent={agent} mine={mine} onRun={onRun} disabled={disabled} hand={hand} />
                 </div>
               )}
             </OverflowEdges>
@@ -369,7 +388,12 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, handle, chan
           both modes (X and Undo), so the swap moves nothing and a reader's focus stays put;
           `onMouseDown` refuses the press's focus move, keeping the phone keyboard up. */}
       {(handle || changes || clear) && (
-        <span className="flex min-w-8 max-w-11 grow-1000 basis-0 flex-col border-l border-border bg-chrome">
+        <span
+          className={cn(
+            "flex min-w-8 max-w-11 grow-1000 basis-0 flex-col border-border bg-chrome",
+            left ? "border-r" : "border-l",
+          )}
+        >
           {clear ? (
             <Button
               type="button"
