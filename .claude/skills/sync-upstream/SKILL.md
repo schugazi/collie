@@ -29,6 +29,7 @@ Resolve every conflict (`git diff --name-only --diff-filter=U`) by reading both 
 
 - **Both sides built the same thing:** keep upstream's version and drop the fork's duplicate. That includes tests and e2e specs.
 - **Fork behaviour upstream doesn't have:** keep it, re-applied on top of upstream's new code. That covers Claude/Codex dialog parsing, UI tweaks and the **mycroftxxx remote** branding, logo and icons. Also brand any new user-facing "Collie" strings upstream added where the fork already brands their neighbours.
+- **The new-terminal agent offer (Claude, Codex or None on the belt, `pickAgent`):** keep it for a bare shell from "+ tab" (`newTab` in `web/src/hooks/use-spaces.ts`) only. Upstream's `/new` page picks the agent for new spaces and worktrees, so `pickAgent` defaults to false and only `newTab` passes true.
 - **Version files** (`package.json`, `web/package.json`, the manifest, `flake.nix`/`flake.lock`): take upstream's. The fork follows upstream's version numbers.
 - **`CHANGELOG.md`:** take upstream's released sections as they are. The fork never cuts releases, so its own bullets stay under `## [Unreleased]`. Keep only the ones upstream doesn't already cover, placed under upstream's group headings.
 - **`CLAUDE.md`:** take upstream's text and keep the fork-only paragraphs (fork identity, `COLLIE_UPDATE_REPO`, the Bun floor note, this skill's pointer).
