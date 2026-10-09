@@ -39,6 +39,7 @@ Running a crew? Update the lead first; members follow on their own. Details:
 - **Compact asks before it sends.** Tapping Compact on the harness row now shows "Compact now?" with Yes and No, and `/compact` goes to the agent only on Yes.
 - **Send no longer asks "Really send?" for destructive-looking text.** A message that mentions `sudo`, `rm -r`, `--force` and similar goes out on the first tap, since most replies are prose to an agent rather than a shell command.
 - **The Files button stands above the Switch mark.** On the two-row belt it shares the Switch cell at the right end, each button half the cell's height, so neither row gives up width to it; the belt size setting grows both rows, their pills and icons.
+- **The New worktree switch sits above the folder on the New page.** The switch and its branch fields come right after the Agent and Command choice, so a long folder list no longer pushes them down.
 
 ### Fixed
 - **Installed branding fits launchers and renders clear notification badges.** Use the short Home Screen label mycroftxxx, a transparent monochrome Android badge, consistent splash artwork, and accurate fork diagnostics; repair the playground favicon and remove the shared screenshot output.

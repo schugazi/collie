@@ -625,6 +625,30 @@ function NewPage({ search }: { search: string }) {
           />
         </div>
 
+        <Collapse open={branchShown}>
+          {branchShown ? (
+            <BranchBlock
+              on={branchOn && branchBlocked === null}
+              blocked={branchBlocked}
+              onToggle={setBranchOn}
+              name={branchName}
+              onName={setBranchName}
+              startChoices={startChoices}
+              baseShown={baseShown}
+              onBase={setBasePick}
+              folderKind={folderKind}
+              onFolderKind={setFolderPick}
+              parent={parent}
+              onParent={setParentPick}
+              folders={folders}
+              onStar={(f, s) => void star(f, s)}
+              checking={branchActive && current === null}
+              targetPath={targetPath === null ? null : shortenHome(targetPath, home)}
+              problem={branchProblem}
+            />
+          ) : null}
+        </Collapse>
+
         {showWhere ? (
           <div className="flex flex-col gap-2">
             <label className="flex flex-col gap-1">
@@ -649,30 +673,6 @@ function NewPage({ search }: { search: string }) {
         ) : pinned !== undefined ? (
           <p className="text-xs text-muted-foreground">{t("newPage.where.pinned", { folder: shortenHome(pinned, home) })}</p>
         ) : null}
-
-        <Collapse open={branchShown}>
-          {branchShown ? (
-            <BranchBlock
-              on={branchOn && branchBlocked === null}
-              blocked={branchBlocked}
-              onToggle={setBranchOn}
-              name={branchName}
-              onName={setBranchName}
-              startChoices={startChoices}
-              baseShown={baseShown}
-              onBase={setBasePick}
-              folderKind={folderKind}
-              onFolderKind={setFolderPick}
-              parent={parent}
-              onParent={setParentPick}
-              folders={folders}
-              onStar={(f, s) => void star(f, s)}
-              checking={branchActive && current === null}
-              targetPath={targetPath === null ? null : shortenHome(targetPath, home)}
-              problem={branchProblem}
-            />
-          ) : null}
-        </Collapse>
       </BandMain>
 
       {/* The foot: what Start will do, in one line, then Start. A sibling UNDER the scroller, so it
@@ -945,11 +945,12 @@ function BranchBlock(p: BranchBlockProps) {
                 </div>
               ) : null}
             </Collapse>
-            {/* The resolved absolute folder, always, or the reason there is none (ADR 0093). One
-                line whose words swap, so nothing below it moves. */}
+            {/* The resolved absolute folder, always, or the reason there is none (ADR 0093). Three
+                lines are reserved, because the Folder field sits below: a path that wraps when the
+                plan answers must not push it down (DESIGN.md §2). */}
             <p
               className={cn(
-                "min-h-4 break-all font-mono text-[11px] leading-tight",
+                "min-h-[3lh] break-all font-mono text-[11px] leading-tight",
                 p.problem !== null ? "text-status-blocked" : "text-muted-foreground",
               )}
               data-testid="new-page-target"
