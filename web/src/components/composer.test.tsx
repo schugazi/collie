@@ -3109,27 +3109,28 @@ describe("Composer — the composer is one box", () => {
     expect(props.onSent).toHaveBeenCalled();
   });
 
-  it("holds the field, attach and the primary action as siblings on ONE row of the box", async () => {
+  it("keeps attach and the primary action OUTSIDE the framed field, on one row beside it (the fork)", async () => {
     renderComposer();
-    const box = boxOf(field());
+    const frame = boxOf(field());
+    const row = document.querySelector<HTMLElement>('[data-slot="composer-box"]')!;
     const send = screen.getByRole("button", { name: "Send" });
 
-    // One row, no toolbar row under the field: the three are direct children of the box, in
-    // reading order field, attach, action — attach next to the primary action, as it stood
-    // before the one-box change.
-    expect(attach().parentElement).toBe(box);
-    expect(send.parentElement).toBe(box);
-    const order = [...box.children].filter((el) => el === attach() || el === field() || el === send);
-    expect(order).toEqual([field(), attach(), send]);
-    // The box IS the flex row, and `items-end` pins both buttons to the bottom edge while a long
-    // draft grows the field upward.
-    expect(box.className).toMatch(/(?:^|\s)flex(?=\s|$)/);
-    expect(box.className).toMatch(/(?:^|\s)items-end(?=\s|$)/);
-    expect(box.className).not.toMatch(/(?:^|\s)flex-col(?=\s|$)/);
-    // The field takes the width the buttons leave, and the buttons never give theirs up.
-    expect(field().className).toMatch(/(?:^|\s)flex-1(?=\s|$)/);
-    expect(attach().className).toMatch(/(?:^|\s)shrink-0(?=\s|$)/);
+    // The frame holds the draft alone; the two buttons are not inside it.
+    expect(frame.contains(attach())).toBe(false);
+    expect(frame.contains(send)).toBe(false);
+    // Reading order is still field, attach, action, all on the row.
+    expect(frame.parentElement).toBe(row);
+    expect(field().compareDocumentPosition(attach()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(attach().compareDocumentPosition(send) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // The row pins the buttons to the bottom while a long draft grows the frame upward; the frame
+    // takes the width the buttons leave, and the buttons never give theirs up.
+    expect(row.className).toMatch(/(?:^|\s)items-end(?=\s|$)/);
+    expect(frame.className).toMatch(/(?:^|\s)flex-1(?=\s|$)/);
+    expect(frame.className).toMatch(/(?:^|\s)min-w-0(?=\s|$)/);
+    expect(attach().parentElement?.className).toMatch(/(?:^|\s)shrink-0(?=\s|$)/);
     expect(send.className).toMatch(/(?:^|\s)shrink-0(?=\s|$)/);
+    // No scrollbar on the field: a draft past the cap scrolls by touch.
+    expect(field().className).toMatch(/\[scrollbar-width:none\]/);
   });
 
   // AN EMPTY COMPOSER IS ONE BUTTON ROW TALL. The buttons are 36px; the box's `p-1` is their 4px
@@ -3189,8 +3190,8 @@ describe("Composer — the composer is one box", () => {
     expect(field().className).toMatch(/(?:^|\s)wrap-anywhere(?=\s|$)/);
     expect(field().className).toMatch(/(?:^|\s)min-w-0(?=\s|$)/);
     const send = screen.getByRole("button", { name: "Send" });
-    // Still in the box's one row, beside the field, after the field.
-    expect(send.parentElement).toBe(field().parentElement);
+    // Still on the composer's row, beside the field's frame, after the field.
+    expect(document.querySelector('[data-slot="composer-box"]')!.contains(send)).toBe(true);
     expect(field().compareDocumentPosition(send) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // Nothing in the field reserves a horizontal strip for a control, so the path has the field's
     // whole width to wrap into.
@@ -4022,13 +4023,17 @@ describe("Composer — hand", () => {
   it("left: mirrors the box so Send, Attach, then the field read left to right, in the same DOM order", () => {
     renderComposer();
     const order = (el: HTMLElement) =>
-      [...el.children]
+      [...el.querySelectorAll("textarea, button")]
         .map((c) => c.getAttribute("aria-label") ?? c.tagName)
         .filter((n) => ["TEXTAREA", "Attach file", "Send"].includes(n));
     const right = order(box());
     cleanup();
     renderComposer({ hand: "left" });
+    // The row and the button pair both run mirrored, so Send stands at the very edge.
     expect(box().className).toMatch(/(?:^|\s)flex-row-reverse(?=\s|$)/);
+    expect(screen.getByRole("button", { name: "Attach file" }).parentElement?.className).toMatch(
+      /(?:^|\s)flex-row-reverse(?=\s|$)/,
+    );
     expect(order(box())).toEqual(right);
     // DOM: field, Attach, Send. Mirrored on screen that is Send, Attach, field.
     expect(right).toEqual(["TEXTAREA", "Attach file", "Send"]);

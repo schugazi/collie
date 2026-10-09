@@ -41,6 +41,7 @@ Running a crew? Update the lead first; members follow on their own. Details:
 - **The Files button stands above the Switch mark.** On the two-row belt it shares the Switch cell at the right end, each button half the cell's height, so neither row gives up width to it; the belt size setting grows both rows, their pills and icons.
 - **The New worktree switch sits above the folder on the New page.** The switch and its branch fields come right after the Agent and Command choice, so a long folder list no longer pushes them down.
 - **Home folders on the New page start folded.** Tap the Home folders title to list the machine's folders under home, and tap it again to fold them away.
+- **Attach and Send stand beside the reply box, not inside it.** The border frames only the draft, the two buttons sit to its side, and the box no longer shows a scrollbar for a long draft.
 
 ### Fixed
 - **Installed branding fits launchers and renders clear notification badges.** Use the short Home Screen label mycroftxxx, a transparent monochrome Android badge, consistent splash artwork, and accurate fork diagnostics; repair the playground favicon and remove the shared screenshot output.

@@ -23,6 +23,7 @@ and `web/vite-icons.ts`. The app name is `mycroftxxx remote` and its Home
 Screen label is `mycroftxxx`. Release and dev channels share this branding.
 The Android notification badge is a transparent monochrome glyph (`web/public/badge.svg`).
 The shipped HTML locks page zoom and document scrolling; routes and sheets own their scrollers.
+The composer's border frames only the draft; Attach and Send stand outside it, beside the box, and the field hides its scrollbar.
 New workspaces offer home, visible immediate home subdirectories, and a custom path.
 Directory choices come from the selected host’s `/api/launchers` response; no recursive browsing or file reads.
 Keep internal CLI, configuration, storage and protocol identifiers compatible with Collie.

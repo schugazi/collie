@@ -1852,27 +1852,32 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
             round, docked at the field's right edge, and it cost 60px of typing width on a crew,
             out of the widest part of the composer. It answers the same question from the belt
             above, which is equally at the write surface and costs the draft nothing. */}
+        {/* THE FORK DRAWS THE FRAME ROUND THE DRAFT ONLY. Attach and the primary action stand
+            OUTSIDE the bordered box, beside it, rather than inside it as upstream draws them; what
+            the comment above says of the frame now applies to the inner box below, and the row
+            here is just the frame plus the two buttons. */}
         <div
           data-slot="composer-box"
           className={cn(
-            "relative flex items-end gap-1 rounded-xl border border-input bg-background p-1 focus-within:border-ring focus-within:ring-1 focus-within:ring-ring",
-            // `hand="left"`: the whole row runs mirrored, so Send stands on the box's left edge, then
-            // Attach, then the field. The DOM order is untouched, so the tab and reading order are
-            // too. With chips, `flex-wrap` still stacks the chip strip ABOVE the row.
+            "relative flex items-end gap-1",
+            // `hand="left"`: the whole row runs mirrored, so Send stands at the left edge, then
+            // Attach, then the box. The DOM order is untouched, so the tab and reading order are too.
             hand === "left" && "flex-row-reverse",
-            // Chips take a line of their own ABOVE the row (ADR 0060). `flex-wrap` plus a
-            // full-basis strip does that without re-parenting the field, so the textarea is never
-            // remounted (and never loses its caret) when the first chip arrives. With no chips the
-            // class is absent and the box is exactly the one row it was.
-            attachments.length > 0 && "flex-wrap",
-            // A composer nobody may write to says so as a surface, not just as a placeholder:
-            // the fill recedes and both buttons in the box are disabled anyway.
-            locked && "bg-muted/40",
-            // Armed "Type into terminal". The tint was on the field while the field wore the
-            // frame; it follows the frame.
-            direct.active && "border-primary focus-within:border-primary focus-within:ring-primary",
           )}
         >
+          <div
+            className={cn(
+              "flex min-w-0 flex-1 flex-col rounded-xl border border-input bg-background p-1 focus-within:border-ring focus-within:ring-1 focus-within:ring-ring",
+              // A composer nobody may write to says so as a surface, not just as a placeholder:
+              // the fill recedes and both buttons beside it are disabled anyway.
+              locked && "bg-muted/40",
+              // Armed "Type into terminal". The tint follows the frame.
+              direct.active && "border-primary focus-within:border-primary focus-within:ring-primary",
+            )}
+          >
+          {/* Chips take a line of their own ABOVE the field (ADR 0060). The strip is a sibling
+              rendered before the field, so the textarea is never re-parented (and never loses its
+              caret) when the first chip arrives. */}
           {attachments.length > 0 && (
             // The strip scrolls sideways when the chips outrun the box; `pt-1 px-1` is room for
             // the corner badge and the x, which stand 4px outside each chip.
@@ -1964,10 +1969,9 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
               // field now, so nothing inside the field needs a strip kept clear for either of them —
               // the field's right side takes no padding of its own, and the box's `gap-1` to attach
               // is what keeps the text off it.
-              "min-w-0 flex-1 min-h-9 pl-2 py-1.5",
-              // Mirrored, the field's right side stands against the box's border, so it takes the
-              // inset the left used to take from Attach.
-              hand === "left" && "pr-2",
+              // The fork: the field is alone in its frame, so it takes the inset on BOTH sides.
+              // Its scrollbar is hidden; a draft past the cap still scrolls by touch.
+              "min-w-0 min-h-9 px-2 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
               // The draft is terminal-bound text, so the field wears the TERMINAL face — the same
               // family the mirror above it renders in, not the app's chrome face. `font-mono` is
               // the mirror's own default; the style below follows the operator's mirror-family
@@ -1986,6 +1990,10 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
             disabled={locked}
             rows={1}
           />
+          </div>
+          {/* The two buttons, outside the frame. `mb-[5px]` centres their 36px faces on a one-line
+              box (1 + 4 + 36 + 4 + 1 = 46px), and they stay pinned to its bottom as a draft grows. */}
+          <div className={cn("mb-[5px] flex shrink-0 items-center gap-1", hand === "left" && "flex-row-reverse")}>
           <Button
             type="button"
             variant="ghost"
@@ -2153,6 +2161,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
               )}
             </Button>
           )}
+          </div>
         </div>
       </div>
 
