@@ -369,6 +369,57 @@ describe("the New page: Agent and Command", () => {
     expect(JSON.parse(localStorage.getItem(KIND_KEY) ?? "{}")).toEqual({ lead: "shell", mini: "shell" });
   });
 
+  it("the New worktree switch is there before the machine answers, and stays when it does", async () => {
+    let answer: () => void = () => {};
+    const answered = new Promise<void>((resolve) => {
+      answer = resolve;
+    });
+    server.use(
+      http.get("/api/launchers", async () => {
+        await answered;
+        return HttpResponse.json({ launchers: [], home: "/home/op", harnesses: HARNESSES });
+      }),
+    );
+    mount({});
+    await screen.findByPlaceholderText("~ (home dir)");
+    // Waiting: there, disabled, and no reason line yet.
+    expect(screen.getByRole("switch", { name: /New worktree/ })).toBeDisabled();
+    answer();
+    await waitFor(() => expect(screen.getByRole("switch", { name: /New worktree/ })).toBeEnabled());
+  });
+
+  it("Home folders open on one machine start folded on another", async () => {
+    server.use(
+      http.get("/api/launchers", () =>
+        HttpResponse.json({ launchers: [], home: "/home/op", harnesses: HARNESSES, directories: ["/home/op/webapp"] }),
+      ),
+    );
+    mount({ servers: roster });
+    await userEvent.click(await screen.findByRole("button", { name: "Home folders" }));
+    expect(screen.getByRole("button", { name: "Home folders" })).toHaveAttribute("aria-expanded", "true");
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Host" }), "minibuch");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Home folders" })).toHaveAttribute("aria-expanded", "false"));
+  });
+
+  it("Home folders start folded, and the title opens and closes them", async () => {
+    server.use(
+      http.get("/api/launchers", () =>
+        HttpResponse.json({ launchers: [], home: "/home/op", harnesses: HARNESSES, directories: ["/home/op/webapp"] }),
+      ),
+    );
+    mount({});
+    const toggle = await screen.findByRole("button", { name: "Home folders" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("list", { name: "Home folders" })).toBeNull();
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await userEvent.click(within(screen.getByRole("list", { name: "Home folders" })).getByRole("button", { name: /webapp/ }));
+    expect(screen.getByPlaceholderText("~ (home dir)")).toHaveValue("/home/op/webapp");
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await waitFor(() => expect(screen.queryByRole("list", { name: "Home folders" })).toBeNull());
+  });
+
   it("a folder chosen on one machine is not carried to another", async () => {
     serveLaunchers();
     mount({ servers: roster });

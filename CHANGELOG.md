@@ -40,6 +40,7 @@ Running a crew? Update the lead first; members follow on their own. Details:
 - **Send no longer asks "Really send?" for destructive-looking text.** A message that mentions `sudo`, `rm -r`, `--force` and similar goes out on the first tap, since most replies are prose to an agent rather than a shell command.
 - **The Files button stands above the Switch mark.** On the two-row belt it shares the Switch cell at the right end, each button half the cell's height, so neither row gives up width to it; the belt size setting grows both rows, their pills and icons.
 - **The New worktree switch sits above the folder on the New page.** The switch and its branch fields come right after the Agent and Command choice, so a long folder list no longer pushes them down.
+- **Home folders on the New page start folded.** Tap the Home folders title to list the machine's folders under home, and tap it again to fold them away.
 
 ### Fixed
 - **Installed branding fits launchers and renders clear notification badges.** Use the short Home Screen label mycroftxxx, a transparent monochrome Android badge, consistent splash artwork, and accurate fork diagnostics; repair the playground favicon and remove the shared screenshot output.
@@ -63,6 +64,7 @@ Running a crew? Update the lead first; members follow on their own. Details:
 - **A pane that asks Herdr to show as idle now shows as idle in Collie too.** Herdr's reported state labels replace the detected status, and a pane that labels every state idle, like the voice dispatcher, never reads as done, needs you or unread and never pushes.
 - **The installed iPhone app reaches the bottom of the screen again.** The fork keeps the standard full height on a Home Screen launch instead of upstream's taller one, which cut the tab bar off by about a status bar's height.
 - **Scrolling up through Chat no longer stutters on an iPhone.** Each turn not yet seen was laid out at a placeholder height and grew as it scrolled in from above, pushing the turn being read down. Safari has no scroll anchoring to hide that, so Chat now lays out every turn it holds up front.
+- **The New worktree switch no longer slides in after the New page opens.** It waited for the machine's agent list and then animated in over the Folder field; it is now on screen from the first paint.
 
 ## [1.19.0] - 2026-10-09
 

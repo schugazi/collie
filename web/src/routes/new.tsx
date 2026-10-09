@@ -205,13 +205,15 @@ function NewPage({ search }: { search: string }) {
   const [basePick, setBasePick] = useState<"default" | "branch" | null>(null);
   const [folderPick, setFolderPick] = useState<WorktreeFolderChoice["kind"] | null>(null);
   const [parentPick, setParentPick] = useState<string | null>(null);
-  // The worktree block shows for anything chosen. A command row or a one-off line cannot start in
-  // one: the switch is off and disabled there, and its reason line says so. "Type a command…" shows it
-  // before the first character, so typing moves nothing.
-  const branchShown = what !== null || (kind === "shell" && command.kind === "typed");
+  // The worktree block is always there, from the first paint, so the machine's answer never slides it
+  // in or out over the Folder field (DESIGN.md §2). With nothing chosen yet (the answer still out, or
+  // no agent that starts) the switch is only disabled, with no reason line. A command row or a
+  // one-off line cannot start in one: the switch is off and disabled there, and its reason line says
+  // so. "Type a command…" counts as chosen before the first character, so typing moves nothing.
+  const branchWaiting = what === null && !(kind === "shell" && command.kind === "typed");
   const branchBlocked: Unavailable | null =
-    offer.branchBlocked ?? (branchAllowed(offer, what) ? null : { kind: "commandRow" });
-  const branchActive = branchShown && branchBlocked === null && branchOn;
+    offer.branchBlocked ?? (branchWaiting || branchAllowed(offer, what) ? null : { kind: "commandRow" });
+  const branchActive = !branchWaiting && branchBlocked === null && branchOn;
 
   // ── The plan: what the bridge says a branch from this folder would be (ADR 0093) ─────────────
   const [plan, setPlan] = useState<{ key: string; answer: WorktreePlanResponse } | null>(null);
@@ -625,29 +627,26 @@ function NewPage({ search }: { search: string }) {
           />
         </div>
 
-        <Collapse open={branchShown}>
-          {branchShown ? (
-            <BranchBlock
-              on={branchOn && branchBlocked === null}
-              blocked={branchBlocked}
-              onToggle={setBranchOn}
-              name={branchName}
-              onName={setBranchName}
-              startChoices={startChoices}
-              baseShown={baseShown}
-              onBase={setBasePick}
-              folderKind={folderKind}
-              onFolderKind={setFolderPick}
-              parent={parent}
-              onParent={setParentPick}
-              folders={folders}
-              onStar={(f, s) => void star(f, s)}
-              checking={branchActive && current === null}
-              targetPath={targetPath === null ? null : shortenHome(targetPath, home)}
-              problem={branchProblem}
-            />
-          ) : null}
-        </Collapse>
+        <BranchBlock
+          on={branchOn && branchBlocked === null}
+          blocked={branchBlocked}
+          waiting={branchWaiting}
+          onToggle={setBranchOn}
+          name={branchName}
+          onName={setBranchName}
+          startChoices={startChoices}
+          baseShown={baseShown}
+          onBase={setBasePick}
+          folderKind={folderKind}
+          onFolderKind={setFolderPick}
+          parent={parent}
+          onParent={setParentPick}
+          folders={folders}
+          onStar={(f, s) => void star(f, s)}
+          checking={branchActive && current === null}
+          targetPath={targetPath === null ? null : shortenHome(targetPath, home)}
+          problem={branchProblem}
+        />
 
         {showWhere ? (
           <div className="flex flex-col gap-2">
@@ -664,6 +663,8 @@ function NewPage({ search }: { search: string }) {
               />
             </label>
             <FolderSections
+              // Per machine: another machine's Home folders open folded again.
+              key={machineKey}
               folders={folders}
               onUse={pickFolder}
               onStar={(f, s) => void star(f, s)}
@@ -834,6 +835,8 @@ interface BranchBlockProps {
   on: boolean;
   /** Why the switch cannot be turned on here, or `null`. */
   blocked: Unavailable | null;
+  /** Nothing chosen yet: the switch is disabled, with no reason to give. */
+  waiting: boolean;
   onToggle: (on: boolean) => void;
   name: string;
   onName: (name: string) => void;
@@ -870,7 +873,7 @@ function BranchBlock(p: BranchBlockProps) {
         <Switch
           id={switchId}
           checked={p.on}
-          disabled={p.blocked !== null}
+          disabled={p.blocked !== null || p.waiting}
           onCheckedChange={p.onToggle}
           aria-describedby={noteId}
         />

@@ -23,6 +23,11 @@ test("a home folder fills the field and the new space starts there", async ({ pa
   await page.goto("/");
   await page.getByRole("button", { name: en["space.overview.new.aria"] }).click();
   const list = page.getByRole("list", { name: en["space.new.folders.home"] });
+  // Folded until its title is tapped.
+  const toggle = page.getByRole("button", { name: en["space.new.folders.home"] });
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(list).toHaveCount(0);
+  await toggle.click();
   await expect(list.getByRole("listitem")).toHaveCount(1);
   await list.getByRole("listitem").getByRole("button").first().click();
   await expect(page.getByPlaceholder(en["space.new.dir.placeholder"])).toHaveValue(directory);
