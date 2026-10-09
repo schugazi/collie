@@ -5699,9 +5699,13 @@ async function runLaunch(
 ): Promise<CreateResponse> {
   const { row, besidePane, cwd } = job;
   const label = row?.label;
+  // The fork: a NEW space started for an agent by id or a one-off line takes no label, so the
+  // multiplexer (and herdr-automatic-rename) names it from its folder. Those labels are only the
+  // harness's display name or the line's first word; a row's label was chosen by hand and stays.
+  const spaceLabel = job.kind === "harness" || job.kind === "run" ? undefined : label;
   const outcome = besidePane
     ? await herdr.createTab({ spaceId: besidePane.workspaceId, label, cwd })
-    : await herdr.createSpace({ cwd, label });
+    : await herdr.createSpace({ cwd, label: spaceLabel });
   if (!outcome.ok) {
     return { ok: false, ...apiError("workspace.create_failed", { reason: outcome.detail }) };
   }

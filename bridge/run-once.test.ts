@@ -171,7 +171,7 @@ describe("POST /api/launch `{ run }`: the shape", () => {
     const out = await f.run({ run: "make test", cwd: "~/src/app", requestId: ID });
     expect(out.status).toBe(200);
     expect(out.body).toMatchObject({ ok: true, noPrompts: false, pane: { paneId: "w1:p1", cwd: join("/home/op", "src", "app") } });
-    expect(f.mux.spaces).toEqual([{ cwd: join("/home/op", "src", "app"), label: "make" }]);
+    expect(f.mux.spaces).toEqual([{ cwd: join("/home/op", "src", "app"), label: undefined }]);
     expect(f.mux.texts).toEqual([["w1:p1", "make test"]]);
     expect(f.mux.keys).toEqual([["Enter"]]);
   });
@@ -248,7 +248,7 @@ describe("POST /api/launch `{ run }`: the shape", () => {
     expect(missing.body).toMatchObject({ code: "launch.folder_missing", detail: { folder: "/nope" } });
     expect(f.mux.spaces).toEqual([]);
     expect((await f.run({ run: "ls", cwd: "projects" }, { fs: dirs([join("/home/op", "projects")]) })).status).toBe(200);
-    expect(f.mux.spaces).toEqual([{ cwd: join("/home/op", "projects"), label: "ls" }]);
+    expect(f.mux.spaces).toEqual([{ cwd: join("/home/op", "projects"), label: undefined }]);
   });
 
   test("the answer says whether the line scans as no-prompts; the bridge does not ask for a confirm", async () => {
@@ -586,8 +586,8 @@ describe("the audit line names the command word and the length, never the line",
     });
     expect(f.log.raw.join("\n")).not.toContain("hunter2");
     expect(f.log.raw.join("\n")).not.toContain("deploy");
-    // The space is named after the command word too, never after the assignment.
-    expect(f.mux.spaces[0]?.label).toBe("make");
+    // The fork names a run's new space from its folder: no label at all, so never the assignment.
+    expect(f.mux.spaces[0]?.label).toBeUndefined();
   });
 
   test("under `content = none` the word redacts, the length stays a number", async () => {

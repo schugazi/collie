@@ -125,7 +125,8 @@ describe("POST /api/launch — by id", () => {
     const { status, body } = await run(mux, { harness: "claude", cwd: "/home/op/src/app" });
     expect(status).toBe(200);
     expect(body?.ok).toBe(true);
-    expect(mux.spaces).toEqual([{ cwd: "/home/op/src/app", label: "Claude Code" }]);
+    // The fork: no label, so the multiplexer and automatic-rename name the space after its folder.
+    expect(mux.spaces).toEqual([{ cwd: "/home/op/src/app", label: undefined }]);
     expect(mux.texts).toEqual([["w1:p1", "claude"]]);
   });
 
