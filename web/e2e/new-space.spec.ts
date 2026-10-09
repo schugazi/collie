@@ -1,33 +1,33 @@
 import { expect, test } from "@playwright/test";
 import { en } from "@/lib/i18n/messages/en";
-import { fixtureAgents } from "@/test/handlers";
+import { fixtureNewSpace } from "@/test/handlers";
 import { installApiStub } from "./fixtures/api";
+
+// The fork's Home folders list on the New page: the machine's visible immediate home subdirectories,
+// from `/api/launchers`' `directories`, offered under Favourites and Recent. A tap fills the field;
+// Start then creates the space there. The stub's launchers answer has no agent list, as a bridge
+// before 1.19.0, so Start with Shell goes through the plain space create.
 
 test.use({ serviceWorkers: "block" });
 
-test("a new workspace starts in the directory selected from the dropdown", async ({ page }) => {
+test.beforeEach(async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.startsWith("states"), "the playground has no dashboard route");
   await installApiStub(page);
-  const pane = fixtureAgents[0]!;
-  const directory = pane.cwd;
+});
+
+test("a home folder fills the field and the new space starts there", async ({ page }) => {
+  const directory = "/home/you/webapp";
   await page.route("**/api/launchers", route => route.fulfill({
     json: { launchers: [], home: "/home/you", directories: [directory] },
   }));
-  await page.route("**/api/workspace", route => route.fulfill({
-    json: { ok: true, pane: { paneId: pane.paneId, workspaceId: pane.workspaceId,
-      workspaceLabel: pane.workspaceLabel, tabId: pane.tabId, cwd: directory } },
-  }));
   await page.goto("/");
-  await page.getByRole("button", { name: en["space.overview.new.aria"], exact: true }).click();
-  const sheet = page.getByRole("dialog", { name: en["space.new.title"] });
-  const picker = sheet.getByRole("combobox", { name: en["space.new.dir.label"] });
-  await expect(picker.getByRole("option", { name: "~/webapp" })).toBeAttached();
-  await picker.selectOption(directory);
-  await expect(picker).toHaveValue(directory);
-  const box = await picker.boundingBox();
-  expect(box!.x).toBeGreaterThanOrEqual(0);
-  expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
-  const submitted = page.waitForRequest(req => req.url().endsWith("/api/workspace") && req.method() === "POST");
-  await sheet.getByRole("button", { name: en["space.new.create"] }).click();
+  await page.getByRole("button", { name: en["space.overview.new.aria"] }).click();
+  const list = page.getByRole("list", { name: en["space.new.folders.home"] });
+  await expect(list.getByRole("listitem")).toHaveCount(1);
+  await list.getByRole("listitem").getByRole("button").first().click();
+  await expect(page.getByPlaceholder(en["space.new.dir.placeholder"])).toHaveValue(directory);
+  const submitted = page.waitForRequest(req => new URL(req.url()).pathname === "/api/workspace" && req.method() === "POST");
+  await page.getByRole("button", { name: en["newPage.start"] }).click();
   expect((await submitted).postDataJSON()).toEqual({ cwd: directory });
-  await expect(page.getByRole("button", { name: en["chat.switcher.aria"] })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/pane/${encodeURIComponent(fixtureNewSpace.pane.paneId)}$`, "u"));
 });

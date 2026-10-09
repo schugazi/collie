@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "re
 import { createPortal } from "react-dom";
 import type { ChangeEvent, ClipboardEvent, CSSProperties, ReactNode } from "react";
 import { useLocation, useRevalidator } from "react-router";
-import { Bot, Check, Code, FileText, Image, Keyboard, Loader2, Mic, Paperclip, Send, Settings2, Slash, Square, Terminal, X, Zap } from "lucide-react";
+import { Bot, Check, Code, FileText, Image, Keyboard, Loader2, Mic, Paperclip, Pencil, Send, Settings2, Slash, Square, Terminal, X, Zap } from "lucide-react";
 
 import { applyDraftFontSize, fontStack, inputFocusZoomsPage } from "@/hooks/use-display-prefs";
 import type { DisplayPrefs, Hand } from "@/hooks/use-display-prefs";
@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ChatInput } from "@/components/ui/chat/chat-input";
 import { NavTray } from "@/components/nav-tray";
+import { KeyBoardEditor } from "@/components/key-board-editor";
 import { CommandPalette } from "@/components/command-palette";
 import { QuickActionsContent } from "@/components/quick-actions";
 import { ActionsRow } from "@/components/actions-row";
@@ -46,8 +47,7 @@ import {
   uploadLimits,
 } from "@/lib/attachments";
 import { ctrlPresetsFor } from "@/lib/operator-keys";
-import { HostChip } from "@/components/host-chip";
-import { useAmbientHost } from "@/components/crew-provider";
+import { useKeyBoard } from "@/lib/key-board-store";
 import { fitsDraftStore, loadDraftEntry, saveDraft } from "@/lib/drafts";
 import { wipeDevice } from "@/lib/wipe";
 import { AttachmentChip, type ComposerAttachment } from "@/components/attachment-chip";
@@ -228,13 +228,13 @@ const KEY_REVALIDATE_MS = 300;
 // viewport with a tall tray. One wrapper so Keys and Quick can't drift apart.
 function ComposerDock({
   title,
-  host,
+  onEdit,
   onClose,
   children,
 }: {
   title: string;
-  /** The machine a key sent from this dock lands on. Renders nothing on a single-host install. */
-  host?: string;
+  /** Draws a pencil beside the label, centred on it. Only the Keys dock has one (ADR 0092). */
+  onEdit?: () => void;
   onClose: () => void;
   children: ReactNode;
 }) {
@@ -243,8 +243,19 @@ function ComposerDock({
       <div className="flex items-center justify-between px-3 pt-2">
         <div className="flex min-w-0 items-center gap-2">
           <SectionLabel>{title}</SectionLabel>
-          {/* A key press from the Keys dock IS a write into a terminal — the dock names which one. */}
-          <HostChip host={host} variant="target" />
+          {onEdit !== undefined && (
+            // 28px drawn, 44px reached: the `::before` reaches 8px past each edge into the header's own
+            // padding and the dock's gap, the same trade the Close X beside it makes (DESIGN.md §6).
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative -ml-1 size-7 text-muted-foreground before:absolute before:-inset-2 before:content-['']"
+              onClick={onEdit}
+              aria-label={translate("composer.dock.editKeys")}
+            >
+              <Pencil className="size-3.5" />
+            </Button>
+          )}
         </div>
         <Button
           variant="ghost"
@@ -370,18 +381,11 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   // Two capabilities, one lock: a reply is `typeText` then `sendKeys` (bridge/mux/capabilities.ts),
   // and half a reply is not a feature. `typeText`'s reason is preferred when both are missing —
   // it is the half that fails first.
-  // Asked of the machine this row is on (M22/03) — the ambient scope IS the target here, exactly as
-  // `writeHost` below says of the write itself.
+  // Asked of the machine this row is on (M22/03) — the ambient scope IS the target here.
   const canType = useMuxCapability("typeText", scope);
   const canSendKeys = useMuxCapability("sendKeys", scope);
   const missingSend = !canType.capable ? canType : !canSendKeys.capable ? canSendKeys : null;
   const locked = gone || readOnly || hostBlock !== undefined || missingSend !== null;
-  // The machine every write on this row lands on. The pane view addresses one host (the pane's own,
-  // carried in `?h=` since the row was opened), so the ambient scope IS the target here. Undefined on
-  // a solo install, which renders no chip.
-  // It names the Keys dock's own header; the belt below it carried the tag for a day and the pane
-  // header carries it now (agent-chat.tsx).
-  const writeHost = useAmbientHost(scope?.host);
   // …and a ref alongside it, for the ONE caller that reads it after an await. `send()` checks
   // `locked` once, up front, but its pre-clear sweep goes out on the far side of the pre-flight's
   // pane read; a re-render that locks the composer in that window must be able to stop the most
@@ -651,6 +655,10 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
       endUndoWindow();
     },
     focusInput: focusInputEnd,
+    // Identity for the agent-change disarm: the mode belongs to the session
+    // that armed it. "shell" when the pane has no agent (agent exits, pane
+    // falls back to shell) — a change there disarms with a notice.
+    agentKey: agent ?? "shell",
   });
 
   // ── VOICE (ADR 0029) ──────────────────────────────────────────────────────────────────────────
@@ -965,6 +973,10 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   }
   // The Keys tray's preset row, resolved the same way from the same one-shot read of /api/config.
   const keyPresets = ctrlPresetsFor(agent, useOperatorKeys());
+  // The key board (ADR 0092): the pad the Keys dock draws. A hook, so an edit made in the
+  // editor sheet shows in the dock at once.
+  const keyBoard = useKeyBoard();
+  const [keysEditorOpen, setKeysEditorOpen] = useState(false);
   // Empty on every adapter that refuses nothing, and empty for Herdr's six as far as this tray is
   // concerned — it offers none of the paging/edit keys Herdr rejects, so nothing greys out there.
   const unsupportedKeys = useMuxUnsupportedKeys();
@@ -1519,7 +1531,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
         {drawer === "keys" && (
           <ComposerDock
             title={translate("composer.controls.keys")}
-            host={writeHost}
+            onEdit={() => setKeysEditorOpen(true)}
             onClose={closeDrawer}
           >
             <NavTray
@@ -1529,11 +1541,13 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
               unsupportedKeys={unsupportedKeys}
               onSend={pressKeys}
               presets={keyPresets}
+              board={keyBoard}
               onQueueChange={setQueuedKeys}
               disabled={locked || offline}
             />
           </ComposerDock>
         )}
+        <KeyBoardEditor open={keysEditorOpen} onClose={() => setKeysEditorOpen(false)} unsupportedKeys={unsupportedKeys} />
         {drawer === "quick" && (
           <ComposerDock title={translate("composer.controls.quick")} onClose={closeDrawer}>
             <QuickActionsContent

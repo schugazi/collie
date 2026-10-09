@@ -10,7 +10,7 @@ import { shortenHome } from "@/lib/shorten-home";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/hooks/use-locale";
 
-// The new-space sheet's Favourites and Recent sections (#289, M40/02), directly under its Directory
+// The New page's Favourites and Recent sections (#289, M40/02), directly under its Folder
 // field, for the machine the host picker chose. A row FILLS the field and creates nothing, so the
 // operator can still set a label, and a folder that has since gone is one more tap from being
 // noticed rather than a surprise create. The star beside it moves the folder between the two lists.
@@ -20,9 +20,9 @@ import { useLocale } from "@/hooks/use-locale";
 // apart.
 //
 // EVERY APPEARANCE IS A COLLAPSE (DESIGN.md §11 rule 1). The whole block arrives from a read the
-// operator caused by opening the sheet or picking a machine, and one section can appear or leave on a
+// operator caused by opening the page or picking a machine, and one section can appear or leave on a
 // star, so the block and each section open and close through `Collapse`. With nothing stored for the
-// chosen machine the block renders nothing, and the sheet is the one that shipped before.
+// chosen machine the block renders nothing, and the page is the one that shipped before.
 
 interface FolderSectionsProps {
   folders: FolderList;
@@ -30,13 +30,20 @@ interface FolderSectionsProps {
   onUse: (folder: string) => void;
   /** Star (`true`) or unstar (`false`) one folder of this machine. */
   onStar: (folder: string, starred: boolean) => void;
+  /** The fork's visible immediate home subdirectories of this machine, under the two lists. */
+  directories?: readonly string[];
 }
 
-export function FolderSections({ folders, onUse, onStar }: FolderSectionsProps) {
+const NO_DIRECTORIES: readonly string[] = [];
+
+export function FolderSections({ folders, onUse, onStar, directories = NO_DIRECTORIES }: FolderSectionsProps) {
   useLocale();
+  const listed = new Set([...folders.favourites, ...folders.recent]);
+  const homeRows = directories.filter((d) => !listed.has(d));
+  const any = hasFolders(folders) || homeRows.length > 0;
   return (
-    <Collapse open={hasFolders(folders)}>
-      {hasFolders(folders) ? (
+    <Collapse open={any}>
+      {any ? (
         <div className="flex flex-col gap-3">
           <Section
             title={t("space.new.folders.favourites")}
@@ -54,6 +61,8 @@ export function FolderSections({ folders, onUse, onStar }: FolderSectionsProps) 
             onUse={onUse}
             onStar={onStar}
           />
+          {/* No star: the bridge stars only a folder it already has under Recent. */}
+          <Section title={t("space.new.folders.home")} rows={homeRows} starred={false} home={folders.home} onUse={onUse} />
         </div>
       ) : null}
     </Collapse>
@@ -67,7 +76,8 @@ interface SectionProps {
   starred: boolean;
   home: string;
   onUse: (folder: string) => void;
-  onStar: (folder: string, starred: boolean) => void;
+  /** Absent: the rows carry no star. */
+  onStar?: (folder: string, starred: boolean) => void;
 }
 
 /** One labelled list: "Favourites, list, 3 items" to a screen reader. Absent when it has no rows. */
@@ -96,19 +106,21 @@ function Section({ title, rows, starred, home, onUse, onStar }: SectionProps) {
                   </button>
                   {/* 44px square, the star 16px inside it: a pressed star FILLS, it never grows,
                       so the row's text holds its x whichever list it is in (DESIGN.md §2). */}
-                  <button
-                    type="button"
-                    aria-pressed={starred}
-                    aria-label={
-                      starred
-                        ? t("space.new.folders.unstar", { folder: shown })
-                        : t("space.new.folders.star", { folder: shown })
-                    }
-                    onClick={() => onStar(folder, !starred)}
-                    className="flex size-11 shrink-0 items-center justify-center text-muted-foreground transition-colors active:bg-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-                  >
-                    <Star aria-hidden className={cn("size-4", starred && "fill-current text-foreground")} />
-                  </button>
+                  {onStar !== undefined && (
+                    <button
+                      type="button"
+                      aria-pressed={starred}
+                      aria-label={
+                        starred
+                          ? t("space.new.folders.unstar", { folder: shown })
+                          : t("space.new.folders.star", { folder: shown })
+                      }
+                      onClick={() => onStar(folder, !starred)}
+                      className="flex size-11 shrink-0 items-center justify-center text-muted-foreground transition-colors active:bg-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+                    >
+                      <Star aria-hidden className={cn("size-4", starred && "fill-current text-foreground")} />
+                    </button>
+                  )}
                 </li>
               );
             })}
