@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches: [main]
@@ -73,6 +74,8 @@ jobs:
   # path must never download a browser.
   e2e:
     name: browser (chromium, webkit)
+    # Run manually in this fork; routine syncs keep the other CI jobs automatic.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
