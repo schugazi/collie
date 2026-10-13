@@ -3,6 +3,8 @@ import {
   type AgentStatus,
   type AgentView,
   type BridgeStatus,
+  type MuxFault,
+  muxFaultOf,
   type TabView,
   type WorkspaceView,
 } from "./types.ts";
@@ -303,6 +305,8 @@ export interface EngineSnapshot {
   workspaces: WorkspaceView[];
   tabs: TabView[];
   bridge: BridgeStatus;
+  /** Why the last read failed, when it was a cause the phone words (types.ts `MuxFault`). Absent otherwise. */
+  muxFault?: MuxFault;
 }
 
 /**
@@ -326,6 +330,7 @@ export class StateEngine {
   private workspaces: WorkspaceView[] = [];
   private tabs: TabView[] = [];
   private bridge: BridgeStatus = "disconnected";
+  private muxFault: MuxFault | undefined = undefined;
   private readonly prevStatus = new Map<string, AgentStatus>();
   private readonly prevPinned = new Set<string>();
   // Last-known claude `/rename` session name per pane. Kept sticky so the name doesn't flicker away
@@ -458,13 +463,15 @@ export class StateEngine {
   }
 
   current(): EngineSnapshot {
-    return {
+    const snap: EngineSnapshot = {
       agents: this.agents,
       shellPanes: this.shellPanes,
       workspaces: this.workspaces,
       tabs: this.tabs,
       bridge: this.bridge,
     };
+    if (this.muxFault !== undefined) snap.muxFault = this.muxFault;
+    return snap;
   }
 
   start(): void {
@@ -700,6 +707,7 @@ export class StateEngine {
       this.workspaces = workspaceViews;
       this.tabs = tabViews;
       this.bridge = "connected";
+      this.muxFault = undefined;
       this.pollFailureLogged = false;
       // The relax the watch ordered while we had never yet connected - earned now.
       if (this.pendingCadenceMs !== null) {
@@ -716,6 +724,7 @@ export class StateEngine {
         console.warn(`[state] poll failed, marking disconnected: ${err instanceof Error ? err.message : String(err)}`);
       }
       this.bridge = "disconnected";
+      this.muxFault = muxFaultOf(err instanceof Error ? err.message : String(err));
     } finally {
       this.polling = false;
       // The hot holds, spent and re-judged on every attempt, and the interval re-armed to match. This

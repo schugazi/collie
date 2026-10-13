@@ -577,7 +577,7 @@ describe("the first-run multiplexer gate", () => {
     expect(h.exec.spawned).toHaveLength(0);
     const said = h.io.stderr.join("\n");
     expect(said).toContain("no COLLIE_MUX is set, and 2 multiplexers are running");
-    expect(said).toContain("  COLLIE_MUX=<herdr|tern|tmux|tuios|zellij> collie start");
+    expect(said).toContain("  COLLIE_MUX=<durable|herdr|tern|tmux|tuios|zellij> collie start");
   });
 });
 
@@ -1627,7 +1627,9 @@ describe("the status banner", () => {
       files: { [`${STATE}/crew-trust.json`]: serializeTrustStore(peerStore()) },
     });
     const lines = (await statusBanner(h.deps)).join("\n");
-    expect(lines).toContain("local     http://192.168.77.2:8787");
+    // The peer's main port is mutual TLS only, so `http://` there would never answer.
+    expect(lines).toContain("local     https://192.168.77.2:8787 (crew link, mutual TLS only)");
+    expect(lines).not.toContain("local     http://");
     expect(lines).toContain("crew      peer — no front door here");
     expect(lines).not.toContain("tailnet");
   });

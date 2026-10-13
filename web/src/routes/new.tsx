@@ -61,6 +61,7 @@ import {
   rememberKind,
   startFingerprint,
   summaryKey,
+  takesFolder,
   summaryWhat,
   unavailableText,
   whatFor,
@@ -141,6 +142,8 @@ function NewPage({ search }: { search: string }) {
   const loaded = launchers.loadedFor === launchersKey(target);
   // Worktrees are the lead's alone, so the lead's multiplexer is the one asked.
   const canWorktree = useMuxCapability("createWorktree").capable;
+  // Whether the CHOSEN machine has a screen (ADR 0102): one with none starts only its program's starters.
+  const chosenGrid = useMuxCapability("paneGrid", target);
   const offer: Offer = offerFor({
     harnesses: loaded ? launchers.harnesses : null,
     items: loaded ? launchers.items : null,
@@ -152,6 +155,7 @@ function NewPage({ search }: { search: string }) {
     refusal,
     canWorktree,
     memberChosen: multiHost && chosen !== lead ? { lead: leadName } : undefined,
+    screenless: !chosenGrid.capable,
   });
   const home = loaded ? launchers.home : "";
   const { folders, star } = useFolders(target, true);
@@ -166,7 +170,7 @@ function NewPage({ search }: { search: string }) {
   const [kindPick, setKindPick] = useState<Kind | null>(null);
   // `?pick=` is where "Add your own" sends the person back to: the row it just made, chosen. It only
   // stands in for a pick the person has not made on this page.
-  const kind = kindPick ?? kindOfKey(offer, at.pick) ?? defaultKind(offer, loaded, rememberedKind, again);
+  const kind = offer.startersOnly ? "agent" : (kindPick ?? kindOfKey(offer, at.pick) ?? defaultKind(offer, loaded, rememberedKind, again));
   const [agentPick, setAgentPick] = useState<string | null>(null);
   const [commandPick, setCommandPick] = useState<CommandPick | null>(null);
   // The line in the "Type a command…" field. Kept when the select moves away and back.
@@ -198,7 +202,7 @@ function NewPage({ search }: { search: string }) {
   const pinned = chosenItem?.cwd;
   // A machine older than 1.19.0 ignores a folder on a row, so it is not offered there.
   const legacy = loaded && !offer.shellById;
-  const showWhere = pinned === undefined && !(legacy && what?.kind === "row");
+  const showWhere = pinned === undefined && !(legacy && what?.kind === "row") && takesFolder(what);
 
   const [branchOn, setBranchOn] = useState(from !== undefined);
   const [branchName, setBranchName] = useState(() => branchOffName());
@@ -207,10 +211,11 @@ function NewPage({ search }: { search: string }) {
   const [parentPick, setParentPick] = useState<string | null>(null);
   // The worktree block is always there, from the first paint, so the machine's answer never slides it
   // in or out over the Folder field (DESIGN.md §2). With nothing chosen yet (the answer still out, or
-  // no agent that starts) the switch is only disabled, with no reason line. A command row or a
-  // one-off line cannot start in one: the switch is off and disabled there, and its reason line says
-  // so. "Type a command…" counts as chosen before the first character, so typing moves nothing.
-  const branchWaiting = what === null && !(kind === "shell" && command.kind === "typed");
+  // no agent that starts), or a durable program's starter (ADR 0102), the switch is only disabled,
+  // with no reason line. A command row or a one-off line cannot start in one: the switch is off and
+  // disabled there, and its reason line says so. "Type a command…" counts as chosen before the first
+  // character, so typing moves nothing.
+  const branchWaiting = (what === null || what.kind === "starter") && !(kind === "shell" && command.kind === "typed");
   const branchBlocked: Unavailable | null =
     offer.branchBlocked ?? (branchWaiting || branchAllowed(offer, what) ? null : { kind: "commandRow" });
   const branchActive = !branchWaiting && branchBlocked === null && branchOn;
@@ -288,6 +293,7 @@ function NewPage({ search }: { search: string }) {
   // line says so before Start, so nothing is rewritten silently.
   const folderText = shortenHome(pinned ?? folderShown(cwd, home), home);
   const parts: SummaryParts = { what: shownWhat, folder: folderText };
+  if (!takesFolder(what)) parts.noFolder = true;
   if (machineName !== undefined) parts.machine = machineName;
   if (branchActive) parts.branch = { name: branchName.trim(), base: baseName };
   const summary =
@@ -350,7 +356,7 @@ function NewPage({ search }: { search: string }) {
         what: ask.what,
         label: whatLabel(ask.what, offer, t("newPage.shell")),
         // A row with a fixed folder remembers none: Again runs it where the operator pinned it.
-        cwd: itemOf(offer, ask.what)?.cwd !== undefined ? null : (sendCwd ?? null),
+        cwd: itemOf(offer, ask.what)?.cwd !== undefined || !takesFolder(ask.what) ? null : (sendCwd ?? null),
         branch: ask.branch ? { folder: folderChoice } : null,
         at: Date.now(),
       });
@@ -548,15 +554,17 @@ function NewPage({ search }: { search: string }) {
         {/* Agent or Command: one segment, one select. Both halves are always listed in full; what
             cannot run on this machine is disabled in its select, with its reason in brackets. */}
         <div className="flex flex-col gap-2">
+          {offer.startersOnly ? null : (
           <Segmented
-            label={t("newPage.what")}
-            value={kind}
-            onChange={chooseKind}
-            options={[
-              { value: "agent", label: t("newPage.kind.agent") },
-              { value: "shell", label: t("newPage.shell") },
-            ]}
-          />
+              label={t("newPage.what")}
+              value={kind}
+              onChange={chooseKind}
+              options={[
+                { value: "agent", label: t("newPage.kind.agent") },
+                { value: "shell", label: t("newPage.shell") },
+              ]}
+            />
+          )}
           {kind === "agent" ? (
             <Select
               aria-label={t("newPage.kind.agent")}
@@ -589,42 +597,56 @@ function NewPage({ search }: { search: string }) {
               }
             />
           )}
+          {offer.startersOnly ? (
+            // A machine that starts only its program's starters has no Command half and no docs link
+            // about adding agents to say. If the program offers none yet, one line says so.
+            <Collapse open={loaded && offer.agents.length === 0}>
+              {loaded && offer.agents.length === 0 ? (
+                <p data-slot="new-starters-none" className="text-xs text-muted-foreground">
+                  {t("newPage.starters.none")}
+                </p>
+              ) : null}
+            </Collapse>
+          ) : (
+            <>
           {/* One note and one link under the select, whichever half is on. The two share a box as big
-              as the larger, so the Segmented switch moves nothing (DESIGN.md §2). */}
-          <OneOf
-            active={kind}
-            className="justify-items-start"
-            options={[
-              {
-                key: "agent",
-                node: (
-                  <DocsNote
-                    note={t("newPage.agents.note")}
-                    href={NEW_PAGE_DOCS.agent}
-                    link={t("newPage.agents.docs")}
-                    onAdd={adds ? () => openAdd("agent") : undefined}
-                    noPrompts={kind === "agent" && agentItem?.noPrompts === true}
-                  >
-                    <Collapse open={offer.agentsNote !== null}>
-                      {offer.agentsNote !== null ? <Reason reason={offer.agentsNote} /> : null}
-                    </Collapse>
-                  </DocsNote>
-                ),
-              },
-              {
-                key: "shell",
-                node: (
-                  <DocsNote
-                    note={t("newPage.commands.note")}
-                    href={NEW_PAGE_DOCS.command}
-                    link={t("newPage.commands.docs")}
-                    onAdd={adds ? () => openAdd("shell") : undefined}
-                    noPrompts={kind === "shell" && command.kind !== "typed" && itemOf(offer, command)?.noPrompts === true}
-                  />
-                ),
-              },
-            ]}
-          />
+                  as the larger, so the Segmented switch moves nothing (DESIGN.md §2). */}
+              <OneOf
+                active={kind}
+                className="justify-items-start"
+                options={[
+                  {
+                    key: "agent",
+                    node: (
+                      <DocsNote
+                        note={t("newPage.agents.note")}
+                        href={NEW_PAGE_DOCS.agent}
+                        link={t("newPage.agents.docs")}
+                        onAdd={adds ? () => openAdd("agent") : undefined}
+                        noPrompts={kind === "agent" && agentItem?.noPrompts === true}
+                      >
+                        <Collapse open={offer.agentsNote !== null}>
+                          {offer.agentsNote !== null ? <Reason reason={offer.agentsNote} /> : null}
+                        </Collapse>
+                      </DocsNote>
+                    ),
+                  },
+                  {
+                    key: "shell",
+                    node: (
+                      <DocsNote
+                        note={t("newPage.commands.note")}
+                        href={NEW_PAGE_DOCS.command}
+                        link={t("newPage.commands.docs")}
+                        onAdd={adds ? () => openAdd("shell") : undefined}
+                        noPrompts={kind === "shell" && command.kind !== "typed" && itemOf(offer, command)?.noPrompts === true}
+                      />
+                    ),
+                  },
+                ]}
+              />
+            </>
+          )}
         </div>
 
         <BranchBlock

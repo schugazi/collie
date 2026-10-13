@@ -31,6 +31,7 @@ import {
   taskPillSelected,
 } from "./chrome";
 import { dialogTail } from "./markers";
+import { dropClosingRule } from "./closing-rule";
 import { collapsesAsPaste, isPastePlaceholderOnly, pasteCarriesSend } from "./paste";
 
 /**
@@ -39,7 +40,11 @@ import { collapsesAsPaste, isPastePlaceholderOnly, pasteCarriesSend } from "./pa
  * miss falls back to a single raw block — the universal T1 behaviour. The registry only ever hands
  * this function a Claude pane, so there is no per-agent gate here.
  */
-export function claudeBuildBlocks(lines: StyledLine[]): Block[] {
+export function claudeBuildBlocks(input: StyledLine[]): Block[] {
+  // The ONE place the closing rule a named session draws under a dialog (2.1.296, closing-rule.ts)
+  // is taken off, so every grammar below, the race guard that re-derives through this function and
+  // the unread-dialog probes read the same rows an unnamed session shows.
+  const lines = dropClosingRule(input);
   // The preview variant runs FIRST: its footer is the most specific anchor ("n to add notes"),
   // and although the wizard/prompt-select detectors can't match its layout (their footer-gap
   // guards fail on the tall preview pane), ordering by specificity keeps the arbitration obvious.
@@ -200,7 +205,8 @@ const PRESS_KEY_PROMPT = /\bpress\s+(?:enter|esc|escape|any key)\b/i;
  *  footer does, a pointed numbered option, or a "Press Enter" prompt. Read from above any task panel
  *  or queued message Claude parks under a dialog (markers.ts `dialogTail`), which would otherwise
  *  fill the window and hide the footer. */
-function tailNamesAKey(lines: StyledLine[]): boolean {
+function tailNamesAKey(input: StyledLine[]): boolean {
+  const lines = dropClosingRule(input);
   const texts = lines.map(lineText);
   const rows: string[] = [];
   for (let i = dialogTail(texts); i >= 0 && rows.length < MODAL_HINT_ROWS; i--) {
@@ -218,7 +224,7 @@ export const claudeAdapter: HarnessAdapter = {
   extractInputDraft,
   // The reply path's pre-flight: Claude's input box is exactly what `hasInputBox` finds, and its
   // absence is exactly the condition under which typing lands in a modal instead (#34's shape).
-  composerReady: hasInputBox,
+  composerReady: (lines) => hasInputBox(dropClosingRule(lines)),
   // The way OUT of a Claude modal, for the unread-dialog card (.adr/0053). Every Claude footer that
   // names one names `Esc to cancel` — the `/model` picker, the rewind screen, the config screens and
   // the `/effort` slider all print it, and `claude/markers.ts` treats the phrase as background chrome

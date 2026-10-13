@@ -63,6 +63,7 @@ const allOmpModalFixtures = allOmpFixtures.filter(
     name.startsWith("omp--menu-") ||
     name.startsWith("omp--select-") ||
     name.startsWith("omp--approval-") ||
+    name.startsWith("omp--v18-10-ask-") ||
     (name.startsWith("omp--v18-4-") &&
       name !== "omp--v18-4-composer-idle.txt" &&
       !GLYPH_COMPOSER_FIXTURES.includes(name)) ||
@@ -108,6 +109,15 @@ const LIFTED = new Set([
   "omp--v18-4-ask-single.txt",
   "omp--v18-8-ask-single-described-moved.txt",
   "omp--v18-8-ask-single-described.txt",
+  "omp--v18-10-ask-single.txt",
+  "omp--v18-10-ask-batch.txt",
+  "omp--v18-10-ask-batch-moved.txt",
+  "omp--v18-10-ask-batch-second.txt",
+  "omp--v18-10-ask-batch-third.txt",
+  "omp--v18-10-ask-batch-review.txt",
+  "omp--v18-10-ask-long.txt",
+  "omp--v18-10-ask-long-expanded.txt",
+  "omp--v18-10-ask-revisited.txt",
   "omp--approval-bash.txt",
   "omp--approval-write--deny.txt",
   "omp--approval-write.txt",
@@ -141,6 +151,9 @@ const DECLINED = new Set([
   "omp--fresh-idle.txt",
   "omp--menu-dismissed.txt",
   "omp--v18-4-composer-idle.txt",
+  "omp--v18-10-draft-blank-line.txt",
+  "omp--v18-10-draft-indented.txt",
+  "omp--v18-10-draft-two-lines.txt",
   "omp--v18-4-borderless-draft.txt",
   "omp--v18-4-borderless-idle.txt",
   "omp--v18-4-borderless-wrapped.txt",
@@ -277,6 +290,18 @@ describe("the omp corpus", () => {
     "omp--slash-palette--filtered.txt",
     "omp--slash-palette.txt",
     "omp--tree.txt",
+    "omp--v18-10-ask-batch-moved.txt",
+    "omp--v18-10-ask-batch-review.txt",
+    "omp--v18-10-ask-batch-second.txt",
+    "omp--v18-10-ask-batch-third.txt",
+    "omp--v18-10-ask-batch.txt",
+    "omp--v18-10-ask-long-expanded.txt",
+    "omp--v18-10-ask-long.txt",
+    "omp--v18-10-ask-revisited.txt",
+    "omp--v18-10-ask-single.txt",
+    "omp--v18-10-draft-blank-line.txt",
+    "omp--v18-10-draft-indented.txt",
+    "omp--v18-10-draft-two-lines.txt",
     "omp--v18-4-approval-bash-moved.txt",
     "omp--v18-4-approval-bash.txt",
     "omp--v18-4-approval-write-long.txt",
@@ -433,6 +458,10 @@ const COMPOSER_FIXTURES = [
   "omp--slash-palette.txt",
   "omp--working.txt",
   "omp--v18-4-composer-idle.txt",
+  // OMP 18.10's open prompt with a draft's later lines under it (harness canary, 2026-10-12).
+  "omp--v18-10-draft-blank-line.txt",
+  "omp--v18-10-draft-indented.txt",
+  "omp--v18-10-draft-two-lines.txt",
   "omp--v18-4-borderless-draft.txt",
   "omp--v18-4-borderless-idle.txt",
   "omp--v18-4-borderless-wrapped.txt",
