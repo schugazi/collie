@@ -349,9 +349,13 @@ label = "Top"                # optional; defaults to the first word of command
 ```
 
 Where the row opens depends on where you start it, not on the row. From the **New page** (Shell,
-then the row in the Command select), Start creates a new Space named after its folder, and the
-row's label names the tab. From a **pane** — the switcher sheet you reach by
+then the row in the Command select), Start creates a new Space, and the row's label names the
+tab. From a **pane** — the switcher sheet you reach by
 swiping up — a tap opens a new **tab in that pane's own Space**, beside it, named after the row.
+
+On Herdr the new Space gets no label, so Herdr names it after its folder and
+herdr-automatic-rename keeps renaming it. On tmux and zellij it takes the folder's name, with a
+number (`app-2`) when another Space already has that name.
 
 Either way the bridge types the `command` into the fresh shell and sends Enter. The command owns
 its own lifetime: one that closes itself takes the Space or tab with it, and `htop` stays until you
