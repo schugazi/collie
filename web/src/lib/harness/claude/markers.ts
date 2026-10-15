@@ -6,6 +6,7 @@
 
 import { isBlank, lineText } from "../../blocks";
 import { CLAUDE_RULE_GLYPH_CLASS } from "../../rule-glyphs";
+import { trailingTaskChecklistStart } from "../../task-checklist";
 import { displayWidth } from "../../text-width";
 import { readKeyHintFooter } from "../menu-hints";
 import type { PromptFamily } from "../prompt-model";
@@ -286,35 +287,10 @@ export function isMultiStepHeader(text: string): boolean {
   return m !== null && m.length >= 2;
 }
 
-// Claude's task panel. While a dialog is open Claude parks it BELOW the dialog's footer (measured on
-// 2.1.280 under a wizard, its review step and a permission prompt): an "8 tasks (3 done, 1 in
-// progress, 4 open)" header, at most five `✔`/`◻`/`◼` rows cut to one line each, and an optional
-// "… +3 completed" row counting the rest. The header's count must equal the rows shown plus the
-// overflow's counts, so transcript text shaped like a task list is not taken for the panel; and
-// with no dialog open Claude paints its input box at the bottom, so the panel is never the tail
-// then. bridge/prompt-binding.ts reads the same shape to measure its tail window above the panel.
-const TASK_PANEL_HEADER = /^(\d+) tasks? \(.+\)$/;
-const TASK_PANEL_ROW = /^[✔◻◼] /;
-const TASK_PANEL_OVERFLOW = /^… \+\d/;
-const TASK_PANEL_SHOWN = 5;
-
-/** The index of the header of a task panel whose last row is `texts[end]`, or -1. */
-export function taskPanelStart(texts: string[], end: number): number {
-  let i = end;
-  let hidden = 0;
-  if (i >= 0 && TASK_PANEL_OVERFLOW.test(texts[i]!.trim())) {
-    for (const n of texts[i]!.match(/\d+/g) ?? []) hidden += Number(n);
-    i--;
-  }
-  let shown = 0;
-  while (i >= 0 && TASK_PANEL_ROW.test(texts[i]!.trim())) {
-    shown++;
-    i--;
-  }
-  if (i < 0 || shown === 0 || shown > TASK_PANEL_SHOWN) return -1;
-  const header = TASK_PANEL_HEADER.exec(texts[i]!.trim());
-  return header !== null && Number(header[1]) === shown + hidden ? i : -1;
-}
+// Claude's task panel, parked BELOW an open dialog's footer, is recognised by upstream's
+// `trailingTaskChecklistStart` (lib/task-checklist.ts); the adapter's entry points already drop a
+// panel that ends the screen, and `dialogTail` sets aside one that queued messages sit under or above.
+// bridge/prompt-binding.ts reads the same shapes to measure its tail window.
 
 // A background agent's message that arrives while a dialog is open is parked under the footer too
 // (measured on 2.1.280 under a wizard), one collapsed row each.
@@ -332,7 +308,7 @@ export function dialogTail(texts: string[]): number {
       end--;
       continue;
     }
-    const panel = taskPanelStart(texts, end);
+    const panel = trailingTaskChecklistStart(texts.slice(0, end + 1)) ?? -1;
     if (panel < 0) return end;
     end = panel - 1;
   }

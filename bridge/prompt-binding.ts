@@ -4,6 +4,9 @@
 import { decodeStyledRegion, STYLED_FORMAT, styledRegionLines } from "../web/src/lib/styled-region.ts";
 // The column range of a bound region (`expected_columns`) is cut by one function shared the same way.
 import { cropRawColumns, type ColumnRange } from "../web/src/lib/column-range.ts";
+// The task checklist Claude Code 2.1.299 draws under a dialog is recognised by the one function the
+// phone uses to take it off before its grammars run.
+import { trailingTaskChecklistStart } from "../web/src/lib/task-checklist.ts";
 
 /**
  * Normalize a rendered prompt region for comparison across terminal redraws.
@@ -29,41 +32,21 @@ export function normalizePromptRegion(text: string): string[] {
 
 // Across all 20 committed fixture regions, at most one normalized line follows a match. Six lines
 // leave generous headroom for a status or spinner update while ensuring a replacement prompt, whose
-// regions span 20 to 32 normalized lines, pushes a stale match outside the accepted tail.
+// regions span 20 to 32 normalized lines, pushes a stale match outside the accepted tail. A task
+// checklist at the very end of the read (Claude Code 2.1.299 draws it under a dialog's footer) is not
+// counted: it ran to seven rows in the 2.1.299 captures (the header, five tasks and the `… +N`
+// overflow row Claude folds the rest into) and would push every live region out. Only a list whose counts
+// agree with its header is skipped (`trailingTaskChecklistStart`), so output that merely looks like
+// one still counts, and the window cannot be widened by it.
 export const DEFAULT_PROMPT_TAIL_LINES = 6;
 
-// Claude Code parks its task panel UNDER an open dialog: "8 tasks (3 done, 1 in progress, 4 open)",
-// at most five `✔`/`◻`/`◼` rows, then an optional "… +3 completed" row counting the rest. The tail
-// window is measured above it, so only a real panel moves the window: the header's count must equal
-// the rows shown plus the overflow row's counts, which transcript text shaped like a list won't meet.
-// The client reads the same shape (`taskPanelStart`, web/src/lib/harness/claude/markers.ts).
-const TASK_PANEL_HEADER = /^(\d+) tasks? \(.+\)$/;
-const TASK_PANEL_ROW = /^[✔◻◼] /;
-const TASK_PANEL_OVERFLOW = /^… \+\d/;
-const TASK_PANEL_SHOWN = 5;
-export const TASK_PANEL_MAX_LINES = TASK_PANEL_SHOWN + 2;
-
-/** How many of `lines` (normalized: no blank rows) are a trailing task panel, or 0. */
-export function trailingTaskPanelLines(lines: string[]): number {
-  let i = lines.length - 1;
-  let hidden = 0;
-  if (i >= 0 && TASK_PANEL_OVERFLOW.test(lines[i]!.trim())) {
-    for (const n of lines[i]!.match(/\d+/g) ?? []) hidden += Number(n);
-    i--;
-  }
-  let shown = 0;
-  while (i >= 0 && TASK_PANEL_ROW.test(lines[i]!.trim())) {
-    shown++;
-    i--;
-  }
-  if (i < 0 || shown === 0 || shown > TASK_PANEL_SHOWN) return 0;
-  const header = TASK_PANEL_HEADER.exec(lines[i]!.trim());
-  return header !== null && Number(header[1]) === shown + hidden ? lines.length - i : 0;
-}
+// The fork reads a little more of the pane for a binding check, so a task panel (header, five tasks
+// and the `… +N` overflow row) under the region cannot push the region out of the read itself.
+export const TASK_PANEL_MAX_LINES = 7;
 
 // A background agent's message that arrives while a dialog is open is parked under the footer too,
-// one collapsed row each, before or after the task panel. The client reads the same shape
-// (`dialogTail`, web/src/lib/harness/claude/markers.ts).
+// one collapsed row each, before or after the task panel (`trailingTaskChecklistStart`). The client
+// reads the same shape (`dialogTail`, web/src/lib/harness/claude/markers.ts).
 const QUEUED_MESSAGE_ROW = /^› Message from @\S+ \(ctrl\+o to expand\)$/;
 
 /** How many of `lines` (normalized: no blank rows) are trailing queued-message rows and task
@@ -75,9 +58,9 @@ export function trailingDialogChromeLines(lines: string[]): number {
       end--;
       continue;
     }
-    const panel = trailingTaskPanelLines(lines.slice(0, end));
-    if (panel === 0) return lines.length - end;
-    end -= panel;
+    const panel = trailingTaskChecklistStart(lines.slice(0, end));
+    if (panel === null) return lines.length - end;
+    end = panel;
   }
 }
 
@@ -108,7 +91,7 @@ export type StyledBindingResult =
 /**
  * Find `expected` as a contiguous run of `fresh` lines, the LAST such run, and require it to end
  * inside the last `tailLines` lines. Returns where the run starts, so the style check can look at the
- * same place.
+ * same place. The caller has already cut a trailing task checklist off `fresh` (see `matchText`).
  */
 function matchInTail(
   fresh: string[],
@@ -134,7 +117,9 @@ function matchInTail(
 
 type TextRefusal = Extract<PromptBindingResult, { ok: false }>["reason"];
 
-/** The text check on already normalized lines: where the expected region starts, or why not. */
+/** The text check on already normalized lines: where the expected region starts, or why not. A task
+ *  checklist that ends the read is not counted against the tail (`DEFAULT_PROMPT_TAIL_LINES`). Only
+ *  the end is cut, so the start returned still indexes `freshLines`. */
 function matchText(
   freshLines: string[],
   expected: string,
@@ -142,7 +127,8 @@ function matchText(
 ): { ok: true; start: number } | { ok: false; reason: TextRefusal } {
   const expectedLines = normalizePromptRegion(expected);
   if (expectedLines.length === 0) return { ok: false, reason: "empty" };
-  return matchInTail(freshLines, expectedLines, tailLines);
+  const end = trailingTaskChecklistStart(freshLines) ?? freshLines.length;
+  return matchInTail(freshLines.slice(0, end), expectedLines, tailLines);
 }
 
 export function verifyExpectedPrompt(

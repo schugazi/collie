@@ -93,7 +93,7 @@ describe("a real unread modal gets the card", () => {
   // Claude parks a task panel or a background agent's message under an open dialog; the card must
   // still see the dialog's footer above it.
   it.each([
-    ["a task panel", ["7 tasks (2 done, 5 open)", "✔ a", "✔ b", "◻ c", "◻ d", "◻ e", "… +2 open"]],
+    ["a task panel", ["7 tasks (2 done, 5 open)", "✔ a", "✔ b", "◻ c", "◻ d", "◻ e", "… +2 pending"]],
     ["a queued message", ["› Message from @worker (ctrl+o to expand)"]],
   ])("claude gets the card with %s under the dialog", (_, tail) => {
     const raw = readFileSync(join(PANES_DIR, "claude-lab--menu-status-screen--w82.txt"), "utf8");

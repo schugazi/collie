@@ -21,6 +21,7 @@ import {
   type MuxOutcome,
   type MuxSpaceRequest,
 } from "./mux/types.ts";
+import { declareCapabilities } from "./mux/capabilities.ts";
 
 // `POST /api/launch` by id, with a request id and a receipt (ADR 0091). The claims:
 //
@@ -59,7 +60,15 @@ class FakeMux {
   readonly spaces: MuxSpaceRequest[] = [];
   readonly texts: Array<[string, string]> = [];
   readonly closes: string[] = [];
+  readonly tabRenames: Array<[string, string]> = [];
+  /** The fork names a new space differently on Herdr; another multiplexer takes upstream's names. */
+  mux = "herdr";
+  // What a launch asks: a new space, and the tab rename that follows it (a fake with no `capabilities`
+  // would throw in `supportsCapability`).
+  capabilities = declareCapabilities({ supports: ["createSpace", "createTab", "renameTab"], topologyLatency: { kind: "push" } });
   failText = false;
+  /** `renameTab` throws, as an adapter that fails mid-call would. */
+  renameThrows = false;
   gate: Promise<void> | null = null;
   private n = 0;
 
@@ -68,6 +77,10 @@ class FakeMux {
     if (this.gate) await this.gate;
     this.n++;
     return muxOk({ paneId: `w${this.n}:p1`, spaceId: `w${this.n}`, spaceLabel: request.label ?? "shell", tabId: `w${this.n}:t1`, cwd: request.cwd ?? "/" });
+  }
+  renameTab(tabId: string, label: string): Promise<MuxAck> {
+    this.tabRenames.push([tabId, label]);
+    return this.renameThrows ? Promise.reject(new Error("rename failed")) : Promise.resolve(muxAck());
   }
   readGrid(paneId: string): Promise<MuxOutcome<MuxGrid>> {
     return Promise.resolve(muxOk({ paneId, text: "$ ", truncated: false, revision: 1 }));
@@ -89,8 +102,8 @@ class FakeMux {
 }
 
 function asMux(fake: Partial<MuxAdapter>): MuxAdapter {
-  // SAFETY: a launch from the dashboard reaches createSpace, readGrid, typeText, sendKeys, closePane
-  // (on a failed send) and refresh — the six FakeMux implements.
+  // SAFETY: a launch from the dashboard reaches createSpace, renameTab, readGrid, typeText, sendKeys,
+  // closePane (on a failed send) and refresh, plus the `capabilities` declaration — what FakeMux implements.
   return fake as MuxAdapter;
 }
 
@@ -125,9 +138,49 @@ describe("POST /api/launch — by id", () => {
     const { status, body } = await run(mux, { harness: "claude", cwd: "/home/op/src/app" });
     expect(status).toBe(200);
     expect(body?.ok).toBe(true);
-    // The fork: no label, so the multiplexer and automatic-rename name the space after its folder.
-    expect(mux.spaces).toEqual([{ cwd: "/home/op/src/app", label: undefined }]);
+    // The fork: no label and no tab rename, so Herdr and automatic-rename name both from the folder.
+    expect(mux.spaces).toEqual([{ cwd: "/home/op/src/app" }]);
+    expect(mux.tabRenames).toEqual([]);
     expect(mux.texts).toEqual([["w1:p1", "claude"]]);
+  });
+
+  test("a row in a new space leaves the space unnamed and puts its label on the tab", async () => {
+    const mux = new FakeMux();
+    const { status, body } = await run(mux, { command: "htop" });
+    expect(status).toBe(200);
+    expect(body?.ok).toBe(true);
+    expect(mux.spaces).toEqual([{ cwd: "/home/op/pinned" }]);
+    expect(mux.tabRenames).toEqual([["w1:t1", "htop"]]);
+  });
+
+  test("off Herdr, a new space takes its folder's free name and an agent's tab takes the agent's", async () => {
+    const mux = new FakeMux();
+    mux.mux = "tmux";
+    const { status, body } = await run(mux, { harness: "claude", cwd: "/home/op/src/app" });
+    expect(status).toBe(200);
+    expect(body?.ok).toBe(true);
+    expect(mux.spaces).toEqual([{ cwd: "/home/op/src/app", label: "app" }]);
+    expect(mux.tabRenames).toEqual([["w1:t1", "Claude Code"]]);
+  });
+
+  test("an adapter that declares no renameTab still launches, and no rename is asked", async () => {
+    const mux = new FakeMux();
+    mux.capabilities = declareCapabilities({ supports: ["createSpace", "createTab"], topologyLatency: { kind: "push" } });
+    const { status, body } = await run(mux, { command: "htop" });
+    expect(status).toBe(200);
+    expect(body?.ok).toBe(true);
+    expect(mux.tabRenames).toEqual([]);
+    expect(mux.texts).toEqual([["w1:p1", "htop"]]);
+  });
+
+  test("a tab rename that throws does not fail the launch", async () => {
+    const mux = new FakeMux();
+    mux.renameThrows = true;
+    const { status, body } = await run(mux, { command: "htop" });
+    expect(status).toBe(200);
+    expect(body?.ok).toBe(true);
+    expect(mux.tabRenames).toEqual([["w1:t1", "htop"]]);
+    expect(mux.texts).toEqual([["w1:p1", "htop"]]);
   });
 
   test("an id the bridge does not start is refused before anything runs", async () => {
