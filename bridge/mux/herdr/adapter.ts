@@ -122,6 +122,8 @@ const HERDR_CAPABILITIES = declareCapabilities({
   },
   // Herdr's workspaces are Collie's spaces, and there are as many as the operator created.
   spaces: "many",
+  // An unlabelled workspace is named after its folder, and herdr-automatic-rename keeps tracking it.
+  namesSpacesByFolder: true,
 });
 
 /** `MuxTarget.options` key carrying which local dialer to use. Opaque to the registry, by rule. */

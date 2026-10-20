@@ -61,11 +61,14 @@ class FakeMux {
   readonly texts: Array<[string, string]> = [];
   readonly closes: string[] = [];
   readonly tabRenames: Array<[string, string]> = [];
-  /** The fork names a new space differently on Herdr; another multiplexer takes upstream's names. */
-  mux = "herdr";
   // What a launch asks: a new space, and the tab rename that follows it (a fake with no `capabilities`
-  // would throw in `supportsCapability`).
-  capabilities = declareCapabilities({ supports: ["createSpace", "createTab", "renameTab"], topologyLatency: { kind: "push" } });
+  // would throw in `supportsCapability`). The fork leaves a new space unnamed where the multiplexer
+  // names it after its folder, as Herdr does; another multiplexer takes upstream's names.
+  capabilities = declareCapabilities({
+    supports: ["createSpace", "createTab", "renameTab"],
+    topologyLatency: { kind: "push" },
+    namesSpacesByFolder: true,
+  });
   failText = false;
   /** `renameTab` throws, as an adapter that fails mid-call would. */
   renameThrows = false;
@@ -153,9 +156,9 @@ describe("POST /api/launch — by id", () => {
     expect(mux.tabRenames).toEqual([["w1:t1", "htop"]]);
   });
 
-  test("off Herdr, a new space takes its folder's free name and an agent's tab takes the agent's", async () => {
+  test("where the multiplexer does not name spaces, a new space takes its folder's free name and an agent's tab takes the agent's", async () => {
     const mux = new FakeMux();
-    mux.mux = "tmux";
+    mux.capabilities = declareCapabilities({ supports: ["createSpace", "createTab", "renameTab"], topologyLatency: { kind: "push" } });
     const { status, body } = await run(mux, { harness: "claude", cwd: "/home/op/src/app" });
     expect(status).toBe(200);
     expect(body?.ok).toBe(true);
@@ -165,7 +168,7 @@ describe("POST /api/launch — by id", () => {
 
   test("an adapter that declares no renameTab still launches, and no rename is asked", async () => {
     const mux = new FakeMux();
-    mux.capabilities = declareCapabilities({ supports: ["createSpace", "createTab"], topologyLatency: { kind: "push" } });
+    mux.capabilities = declareCapabilities({ supports: ["createSpace", "createTab"], topologyLatency: { kind: "push" }, namesSpacesByFolder: true });
     const { status, body } = await run(mux, { command: "htop" });
     expect(status).toBe(200);
     expect(body?.ok).toBe(true);

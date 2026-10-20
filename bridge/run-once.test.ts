@@ -10,6 +10,7 @@ import { memoryLaunchReceipts } from "./launch-receipts.ts";
 import type { JsonObject, JsonValue } from "./json.ts";
 import { readMerged, type LauncherSources } from "./launcher-adds.ts";
 import { memoryAddedIo, memoryAddedLaunchers } from "./launchers-added.ts";
+import { declareCapabilities } from "./mux/capabilities.ts";
 import { muxAck, muxOk, muxRefused, type MuxAck, type MuxAdapter, type MuxCreatedPane, type MuxGrid, type MuxOutcome, type MuxSpaceRequest } from "./mux/types.ts";
 import { DEFAULT_SWITCHES, type LauncherSwitches } from "./operator-launchers.ts";
 import {
@@ -71,6 +72,9 @@ class FakeMux {
   readonly texts: Array<[string, string]> = [];
   readonly keys: string[][] = [];
   readonly closes: string[] = [];
+  // The fork's launch asks whether the multiplexer names a new space itself; this one does not, so a
+  // run's space keeps upstream's name.
+  readonly capabilities = declareCapabilities({ supports: ["createSpace"], topologyLatency: { kind: "push" } });
   failText = false;
   private n = 0;
 

@@ -199,6 +199,8 @@ function declarationFor(adapter: MuxAdapter, matcher: BeaconMatcher, lifted: boo
     // appearing is noticed. That is still the wrapped adapter's census, and claiming otherwise here
     // would be the decorator declaring a promise it makes nothing keep.
     topologyLatency: adapter.capabilities.topologyLatency,
+    // Carried through for the same reason: a beacon never changes how a space is named.
+    namesSpacesByFolder: adapter.capabilities.namesSpacesByFolder,
   });
 }
 

@@ -7017,14 +7017,15 @@ async function runLaunch(
   // rename (2026-10-14). A one-off run keeps ADR 0095's rule: its space is named after the command word.
   // The name must also be free: tmux refuses a second session of the same name, so a second launch
   // from one folder would fail there, and on Herdr two equal names cannot be told apart.
-  // The fork: on Herdr a NEW space takes no label at all, so Herdr names it after its folder and
-  // herdr-automatic-rename keeps tracking it; a label that is not Herdr's own derivation ("app-2")
-  // reads to automatic-rename as a hand-typed name and opts the space out for good. Only a row's
-  // hand-chosen label goes on the tab there; an agent's or a run's tab is left to automatic-rename.
-  const onHerdr = herdr.mux === "herdr";
+  // The fork: where the multiplexer names a space after its folder (Herdr), a NEW space takes no
+  // label at all, so herdr-automatic-rename keeps tracking it; a label that is not Herdr's own
+  // derivation ("app-2") reads to automatic-rename as a hand-typed name and opts the space out for
+  // good. Only a row's hand-chosen label goes on the tab there; an agent's or a run's tab is left to
+  // automatic-rename.
+  const muxNamesSpace = herdr.capabilities.namesSpacesByFolder;
   const folder = basename(cwd);
   const folderNamed = !besidePane && row !== undefined && job.kind !== "run" && folder !== "";
-  const spaceLabel = onHerdr ? undefined : folderNamed ? freeSpaceName(folder, engine.current().workspaces) : label;
+  const spaceLabel = muxNamesSpace ? undefined : folderNamed ? freeSpaceName(folder, engine.current().workspaces) : label;
   const outcome = besidePane
     ? await herdr.createTab({ spaceId: besidePane.workspaceId, label, cwd })
     : await herdr.createSpace({ cwd, label: spaceLabel });
@@ -7032,7 +7033,7 @@ async function runLaunch(
     return { ok: false, ...apiError("workspace.create_failed", { reason: outcome.detail }) };
   }
   const created = outcome.value;
-  const tabNamed = onHerdr ? !besidePane && job.kind === "row" : folderNamed;
+  const tabNamed = muxNamesSpace ? !besidePane && job.kind === "row" : folderNamed;
   if (tabNamed && label !== undefined && supportsCapability(herdr.capabilities, "renameTab")) {
     // Best effort: a tab left with the multiplexer's own name costs a label, never the launch.
     try {

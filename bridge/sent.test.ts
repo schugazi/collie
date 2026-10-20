@@ -9,6 +9,7 @@ import { maskForwardedAnswer } from "./crew/mask.ts";
 import { harnessLaunch } from "./harness-launch.ts";
 import type { JsonObject, JsonValue } from "./json.ts";
 import { memoryLaunchReceipts } from "./launch-receipts.ts";
+import { declareCapabilities } from "./mux/capabilities.ts";
 import { HerdrMux } from "./mux/herdr/adapter.ts";
 import type { HerdrClient } from "./mux/herdr/client.ts";
 import { muxAck, muxOk, type MuxAck, type MuxAdapter, type MuxCreatedPane, type MuxGrid, type MuxOutcome, type MuxSpaceRequest } from "./mux/types.ts";
@@ -447,6 +448,8 @@ describe("record points: the Send Protocol's blind send on a shell pane", () => 
 
 class FakeMux {
   readonly texts: Array<[string, string]> = [];
+  // The fork's launch asks whether the multiplexer names a new space itself; this one does not.
+  readonly capabilities = declareCapabilities({ supports: ["createSpace"], topologyLatency: { kind: "push" } });
   private n = 0;
   createSpace(request: MuxSpaceRequest): Promise<MuxOutcome<MuxCreatedPane>> {
     this.n++;

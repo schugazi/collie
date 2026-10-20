@@ -177,6 +177,13 @@ export interface MuxCapabilityDeclaration {
    * adapter never said.
    */
   readonly topologyLatency: MuxTopologyLatency;
+  /**
+   * The fork: whether a space created with no label is named after its folder by the multiplexer
+   * itself, and kept named by it. A FACT, like {@link spaces}: nothing degrades without it, a launch
+   * just names the space itself. On Herdr a label Collie picks reads to herdr-automatic-rename as a
+   * hand-typed name and opts the space out for good, so `runLaunch` leaves the label off.
+   */
+  readonly namesSpacesByFolder: boolean;
 }
 
 /**
@@ -202,6 +209,8 @@ export interface MuxCapabilityInput {
   readonly spaces?: MuxSpaceCapacity;
   /** Required — see {@link MuxCapabilityDeclaration.topologyLatency} for why there is no default. */
   readonly topologyLatency: MuxTopologyLatency;
+  /** Omitted reads as false: the launch names the space itself, as upstream does. */
+  readonly namesSpacesByFolder?: boolean;
 }
 
 /**
@@ -250,6 +259,7 @@ export function declareCapabilities(input: MuxCapabilityInput): MuxCapabilityDec
     notes: input.notes ?? {},
     spaces: input.spaces ?? "many",
     topologyLatency: input.topologyLatency,
+    namesSpacesByFolder: input.namesSpacesByFolder ?? false,
   };
 }
 
