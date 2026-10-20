@@ -26,7 +26,9 @@ The shipped HTML locks page zoom and document scrolling; routes and sheets own t
 The composer's border frames only the draft; Attach and Send stand outside it, beside the box, and the field hides its scrollbar.
 Keep internal CLI, configuration, storage and protocol identifiers compatible with Collie.
 Set `COLLIE_UPDATE_REPO=schugazi/collie` on deployments; origin is the personal fork and
-upstream is AltanS/collie. Deploy main with the existing full build, then restart the bridge.
+upstream is AltanS/collie.
+Walky talky is off on mycroftxxx (`COLLIE_WALKY=off` in `~/.config/herdr/plugins/config/herdr.collie/.env`, the unit's
+`EnvironmentFile`) and its skill is not installed: the voice dispatcher (`~/voice-hub`) and Claude Code's own messaging cover it. Deploy main with the existing full build, then restart the bridge.
 Take upstream by merge, never rebase, via `/sync-upstream` (`.claude/skills/sync-upstream/`).
 The logo is a local bitmap asset, not the upstream generated Collie mark.
 The host's `~/.bun/bin/bun` must stay at or above `MIN_BUN` (`cli/update-check.ts`, 1.4.0); the flake pins 1.4.1.
