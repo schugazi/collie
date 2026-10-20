@@ -744,11 +744,9 @@ describe("the background-task pill's hint is statusline, not a menu footer", () 
     expect(hasInputBox(boxWithStatusRows("❯ ", ["  1 shell · Esc to …"]))).toBe(false);
   });
 
-  it("reads only the pill's inverse paint as a selected pill, not a custom statusline's", () => {
-    expect(hasInputBox(boxWithStatusRows("❯ ", ["  \x1b[7mOpus 5.5\x1b[0m · 20% context"]))).toBe(true);
-    expect(hasInputBox(boxWithStatusRows("❯ ", ["  ⏵⏵ auto mode on · \x1b[7m1 shell\x1b[0m · ctrl+t to hi…"]))).toBe(
-      false,
-    );
+  it("keeps the box with the tasks pill focused: a typed key still goes to the box", () => {
+    expect(hasInputBox(boxWithStatusRows("❯ ", ["  ⏵⏵ auto mode on · \x1b[7m1 shell\x1b[0m · Enter to view tasks"]))).toBe(true);
+    expect(hasInputBox(boxWithStatusRows("❯ ", ["  ⏵⏵ auto mode on · \x1b[7m1 shell\x1b[0m · ctrl+t to hi…"]))).toBe(true);
   });
 });
 
@@ -871,11 +869,10 @@ describe("real corpus — pinned so any change to the walk shows up as a diff", 
     { fixture: "footer-hints-idle--w45", statusRows: 1, draft: null, stripped: 6 },
     { fixture: "footer-hints-working--w60", statusRows: 1, draft: null, stripped: 6 },
     { fixture: "footer-hints-working", statusRows: 1, draft: null, stripped: 6 },
-    // The task pill selected: typed text goes to the pill, so the box is refused.
-    { fixture: "footer-pill-selected", statusRows: 0, draft: null, stripped: 1 },
-    // The same with the `Enter to view tasks` hint cut off: the pill's inverse paint refuses it.
-    { fixture: "footer-pill-selected--w45", statusRows: 0, draft: null, stripped: 1 },
-    { fixture: "footer-pill-selected--w60", statusRows: 0, draft: null, stripped: 1 },
+    // The task pill selected: a typed key still goes to the box, so the box is live.
+    { fixture: "footer-pill-selected", statusRows: 1, draft: null, stripped: 6 },
+    { fixture: "footer-pill-selected--w45", statusRows: 1, draft: null, stripped: 6 },
+    { fixture: "footer-pill-selected--w60", statusRows: 1, draft: null, stripped: 6 },
     { fixture: "ghost-suggestion", statusRows: 4, draft: null, stripped: 21 },
     { fixture: "ghost-typed-over", statusRows: 4, draft: "hello real draft text", stripped: 21 },
     { fixture: "idle-background-shell", statusRows: 1, draft: null, stripped: 5 },
@@ -1040,8 +1037,7 @@ describe("real corpus — pinned so any change to the walk shows up as a diff", 
     // The same lab with eleven agents: five rows and "↓ 6 more", the tasks pill focused ("Enter to view
     // tasks" on the mode row), and the panel itself focused ("↑/↓ to select", "❯ ● main").
     { fixture: "v2301-lab-agents-panel-more", statusRows: 1, draft: null, stripped: 14 },
-    // The fork refuses the box under a selected task pill, as on footer-pill-selected above.
-    { fixture: "v2301-lab-agents-panel-tasks-pill", statusRows: 0, draft: null, stripped: 1 },
+    { fixture: "v2301-lab-agents-panel-tasks-pill", statusRows: 1, draft: null, stripped: 13 },
     { fixture: "v2301-lab-agents-panel-focused", statusRows: 1, draft: null, stripped: 14 },
     { fixture: "v2301-idle", statusRows: 1, draft: null, stripped: 6 },
     // Claude Code 2.1.301 around a running turn (send-queue lab, 2026-10-16): the operator's two-row

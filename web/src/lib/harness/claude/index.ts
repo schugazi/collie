@@ -29,7 +29,6 @@ import {
   hasInputBox,
   namesAModalKey,
   inputBoxTail,
-  taskPillSelected,
 } from "./chrome";
 import { dialogTail } from "./markers";
 import { dropClosingRule } from "./closing-rule";
@@ -227,8 +226,7 @@ function tailNamesAKey(input: StyledLine[]): boolean {
   for (let i = dialogTail(texts); i >= 0 && rows.length < MODAL_HINT_ROWS; i--) {
     if (texts[i]!.trim() !== "") rows.push(texts[i]!);
   }
-  if (rows.some((t) => namesAModalKey(t, texts) || POINTED_OPTION_ROW.test(t) || PRESS_KEY_PROMPT.test(t))) return true;
-  return taskPillSelected(lines);
+  return rows.some((t) => namesAModalKey(t, texts) || POINTED_OPTION_ROW.test(t) || PRESS_KEY_PROMPT.test(t));
 }
 
 export const claudeAdapter: HarnessAdapter = {

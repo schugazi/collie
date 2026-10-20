@@ -240,12 +240,6 @@ const CARD_FIXTURES = {
       // the marker would sit leftmost (Claude marks `low` by colour only), so the Effort grammar and
       // the generic menu both decline and the card is the honest answer.
       "claude--menu-effort-slider--w40-low.txt",
-      // README: the footer's task pill selected (`Enter to view tasks`) swallows typed text, so the
-      // box is not safe to type into; the card's Esc deselects it
-      "claude--footer-pill-selected.txt",
-      // the same at 45 and 60 columns, where that hint is cut off: the pill's inverse paint refuses
-      "claude--footer-pill-selected--w45.txt",
-      "claude--footer-pill-selected--w60.txt",
       // README: the `/plugin` "Add Marketplace" source field, opened from the Marketplaces tab. A text
       // field no grammar reads; the Marketplaces grammar does not claim it (no `Manage marketplaces`
       // title), so the card and its Escape are the way back to the tab.

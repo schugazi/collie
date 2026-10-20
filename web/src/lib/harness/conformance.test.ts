@@ -81,8 +81,8 @@ const NEUTRAL = new Set([
   "claude--menu-effort-slider--w40-low.txt",
   // No statusline, so Claude's footer prints its own key hints beside the mode pill (`esc to
   // interrupt · ctrl+t to hide tasks · ↓ to manage`, cut with `…` at narrow widths). Composer chrome,
-  // never a dialog. The pill-selected screen is the same footer with the pill focused: raw here, and
-  // the unread-dialog card over it is pinned in unread-dialog.test.ts.
+  // never a dialog. The pill-selected screen is the same footer with the pill focused, and a typed
+  // key still goes to the box.
   "claude--footer-hints-working.txt",
   "claude--footer-hints-working--w60.txt",
   "claude--footer-hints-idle--w45.txt",

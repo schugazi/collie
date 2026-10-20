@@ -79,6 +79,9 @@ describe("parity with the old walk on the real corpus", () => {
     "claude--footer-hints-idle--w45.txt",
     "claude--footer-hints-working--w60.txt",
     "claude--footer-hints-working.txt",
+    "claude--footer-pill-selected--w45.txt",
+    "claude--footer-pill-selected--w60.txt",
+    "claude--footer-pill-selected.txt",
     "claude--fresh-idle.txt",
     "claude--ghost-suggestion.txt",
     "claude--ghost-typed-over.txt",
@@ -110,7 +113,7 @@ describe("parity with the old walk on the real corpus", () => {
     "claude--v2301-lab-agents-panel-empty.txt",
     "claude--v2301-lab-agents-panel-draft.txt",
     "claude--v2301-lab-agents-panel-more.txt",
-    // Not the tasks-pill lab: the fork refuses the box under a selected task pill (footerPillSelected).
+    "claude--v2301-lab-agents-panel-tasks-pill.txt",
     "claude--v2301-lab-agents-panel-focused.txt",
     "claude--v2301-idle.txt",
     "claude--v2301-done-shell-running--w100.txt",

@@ -821,8 +821,8 @@ with an isolated `CLAUDE_CONFIG_DIR`.
 | `claude--footer-hints-working.txt` | 130 columns, mid-turn, two open tasks and a background shell: `⏵⏵ auto mode on · 1 shell · esc to interrupt · ctrl+t to hide tasks · ↓ to manage` | `working` |
 | `claude--footer-hints-working--w60.txt` | The same state at 60 columns, the row cut to `… · esc to interrupt · ctrl+t t…` | `working` |
 | `claude--footer-hints-idle--w45.txt` | Idle at 45 columns, cut to `⏵⏵ auto mode on · 1 shell · ctrl+t to hi…` | `idle` |
-| `claude--footer-pill-selected.txt` | Down pressed into the task pill: `… · Enter to view tasks`. Typed text goes to the pill, not the box, so the box is refused and the card (Esc deselects the pill) is right | `idle` |
-| `claude--footer-pill-selected--w45.txt` | The same selection at 45 columns: the row reads `… · ctrl+t to hi…`, word for word the unselected row, so only the pill's inverse paint (`1 shell`, SGR 7) tells them apart (`footerPillSelected`) | `idle` |
+| `claude--footer-pill-selected.txt` | Down pressed into the task pill: `… · Enter to view tasks`. A composer hint like the others: a typed key still goes to the box, as upstream's 2.1.301 lab found, so the box is live | `idle` |
+| `claude--footer-pill-selected--w45.txt` | The same selection at 45 columns: the row reads `… · ctrl+t to hi…`, word for word the unselected row; only the pill's inverse paint (`1 shell`, SGR 7) differs | `idle` |
 | `claude--footer-pill-selected--w60.txt` | The same at 60 columns, the hint cut to `Ente…` | `idle` |
 
 ## Capture lab corpus (captured 2026-09-17, re-verified 2026-09-22 against Claude Code 2.1.278 and 2026-10-06 against Claude Code 2.1.291, throwaway Herdr session)

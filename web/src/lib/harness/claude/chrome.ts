@@ -219,18 +219,6 @@ export function inputBoxTail(lines: StyledLine[]): InputBoxTail | null {
   return locateInputBox(lines, texts, end)?.tail ?? null;
 }
 
-/** Whether a live input box sits under a footer whose task pill is selected (footerPillSelected): the
- *  one case the box locator refuses with no modal key on screen, so the adapter's `modalOnScreen`
- *  asks it directly to keep offering Esc. */
-export function taskPillSelected(lines: StyledLine[]): boolean {
-  const texts = lines.map(lineText);
-  let end = lines.length;
-  while (end > 0 && isBlank(texts[end - 1]!)) end--;
-  if (end === 0) return false;
-  const box = locateInputBox(lines, texts, end, true);
-  return box !== null && box.tail !== "autocomplete" && footerPillSelected(lines[box.statusEnd - 1]);
-}
-
 /**
  * The rows under the bottom border, labelled:
  *  - `statusline`: the bounded statusline + hint run, with the optional background-agents footer
@@ -310,7 +298,7 @@ interface InputBox {
  * tailLooksModal refuses any other rule in an `unknown` tail (a `statusline` tail is exempt from it).
  * A popup tail is not checked, but a popup is only named under a slash-command draft.
  */
-function locateInputBox(lines: StyledLine[], texts: string[], end: number, ignorePill = false): InputBox | null {
+function locateInputBox(lines: StyledLine[], texts: string[], end: number): InputBox | null {
   // 1. The frame.
   const frame = findInputFrame(lines, CLAUDE_IDLE);
   if (frame === null) return null;
@@ -335,7 +323,6 @@ function locateInputBox(lines: StyledLine[], texts: string[], end: number, ignor
     if (tail !== "autocomplete" && tailNamesAMenu(texts[j]!, texts)) return null;
     if (tail === "unknown" && tailLooksModal(texts[j]!)) return null;
   }
-  if (!ignorePill && tail !== "autocomplete" && footerPillSelected(lines[statusEnd - 1])) return null;
   if (dialogOnScreen(lines)) return null;
 
   return { frame, top: frame.top, prompt: frame.interior.prompt, bottomBorder: b, tail, statusEnd, agentsStart };
@@ -409,12 +396,12 @@ function tailNamesAMenu(text: string, texts: string[]): boolean {
 // Claude Code 2.1.283's footer source (it paints them only when no statusline is configured):
 // "⏵⏵ auto mode on · 1 shell · esc to interrupt · ctrl+t to hide tasks · ↓ to manage". They name
 // composer shortcuts, not a modal's keys (claude--footer-hints-*.txt). Claude Code 2.1.301 also
-// paints "↓ to view" on the mode row while background tasks run (upstream, 2026-10-16). "Enter to
-// view tasks" is deliberately absent: it means the pill is selected, and the pill then swallows
-// typed text.
+// paints "↓ to view" on the mode row while background tasks run, and "Enter to view tasks" with the
+// tasks pill focused, where a typed key still goes to the box (upstream's lab, 2026-10-16).
 const COMPOSER_FOOTER_HINTS = [
   "↓ to manage",
   "↓ to view",
+  "enter to view tasks",
   "esc to interrupt",
   "esc to return to team lead",
   "ctrl+t to hide tasks",
@@ -459,18 +446,6 @@ export function namesAModalKey(text: string, texts?: string[]): boolean {
   const kept = segments.filter((s, i) => !isComposerFooterHint(s, i === segments.length - 1, draftEditHint));
   if (kept.length === segments.length) return namesAMenuKey(text);
   return kept.length > 0 && namesAMenuKey(kept.join(" · "));
-}
-
-// The task pill's text: a count and what it counts ("1 shell", "2 local agents").
-const TASK_PILL = /^\d+ [a-z][a-z ]*$/i;
-
-/** Whether the footer row (the statusline run's last row) paints its task pill in inverse video:
- *  Down moved focus onto the pill, and typed text now goes to the pill, not the box. The row's
- *  `Enter to view tasks` says so too, but a narrow pane cuts that hint off (`ctrl+t to hi…`), so the
- *  paint is the evidence that survives (claude--footer-pill-selected--w45.txt). Only a segment that
- *  reads as the pill counts (`1 shell`, `2 agents`): a custom statusline may paint other text inverse. */
-function footerPillSelected(row: StyledLine | undefined): boolean {
-  return row !== undefined && row.segments.some((s) => s.inverse === true && TASK_PILL.test(s.text.trim()));
 }
 
 /**
