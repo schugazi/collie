@@ -41,6 +41,7 @@ const EXEMPT = {
   // Template tokens and test switches, never read from an environment at all.
   COLLIE_VERSION: "a token `collie docs` substitutes into a page",
   COLLIE_DOCS_TABLE: "a token `collie docs` substitutes into a page",
+  COLLIE_BIN: "a token `collie skill install` substitutes into the walky talky skill (cli/skill-install.ts)",
   COLLIE_REGEN_SOLO_BASELINE: "a switch that regenerates a test fixture",
   COLLIE_TEST_LOOPBACK: "a test switch: durable wire tests dial 127.0.0.1 instead of a Unix socket, as they must on Windows",
   COLLIE_STDIN__: "a marker in the remote script `cli/remote.ts` writes",
@@ -277,7 +278,7 @@ describe("the durable transport settings", () => {
   test("durable: a URL without a token, or a token without a URL, is a config error", () => {
     expect(chooseDurableTransport({ COLLIE_DURABLE_URL: "https://x.example" })).toEqual({
       kind: "conflict",
-      detail: "COLLIE_DURABLE_URL is set without COLLIE_DURABLE_TOKEN; the program refuses a caller with no token",
+      detail: "COLLIE_DURABLE_URL is set without COLLIE_DURABLE_TOKEN; the durable agent refuses a caller with no token",
     });
     expect(chooseDurableTransport({ COLLIE_DURABLE_URL: "https://x.example", COLLIE_DURABLE_TOKEN: "   " }).kind).toBe("conflict");
     expect(chooseDurableTransport({ COLLIE_DURABLE_TOKEN: token() })).toMatchObject({ kind: "conflict" });

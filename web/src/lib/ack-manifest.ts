@@ -60,6 +60,26 @@ export const ACK_MANIFEST = {
     channel: "echo",
     why: "The composer empties and the sent text appears in the mirror; the Send button holds its busy tone until the bridge has verified the reply landed (lib/reply-action.ts).",
   },
+  postSend: {
+    channel: "echo",
+    why: "The Send Protocol's request (M56 spec 05): the Send button holds its busy tone until the bridge answers with a receipt; a sent text empties the composer and appears in the mirror, any other outcome lands as a status line and, where it has one, an offer strip at the thumb.",
+  },
+  postProgramSend: {
+    channel: "echo",
+    why: "The Send Protocol's request for a program on this machine (M56 spec 14): the field holds Sending until the bridge answers; a sent text moves to the thread as a pending line the program's own line replaces, and any other outcome lands at the thumb as the terminal composer's notice.",
+  },
+  postWalky: {
+    channel: "inline",
+    why: "An operator message (M62): the receipt's state, in words, stands beside the composer box (or in the Crew sheet's receipt rows) until it is dismissed, because a message that was kept in the inbox or refused is something the operator must read and act on, and a status line would be gone by then.",
+  },
+  cancelHeldSend: {
+    channel: "silent",
+    why: "Cancel or Dismiss on a held send's queued row (M56 spec 15): the row leaving the composer IS the receipt, so a success says nothing more; a Cancel that came too late, and a failed call, land as a status line.",
+  },
+  postAskAnswer: {
+    channel: "echo",
+    why: "A tap on a dialog card as one Answer to the bridge's ask (M56 spec 08): a sent answer reads as Sent and the mirror shows the dialog moving on; a changed or gone dialog lands as a status line and the card redraws from the next read.",
+  },
   sendKeys: {
     channel: "echo",
     // TWO paths reach this one export, and the second is the reason `"silent"` is a real value in
@@ -99,6 +119,14 @@ export const ACK_MANIFEST = {
   renameTab: {
     channel: "status",
     why: "Same as renamePane, one dimension up: the sheet is gone and the tab strip has not re-rendered yet.",
+  },
+  renameSpace: {
+    channel: "status",
+    why: "Same as renameTab, one dimension up again: the sheet is gone and the space strip has not re-rendered yet.",
+  },
+  reopenDurableConversation: {
+    channel: "silent",
+    why: "Success moves the screen: the person lands on the reopened pane, or back on the list, which is the acknowledgement. A refusal says why on the status line, and the Reopen button stays pressable for another try.",
   },
   closeTab: {
     channel: "echo",
@@ -147,6 +175,14 @@ export const ACK_MANIFEST = {
   clearRecentRuns: {
     channel: "silent",
     why: "The history empties on the page the person is looking at once the bridge answers; a refusal publishes an error status through lib/mutate.ts and the history is read again (ADR 0095).",
+  },
+  removeSent: {
+    channel: "inline",
+    why: "The row leaves the Sent sheet under the thumb once the machine answers. A refusal or a lost answer must stay readable while the person decides what to do, so the sheet says it in its own notice and keeps the row (M61).",
+  },
+  clearSent: {
+    channel: "inline",
+    why: "The Sent sheet empties and reads the list again once the machine answers. A refusal or a lost answer is said in the sheet's own notice, beside the button that asked, and the lines stay (M61).",
   },
   addLauncher: {
     channel: "inline",
@@ -199,6 +235,18 @@ export const ACK_MANIFEST = {
   startUpdate: {
     channel: "inline",
     why: "The answer is the run itself — a progress state that persists in the card for the length of a restart, or a refusal (a red preflight, a run already going) the operator has to read and act on. Neither survives a floating toast, and both belong beside the button that asked for them (components/update-card.tsx).",
+  },
+  startRollback: {
+    channel: "inline",
+    why: "The answer is the rollback run itself, followed in update mode through the same steps as an update (M60 spec 01), or a refusal (no previous build, a run already going) the operator reads on the confirm screen that asked. Neither survives a floating toast.",
+  },
+  setReleaseLine: {
+    channel: "inline",
+    why: "The answer is the line this machine is on now, and what that means for it (an Edge build ahead of Stable, a Stable offer above): a standing fact the Release line card states beside the two buttons, and a refusal the operator reads there too (components/release-line-card.tsx).",
+  },
+  startGoBack: {
+    channel: "inline",
+    why: "Like startRollback: the answer is the run itself, followed in update mode, or a refusal (no Stable to go back to, a run already going) read on the confirm screen that asked (M60 spec 01).",
   },
   snoozeUpdate: {
     channel: "silent",

@@ -8,9 +8,11 @@ import { DEAD_DEBOUNCE_MS, isLive, resetLiveness } from "./liveness";
 import { resetBasePathForTests } from "./base-path";
 import { burstPaneId, resetPollIntent, sendCount } from "./poll-intent";
 import { setDeviceToken } from "./pairing";
+import { resetServerClockForTests, serverSkewMs } from "./server-clock";
 import {
   apiErrorFields,
   checkForUpdates,
+  cancelHeldSend,
   checkRun,
   clearRecentRuns,
   createTab,
@@ -19,6 +21,7 @@ import {
   fetchFileImage,
   fetchHistory,
   fetchPane,
+  fetchPaneWalky,
   fetchSnapshot,
   filesImagePath,
   getNotifyPrefs,
@@ -29,6 +32,8 @@ import {
   removeRecentRun,
   sendKeys,
   startLaunch,
+  fetchWalkyWho,
+  postWalky,
   sendReply,
   textBeforeLastSend,
   uploadFile,
@@ -1218,5 +1223,103 @@ describe("one-off runs and their history (ADR 0095)", () => {
       { url: "/api/launch/recent/remove?host=badger", method: "POST", body: { line: "make test" } },
       { url: "/api/launch/recent/clear?host=badger", method: "POST", body: {} },
     ]);
+  });
+});
+
+describe("api client: the bridge's clock", () => {
+  afterEach(() => resetServerClockForTests());
+
+  it("reads the Date header of a response, so a phone five minutes ahead counts on the bridge's clock", async () => {
+    server.use(
+      http.get("/api/snapshot", () =>
+        HttpResponse.json(fixtureSnapshot, { headers: { date: new Date(Date.now() - 5 * 60_000).toUTCString() } }),
+      ),
+    );
+    await fetchSnapshot();
+    expect(Math.abs(serverSkewMs() + 5 * 60_000)).toBeLessThan(2000);
+  });
+
+  it("a response without the header leaves the phone's own clock", async () => {
+    server.use(http.get("/api/snapshot", () => HttpResponse.json(fixtureSnapshot)));
+    await fetchSnapshot();
+    expect(serverSkewMs()).toBe(0);
+  });
+});
+
+describe("cancelHeldSend (M56 spec 15)", () => {
+  it("DELETEs the request with its pane and the session, and reads a cancel and a dismiss", async () => {
+    const seen: string[] = [];
+    server.use(
+      http.delete("/api/send/:id", ({ request, params }) => {
+        seen.push(`${String(params.id)} ${new URL(request.url).search}`);
+        return HttpResponse.json({ result: seen.length === 1 ? "cancelled" : "dismissed" });
+      }),
+    );
+    expect(await cancelHeldSend("req00001", "w1:p1", { session: "demo" })).toEqual({ result: "cancelled" });
+    expect(await cancelHeldSend("req00002", "w1:p1")).toEqual({ result: "dismissed" });
+    expect(seen).toEqual(["req00001 ?pane=w1%3Ap1&session=demo", "req00002 ?pane=w1%3Ap1"]);
+  });
+
+  it("a 409 is the answer 'going out now', not an error", async () => {
+    server.use(http.delete("/api/send/:id", () => HttpResponse.json({ result: "refused", reason: "busy" }, { status: 409 })));
+    expect(await cancelHeldSend("req00001", "w1:p1")).toEqual({ result: "refused", reason: "busy" });
+  });
+
+  it("a refused cancel carries the stored receipt when the request already went out", async () => {
+    server.use(http.delete("/api/send/:id", () => HttpResponse.json({ result: "refused", reason: "busy", receipt: { requestId: "req00001", outcome: "sent", keys: [] } }, { status: 409 })));
+    expect(await cancelHeldSend("req00001", "w1:p1")).toEqual({ result: "refused", reason: "busy", receipt: { outcome: "sent" } });
+  });
+
+  it("an unknown request (404) and a body that is not an answer both throw", async () => {
+    server.use(http.delete("/api/send/:id", () => HttpResponse.json({ error: "no such request" }, { status: 404 })));
+    await expect(cancelHeldSend("req00001", "w1:p1")).rejects.toMatchObject({ status: 404 });
+    server.use(http.delete("/api/send/:id", () => HttpResponse.json({ nope: true })));
+    await expect(cancelHeldSend("req00001", "w1:p1")).rejects.toMatchObject({ status: 502 });
+  });
+
+  it("never leaves this machine: a crew member's pane throws before any request", async () => {
+    const urls: string[] = [];
+    server.use(http.delete("/api/send/:id", ({ request }) => (urls.push(request.url), HttpResponse.json({ result: "cancelled" }))));
+    await expect(cancelHeldSend("req00001", "w1:p1", { host: "badger" })).rejects.toMatchObject({ status: 400 });
+    expect(urls).toEqual([]);
+  });
+});
+
+describe("the walky talky routes (M62)", () => {
+  it("reads a pane's list newest first, scoped to the machine that owns the pane", async () => {
+    const urls: string[] = [];
+    server.use(http.get(/\/api\/pane\/[^/]+\/walky/, ({ request }) => (urls.push(request.url), HttpResponse.json({ messages: [] }))));
+    await expect(fetchPaneWalky("w1:p1", { host: "badger" })).resolves.toEqual([]);
+    expect(urls).toEqual(["http://localhost:3000/api/pane/w1%3Ap1/walky?limit=50&host=badger"]);
+  });
+
+  it("posts the body as given and hands back a list for one receipt", async () => {
+    const bodies: unknown[] = [];
+    server.use(
+      http.post("/api/walky", async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json({ receipt: { id: "wt_aaaaaaaaaaaa", state: "accepted", verified: "local", at: 1, by: "solo", target: "local/w1:p1" } });
+      }),
+    );
+    const receipts = await postWalky({ id: "wt_aaaaaaaaaaaa", to: "local/w1:p1", body: "hi", replyTo: "wt_bbbbbbbbbbbb" });
+    expect(bodies).toEqual([{ id: "wt_aaaaaaaaaaaa", to: "local/w1:p1", body: "hi", replyTo: "wt_bbbbbbbbbbbb" }]);
+    expect(receipts.map((r) => r.state)).toEqual(["accepted"]);
+  });
+
+  it("hands back every receipt of a fan-out", async () => {
+    const receipts = await postWalky({ id: "wt_aaaaaaaaaaaa", to: "all", body: "hi" });
+    expect(receipts).toHaveLength(2);
+  });
+
+  it("lists the reachable targets, with no skipped panes and no refusals from a bridge that sends none", async () => {
+    server.use(http.get("/api/walky/who", () => HttpResponse.json({ targets: [] })));
+    await expect(fetchWalkyWho()).resolves.toEqual({ targets: [], skipped: [], refusals: null });
+  });
+
+  it("hands back the skipped shell panes and the refusal counts when the bridge sends them", async () => {
+    const skipped = [{ address: "bluefin/w1:p2", memberId: "bluefin", machine: "bluefin", label: "zsh" }];
+    const refusals = { counts: { "rate limit": 3 }, since: 1_700_000_000_000 };
+    server.use(http.get("/api/walky/who", () => HttpResponse.json({ targets: [], skipped, refusals })));
+    await expect(fetchWalkyWho()).resolves.toEqual({ targets: [], skipped, refusals });
   });
 });

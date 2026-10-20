@@ -208,6 +208,33 @@ export const CONFIG_SETTINGS: readonly ConfigSetting[] = [
     configField: "multiSession",
   },
   {
+    key: "surface_shadow",
+    env: "COLLIE_SURFACE_SHADOW",
+    section: "bridge",
+    kind: "bool",
+    default: false,
+    doc: "Compute each agent pane's input surface beside the old readers and log every disagreement.",
+    configField: "surfaceShadow",
+  },
+  {
+    key: "send_protocol",
+    env: "COLLIE_SEND_PROTOCOL",
+    section: "bridge",
+    kind: "bool",
+    default: true,
+    doc: "Send from the phone through the bridge-side Send Protocol (probe, predicted-state check, key gate, receipt). Off turns sending text off; the keys still work.",
+    configField: "sendProtocol",
+  },
+  {
+    key: "walky",
+    env: "COLLIE_WALKY",
+    section: "bridge",
+    kind: "bool",
+    default: true,
+    doc: "Take walky talky messages for this machine's agent panes. Off refuses each one; the CLI here still sends.",
+    configField: "walky",
+  },
+  {
     key: "transcript",
     env: "COLLIE_TRANSCRIPT",
     section: "bridge",
@@ -385,12 +412,21 @@ export const CONFIG_SETTINGS: readonly ConfigSetting[] = [
     configField: "muxEndpoint",
   },
   {
+    key: "programs",
+    env: "COLLIE_PROGRAMS",
+    section: "mux",
+    kind: "enum",
+    values: ["off"],
+    default: "",
+    doc: "Set to off and the bridge ignores sources.json: no durable agent sessions, no Durable agents section on the phone.",
+  },
+  {
     key: "durable_socket",
     env: "COLLIE_DURABLE_SOCKET",
     section: "mux",
     kind: "string",
     default: "",
-    doc: "The Unix socket a durable agent program listens on, when COLLIE_MUX is durable. Absolute, and private to your user (mode 0600).",
+    doc: "The Unix socket a durable agent listens on, when COLLIE_MUX is durable. Absolute, and private to your user (mode 0600).",
   },
   {
     key: "durable_url",
@@ -398,7 +434,7 @@ export const CONFIG_SETTINGS: readonly ConfigSetting[] = [
     section: "mux",
     kind: "string",
     default: "",
-    doc: "The https address of a durable agent program behind TLS, used instead of durable_socket and always with durable_token. Plain http only to 127.0.0.1 or localhost with a port.",
+    doc: "The https address of a durable agent behind TLS, used instead of durable_socket and always with durable_token. Plain http only to 127.0.0.1 or localhost with a port.",
   },
   {
     key: "durable_token",
@@ -491,6 +527,16 @@ export const CONFIG_SETTINGS: readonly ConfigSetting[] = [
     default: true,
     doc: "Mask known secret shapes in pane text before it reaches a phone or a push.",
     configField: "redact",
+  },
+  {
+    key: "sent",
+    env: "COLLIE_SENT",
+    section: "access",
+    kind: "enum",
+    values: ["on", "off"],
+    default: "on",
+    doc: "Keep a record of the shell lines sent through Collie on this machine.",
+    configField: "sent",
   },
 
   // ── push ───────────────────────────────────────────────────────────────────
@@ -607,7 +653,7 @@ export const CONFIG_SETTINGS: readonly ConfigSetting[] = [
     section: "journal",
     kind: "roots",
     default: [],
-    doc: "Where Hermes keeps its session logs. Empty takes ~/.hermes.",
+    doc: "Where Hermes keeps its session logs. Empty takes $HERMES_HOME, else ~/.hermes. Its named profiles (profiles/<name>/) are read too.",
     configField: "journalRoots",
   },
   {
@@ -720,6 +766,14 @@ export const CONFIG_SETTINGS: readonly ConfigSetting[] = [
     default: 30_000,
     min: 1,
     doc: "How long an update waits for the restarted bridge to answer.",
+  },
+  {
+    key: "skill_sync",
+    env: "COLLIE_SKILL_SYNC",
+    section: "update",
+    kind: "bool",
+    default: true,
+    doc: "After each update, install the walky talky skill into every harness on this machine and keep it current. Off only prints a note when it is behind.",
   },
 
   // ── serve ──────────────────────────────────────────────────────────────────

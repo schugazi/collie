@@ -33,8 +33,6 @@ export interface LaunchersState {
   adding: LaunchersAdding | null;
   /** That machine's one-off command history, newest first (ADR 0095); `null` from a bridge that keeps none. */
   recentRuns?: readonly RecentRun[] | null;
-  /** The fork's visible immediate home subdirectories of that machine; empty from a bridge without them. */
-  directories?: readonly string[];
   /**
    * The `host\u0000session` of the scope the answer above belongs to, `null` before the first one. A
    * view that switches machines keeps the last machine's rows until the new answer lands, so a
@@ -43,7 +41,7 @@ export interface LaunchersState {
   loadedFor: string | null;
 }
 
-const EMPTY: LaunchersState = { launchers: [], home: "", harnesses: null, items: null, adding: null, recentRuns: null, directories: [], loadedFor: null };
+const EMPTY: LaunchersState = { launchers: [], home: "", harnesses: null, items: null, adding: null, recentRuns: null, loadedFor: null };
 
 /** The key {@link LaunchersState.loadedFor} is written with. */
 export function launchersKey(scope: Scope | undefined): string {
@@ -78,7 +76,6 @@ export function useLaunchers(scope?: Scope, enabled = true): LaunchersState & { 
             items: res.items ?? null,
             adding: res.adding ?? null,
             recentRuns: res.recentRuns ?? null,
-            directories: res.directories ?? [],
             loadedFor: launchersKey({ host, session }),
           });
         }

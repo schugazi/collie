@@ -1,10 +1,15 @@
 import type { CSSProperties } from "react";
-import { Layers, ListTree, Undo2, X } from "lucide-react";
+import { Bot, Layers, ListTree, Undo2, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Collapse } from "@/components/ui/collapse";
-import { HarnessBar, useHarnessBarItems } from "@/components/harness-bar";
+import {
+  DurableBar,
+  HarnessBar,
+  useHarnessBarItems,
+  type DurableBarProps,
+} from "@/components/harness-bar";
 import { StatusDot } from "@/components/status-badge";
 import { OverflowEdges } from "@/components/ui/overflow-edges";
 import { SectionLabel } from "@/components/ui/section-label";
@@ -140,6 +145,14 @@ const CELL_BUTTON =
   "h-auto flex-1 touch-manipulation select-none rounded-none px-0 has-[>svg]:px-0 hover:bg-foreground/8 active:bg-foreground/15 active:scale-[0.92] motion-reduce:active:scale-100 duration-[120ms]";
 
 /**
+ * The corner badge a pinned mark wears, ONE corner and one disc for both that exist: the Switch mark's
+ * needs-you triangle and the agents mark's count, both at the top right. Absolutely placed, so it never
+ * moves the glyph or the belt; the chrome-coloured disc and its ring cut it out of the glyph it
+ * overlaps. Each caller adds only its size, so the two cannot drift.
+ */
+const PINNED_MARK_BADGE = "pointer-events-none absolute top-0.5 right-0.5 rounded-full bg-chrome ring-2 ring-chrome";
+
+/**
  * One of Collie's own actions. The composer owns every one of these — what it does, whether it is
  * on, whether it is refused — and this file owns only how it is drawn.
  */
@@ -178,6 +191,12 @@ export interface ActionsRowProps {
   onRun: (text: string) => Promise<boolean>;
   /** Bound to the composer's `locked`. Greys the harness buttons in place. */
   disabled?: boolean;
+  /**
+   * A DURABLE PANE'S OWN SECTION, after the harness section's place (M51 spec 08): Steer and Stop,
+   * drawn from the caps the program declares. Absent on every pane with a screen, and absent is the
+   * whole of the old behaviour. The composer of a pane with no screen is the one caller.
+   */
+  durable?: Pick<DurableBarProps, "items" | "state">;
   /** Which thumb the belt is laid out for; see {@link Hand}. Default `"right"`, the shipped layout. */
   hand?: Hand;
   /**
@@ -232,7 +251,7 @@ export interface ActionsRowProps {
    *
    * It keeps the phone keyboard up: the button refuses its own `mousedown`, the event whose default
    * moves focus. NOT `pointerdown`: under WebKit a tap on a button that cancels its own
-   * `pointerdown` gets no `click` at all (`e2e/composer-clear.spec.ts`).
+   * `pointerdown` gets no `click` at all (`composer.test.tsx`, the belt's clear control).
    */
   clear?: {
     /** `"clear"` draws the X; `"undo"` draws the Undo mark in the same box. */
@@ -247,9 +266,28 @@ export interface ActionsRowProps {
      *  Not `disabled`: a disabled button takes no `mousedown`, so a tap would drop the keyboard. */
     inert?: boolean;
   };
+  /**
+   * THE AGENTS MARK (Altan, from the lane, 2026-10-19: "it should be subtle and show up next to files
+   * and session layers icon with a number of the currently active agents"; then "agents count should
+   * be above the agent icon, it should have a smooth appear/disappear animation and be to the right of
+   * the x"; then "same spot where the agent indicator is shown on the layers icon", "I meant top
+   * right"). The fork puts it last on the controls row, since its Switch cell holds two buttons: the
+   * Bot glyph with the count of the pane's running subagents as a small badge at its top right. It
+   * eases in and out through `Collapse` on its x axis. The composer passes it only while the count is
+   * above zero. A tap opens the Agents sheet.
+   */
+  agents?: {
+    /** How many subagents are running. Above zero whenever the prop is passed. */
+    count: number;
+    onClick: () => void;
+    /** ALREADY TRANSLATED. "Agents 2": the accessible name, the count in words a reader hears. */
+    label: string;
+    /** The Agents sheet is open: `aria-expanded`, as on the other controls that open a surface. */
+    expanded: boolean;
+  };
 }
 
-export function ActionsRow({ general, agent, mine, onRun, disabled, hand = "right", handle, changes, clear }: ActionsRowProps) {
+export function ActionsRow({ general, agent, mine, onRun, disabled, durable, hand = "right", handle, changes, clear, agents }: ActionsRowProps) {
   useLocale();
 
   const harnessItems = useHarnessBarItems(agent, mine);
@@ -257,7 +295,8 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, hand = "righ
 
   // Nothing to draw at all. Render nothing rather than an empty scroller, so the belt costs no
   // height.
-  if (general.length === 0 && harnessItems.length === 0) return null;
+  const harnessRow = harnessItems.length > 0 || (durable?.items.length ?? 0) > 0;
+  if (general.length === 0 && !harnessRow) return null;
 
   // The harness row keeps NO gutter: its tinted section grows over the whole row and carries the
   // gutter as its own padding (harness-bar.tsx), so the tint runs from the screen edge to the Switch
@@ -346,6 +385,35 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, hand = "righ
                       {action.word ?? action.label}
                     </Button>
                   ))}
+                  {/* THE AGENTS MARK (the `agents` prop), last on the controls row: the fork's Switch
+                      cell has no room for a third button. It eases in and out through `Collapse` on its
+                      x axis; the count is a corner badge, absolutely placed, so a step moves nothing. */}
+                  <Collapse axis="x" appear open={agents !== undefined}>
+                    {agents && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        data-slot="belt-agents"
+                        aria-label={agents.label}
+                        aria-expanded={agents.expanded}
+                        onClick={agents.onClick}
+                        className={cn(`${STRIP_ROW_PILL} relative`, OFF)}
+                      >
+                        <Bot className={cn(BELT_ICON, "text-primary")} />
+                        <span
+                          aria-hidden
+                          data-slot="belt-agents-count"
+                          className={cn(
+                            PINNED_MARK_BADGE,
+                            "flex h-2.5 min-w-2.5 items-center justify-center text-[9px] leading-none font-semibold tabular-nums text-primary",
+                          )}
+                        >
+                          {agents.count}
+                        </span>
+                      </Button>
+                    )}
+                  </Collapse>
                 </div>
               </div>
             )}
@@ -355,12 +423,14 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, hand = "righ
             starts in a shell, the Settings switch flips — and it is 40px of the belt, so it folds
             through `Collapse` rather than jumping the controls and the mirror by a whole row. A pane
             that opens with it (or without it) paints that way from the first frame. */}
-        <Collapse open={harnessItems.length > 0}>
-          {harnessItems.length > 0 && (
+        {/* A durable pane's own section (harness-bar.tsx `DurableBar`) shares the harness row. */}
+        <Collapse open={harnessRow}>
+          {harnessRow && (
             <OverflowEdges className="flex-none" cue="none">
               {(scrollerRef) => (
                 <div ref={scrollerRef} className={harnessRowClass}>
                   <HarnessBar agent={agent} mine={mine} onRun={onRun} disabled={disabled} hand={hand} />
+                  {durable !== undefined && <DurableBar items={durable.items} state={durable.state} disabled={disabled} hand={hand} />}
                 </div>
               )}
             </OverflowEdges>
@@ -446,7 +516,7 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, hand = "righ
                 {handle.alert === true && (
                   <StatusDot
                     status="blocked"
-                    className="pointer-events-none absolute top-0.5 right-0.5 size-2.5 rounded-full bg-chrome ring-2 ring-chrome"
+                    className={cn(PINNED_MARK_BADGE, "size-2.5")}
                   />
                 )}
               </span>

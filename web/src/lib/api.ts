@@ -1,7 +1,7 @@
 // Thin REST client for the bridge. Everything is same-origin, so credentials/headers are
 // minimal. Each call throws on a non-2xx so callers (route loaders / action handlers) surface errors.
 
-import { parseApiErrorFields, type ApiErrorDetail, type ApiErrorFields } from "./api-error-codes";
+import { apiErrorFieldsOf, parseApiErrorFields, type ApiErrorDetail, type ApiErrorFields } from "./api-error-codes";
 import { trackBusy } from "./busy";
 import {
   beginLongUpload,
@@ -14,16 +14,24 @@ import {
 } from "./connection-health";
 import { markDead as markPaneDead, markLive as markPaneLive } from "./liveness";
 import { abortSignalAfter, abortSignalAny } from "./env";
-import { asJsonString, parseJsonObject, type JsonObject } from "./json";
+import { asJsonObject, asJsonString, parseJsonObject, type JsonObject } from "./json";
+import { readHeldCancelAnswer, readSendReceipts, readSendReply, type SendReply } from "./send-protocol";
+import type { HeldCancelAnswer, SendReceiptRow, SendRequestBody } from "./surface/send";
+import type { AnswerBody } from "./surface/ask";
+import { readAskTapReply, type AskTapReply } from "./ask-reply";
 import { authHeader, clearNotPaired, EXPIRED_BODY, markExpired, markNotPaired, NOT_PAIRED_BODY } from "./pairing";
 import { pairingRefused } from "./wipe";
+import { mintRequestId } from "./worktree-name";
 import { fileVersionOf } from "./file-image-cache";
 import { isLead, normalizeScope, paneScopeKey, type Scope } from "./scope";
+import { textRouteFor } from "./send-path";
 import { stampSend } from "./poll-intent";
 import { observeServerBuild, SERVER_BUILD_HEADER } from "./server-build";
+import { noteServerDate } from "./server-clock";
 import { mounted } from "./base-path";
+import { WALKY_LIST_LIMIT, type WalkyReceipt, type WalkyRefusals, type WalkyRow, type WalkySendBody, type WalkySkipped, type WalkyTarget, type WalkyWho } from "./walky";
 import { CHAT_UNCHANGED, type ChatAnswer } from "./chat-window";
-import { parseAsk, type AnswerResult } from "./ask";
+import { decidedOf, parseAsk, type AnswerResult, type AskAnswer } from "./ask";
 import type { ColumnRange } from "./column-range";
 import type {
   ActionResponse,
@@ -32,16 +40,21 @@ import type {
   ChatAfter,
   ChatBefore,
   PaneChatResponse,
+  PaneSubagentResponse,
   CreateResponse,
   DismissScope,
   DevicesResponse,
   CacheRulesResponse,
   CacheWatchListResponse,
   CacheWatchState,
+  FolderBrowseResponse,
   FoldersResponse,
   LaunchersResponse,
   LaunchCheckResponse,
   RecentRunsResponse,
+  SentAnswer,
+  SentScope,
+  SentWriteResponse,
   NotifyPrefs,
   ChangeCommitDiffResponse,
   ChangeCommitResponse,
@@ -50,6 +63,9 @@ import type {
   FileReadResponse,
   FilesListResponse,
   PaneHistoryResponse,
+  DurableConversationItemsResponse,
+  DurableConversationsResponse,
+  ReopenConversationResponse,
   CrewStatusResponse,
   MachineAlerts,
   MachineHistoryResponse,
@@ -63,6 +79,10 @@ import type {
   UpdateInfo,
   UpdateRun,
   UpdateStartResponse,
+  RollbackStartResponse,
+  GoBackStartResponse,
+  ReleaseLine,
+  ReleaseLineReceipt,
   UploadResponse,
   WorktreeBaseChoice,
   WorktreeCreateResponse,
@@ -390,7 +410,11 @@ function normaliseProxyRedirect(res: Response): Response {
 async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
   // Every caller spells a root-absolute `/api/…`; the mount is applied here, once (ADR 0052).
   try {
-    return normaliseProxyRedirect(await fetch(mounted(path), { ...init, redirect: "manual" }));
+    const sentAt = Date.now();
+    const res = await fetch(mounted(path), { ...init, redirect: "manual" });
+    // The bridge's clock, off the `Date` header every response carries (lib/server-clock.ts).
+    noteServerDate(res.headers.get("date"), sentAt, Date.now());
+    return normaliseProxyRedirect(res);
   } catch (error) {
     throw deadlineError(error, init?.signal);
   }
@@ -726,6 +750,58 @@ export function fetchHistory(
     signal,
     headers: { "x-collie-seen": "1" },
   });
+}
+
+/** Rows per page of the program's conversation list. The bridge caps a page at 100. */
+export const DURABLE_CONVERSATIONS_PAGE = 100;
+/** Items per page of one conversation. The bridge caps a page at 1000. */
+export const DURABLE_ITEMS_PAGE = 1000;
+
+/**
+ * GET /api/durable/conversations: the conversations a durable program lists, newest first (M53 spec 11).
+ * `after` is the previous page's `next`. `available: false` is an ordinary answer, not a failure.
+ * Like fetchHistory it is a one-shot read on navigation and on a "Load more" tap, never on the poll loop.
+ */
+export function fetchDurableConversations(
+  opts: { after?: string; limit?: number } = {},
+  scope?: Scope,
+  signal?: AbortSignal,
+): Promise<DurableConversationsResponse> {
+  const q = new URLSearchParams();
+  if (opts.after) q.set("after", opts.after);
+  if (opts.limit) q.set("limit", String(opts.limit));
+  const qs = q.toString();
+  return req<DurableConversationsResponse>(withScope(`/api/durable/conversations${qs ? `?${qs}` : ""}`, scope), { signal });
+}
+
+/**
+ * GET /api/durable/conversation/:id/items: one conversation's items, oldest first. `more: true` in the
+ * answer means ask again with `after` set to its `next` for the newer items that follow.
+ */
+export function fetchDurableConversationItems(
+  id: string,
+  opts: { after?: string; limit?: number } = {},
+  scope?: Scope,
+  signal?: AbortSignal,
+): Promise<DurableConversationItemsResponse> {
+  const q = new URLSearchParams();
+  if (opts.after) q.set("after", opts.after);
+  if (opts.limit) q.set("limit", String(opts.limit));
+  const qs = q.toString();
+  const path = `/api/durable/conversation/${encodeURIComponent(id)}/items${qs ? `?${qs}` : ""}`;
+  return req<DurableConversationItemsResponse>(withScope(path, scope), { signal });
+}
+
+/**
+ * POST /api/durable/conversation/:id/reopen: ask the program to take a closed conversation back (M53 spec
+ * 11). No body. A write, so it goes through the same transport as every other mutation: a refusal that
+ * arrives as a non-2xx status throws an ApiError, and one that arrives as `{ ok: false }` is a value.
+ */
+export function reopenDurableConversation(id: string, scope?: Scope): Promise<ReopenConversationResponse> {
+  return req<ReopenConversationResponse>(
+    withScope(`/api/durable/conversation/${encodeURIComponent(id)}/reopen`, scope),
+    { method: "POST" },
+  );
 }
 
 /**
@@ -1110,6 +1186,52 @@ export async function fetchFilesExist(
   return exists.map(asJsonString).filter((p): p is string => p !== undefined && asked.has(p));
 }
 
+/** One slash command Claude Code would load in a pane's cwd, read off its machine's disk. */
+export interface ClaudeCommand {
+  command: string;
+  description: string;
+  argHint: string;
+}
+
+/** Validated shape of a discovered Claude slash command: `/` followed by up to 120 safe characters. */
+const CLAUDE_COMMAND_RE = /^\/[\p{L}\p{N}._:-]{1,120}$/u;
+
+/**
+ * The commands this pane's Claude Code would offer, from the skills and command files on its machine.
+ * Throws on a fault, including a crew member's 501 and an older bridge's 404; the palette then shows
+ * what it had before this read existed.
+ */
+export async function fetchClaudeCommands(paneId: string, scope?: Scope, signal?: AbortSignal): Promise<ClaudeCommand[]> {
+  const got = await doReq<JsonObject>(withScope(`/api/pane/${encodeURIComponent(paneId)}/claude-commands`, scope), {
+    signal,
+    timeoutMs: GET_TIMEOUT_MS,
+  });
+  const rows = Array.isArray(got.commands) ? got.commands : [];
+  const out: ClaudeCommand[] = [];
+  for (const raw of rows) {
+    const row = asJsonObject(raw);
+    if (row === undefined) continue;
+    const command = asJsonString(row.command);
+    if (command === undefined || !CLAUDE_COMMAND_RE.test(command)) continue;
+    out.push({ command, description: asJsonString(row.description) ?? "", argHint: asJsonString(row.argHint) ?? "" });
+  }
+  return out;
+}
+
+/**
+ * GET /api/pane/:id/subagent/:agentId: one Claude subagent's own JSONL transcript, read on demand
+ * when the operator opens a subagent card's sheet.
+ */
+export function fetchSubagentTranscript(
+  paneId: string,
+  agentId: string,
+  scope?: Scope,
+  signal?: AbortSignal,
+): Promise<PaneSubagentResponse> {
+  const path = `/api/pane/${encodeURIComponent(paneId)}/subagent/${encodeURIComponent(agentId)}`;
+  return req<PaneSubagentResponse>(withScope(path, scope), { signal, timeoutMs: GET_TIMEOUT_MS });
+}
+
 /**
  * Run a write to a pane's input under the poll burst. The burst starts when the request is ISSUED,
  * because the operator is watching the mirror from the tap on, and again when it comes back ok, so
@@ -1156,6 +1278,7 @@ export function sendKeys(
   expectedPrompt?: string,
   expectedStyled?: string,
   expectedColumns?: ColumnRange,
+  expectedTailLines?: number,
 ): Promise<ActionResponse> {
   stampSend(paneId);
   // Snapshot what the client has seen NOW, before the key can change anything: `settleAfterSend`
@@ -1171,14 +1294,16 @@ export function sendKeys(
       {
         method: "POST",
         // As in `sendReply`: an `undefined` property is omitted by `JSON.stringify`. The bridge honours
-        // `expected_styled` (ADR 0080 point 7) and `expected_columns` (lib/column-range.ts) only beside
-        // `expected_prompt`. An older bridge ignores both: without the columns it compares whole rows,
-        // which refuses a column-bound tap rather than passing it.
+        // `expected_styled` (ADR 0080 point 7), `expected_columns` (lib/column-range.ts) and
+        // `expected_tail_lines` (lib/tail-lines.ts) only beside `expected_prompt`. An older bridge
+        // ignores all three: without the columns it compares whole rows, and without the tail it keeps
+        // its default window, so a tap that needed either is refused rather than passed.
         body: JSON.stringify({
           keys,
           expected_prompt: expectedPrompt,
           expected_styled: expectedStyled,
           expected_columns: expectedColumns,
+          expected_tail_lines: expectedTailLines,
         }),
       },
       recoverPromptChanged,
@@ -1211,8 +1336,13 @@ function answerResultOf(body: JsonObject | undefined): AnswerResult | null {
   switch (body.outcome) {
     case "taken":
       return body.replayed === true ? { outcome: "taken", replayed: true } : { outcome: "taken" };
-    case "too-late":
-      return body.replayed === true ? { outcome: "too-late", replayed: true } : { outcome: "too-late" };
+    case "too-late": {
+      const result: AnswerResult = { outcome: "too-late" };
+      const decided = decidedOf(body.decided);
+      if (decided !== undefined) result.decided = decided;
+      if (body.replayed === true) result.replayed = true;
+      return result;
+    }
     case "stale": {
       const ask = parseAsk(body.ask);
       return ask === undefined ? { outcome: "stale" } : { outcome: "stale", ask };
@@ -1231,11 +1361,12 @@ function answerResultOf(body: JsonObject | undefined): AnswerResult | null {
 /**
  * POST /api/pane/:id/answer: a person's tap answers one ask. `requestId` is minted per tap and reused
  * only by "Try again" after an `unknown`; `revision` is the one the card showed. Never called by
- * anything but a tap (ADR 0100 point 4).
+ * anything but a tap (ADR 0100 point 4). The body carries exactly one of `optionId` (a permission),
+ * `optionIds` (a choice), `text` or `values` (a form), by the kind of the ask.
  */
 export async function answerAsk(
   paneId: string,
-  answer: { requestId: string; askId: string; revision: number; optionId: string },
+  answer: { requestId: string; askId: string; revision: number } & AskAnswer,
   scope?: Scope,
 ): Promise<AnswerResult> {
   const body = await req<JsonObject>(
@@ -1281,7 +1412,7 @@ function controlResultOf(body: JsonObject | undefined): ControlResult | null {
   }
 }
 
-async function postControl(paneId: string, route: "send" | "abort", body: JsonObject, scope: Scope | undefined): Promise<ControlResult> {
+async function postControl(paneId: string, route: "send" | "abort" | "action", body: JsonObject, scope: Scope | undefined): Promise<ControlResult> {
   // The operator is watching from the tap on, as every write to a pane assumes (poll-intent).
   stampSend(paneId);
   const got = await req<JsonObject>(
@@ -1293,6 +1424,181 @@ async function postControl(paneId: string, route: "send" | "abort", body: JsonOb
   if (result === null) throw new ApiError(`The ${route} route sent a body this phone cannot read.`, 502);
   if (result.outcome === "ok") stampSend(paneId);
   return result;
+}
+
+/** The longest first line a plain refusal shows: a sentence, never a page. */
+const PLAIN_LINE_MAX = 160;
+
+/**
+ * What a refusal whose body is NOT JSON says: its status and the body's first line, for example
+ * `HTTP 400: bad send request`. Null for a JSON body, which the error catalogue reads instead. Before
+ * 2026-10-17 a Send Protocol route that met such a body said only that it could not read it.
+ */
+export function plainFailureMessage(status: number, detail: string): string | null {
+  if (parseJsonObject(detail) !== undefined) return null;
+  const line = detail.split(/\r?\n/).map((part) => part.trim()).find((part) => part !== "");
+  if (line === undefined) return `HTTP ${status}`;
+  return `HTTP ${status}: ${line.length > PLAIN_LINE_MAX ? `${line.slice(0, PLAIN_LINE_MAX - 1)}…` : line}`;
+}
+
+/**
+ * A Send Protocol route's recover: the caller's own first, then a plain-text refusal turned into
+ * {@link plainFailureMessage}, with its status kept for the callers that branch on it.
+ */
+function sendRecover<T>(recover?: Recover<T>): Recover<T> {
+  return (status, detail) => {
+    const recovered = recover?.(status, detail);
+    if (recovered !== null && recovered !== undefined) return recovered;
+    const plain = plainFailureMessage(status, detail);
+    if (plain !== null) throw new ApiError(plain, status);
+    return null;
+  };
+}
+
+/**
+ * The `send` answer off a crew member's reply route. A reply that came back without one is a refusal
+ * in the reply route's own shape (`{ ok: false, error, code }`), and it is thrown as that refusal, so
+ * the notice says what it says instead of "a body this phone cannot read".
+ */
+function sendOfReply(answer: JsonObject): JsonObject | undefined {
+  const send = asJsonObject(answer.send);
+  if (send !== undefined) return send;
+  const fields = answer.ok === false ? apiErrorFieldsOf(answer) : undefined;
+  if (fields !== undefined) throw new ApiError(fields.error ?? "The reply route refused the send.", 200, fields);
+  return undefined;
+}
+
+/**
+ * POST /api/send: one Send Protocol request (M56 spec 05), on a bridge that marks the pane with
+ * `sendProtocol`. Every outcome is a 200 with the answer; a refusal is an answer, not an error. The
+ * phone keeps the id for a retry of the same intent, so a lost answer never sends twice.
+ */
+export async function postSend(body: SendRequestBody, scope?: Scope): Promise<SendReply> {
+  stampSend(body.pane);
+  // A pane on a crew member goes through the pane's reply route, which the lead forwards to the
+  // member like any other write; the member runs the same Send Protocol on its own screen and puts
+  // the answer under `send` (M56 spec 06). `/api/send` serves this machine's own panes only.
+  const route = textRouteFor({ program: false, crew: !isLead(scope), sendProtocol: true });
+  const got = route === "pane-reply"
+    ? sendOfReply(
+        await req<JsonObject>(
+          withScope(`/api/pane/${encodeURIComponent(body.pane)}/reply`, scope),
+          {
+            method: "POST",
+            body: JSON.stringify({ text: body.text, submit: true, id: body.id, mode: body.mode, rowsHash: body.rowsHash, capAck: body.capAck }),
+          },
+          sendRecover(),
+        ),
+      )
+    : await req<JsonObject>(withScope("/api/send", scope), { method: "POST", body: JSON.stringify(body) }, sendRecover());
+  const reply = readSendReply(got);
+  if (reply === null) throw new ApiError("The send route sent a body this phone cannot read.", 502);
+  if (reply.outcome === "sent" || reply.outcome === "effective") stampSend(body.pane);
+  return reply;
+}
+
+/**
+ * POST /api/send for a program on this machine (M56 spec 14): the bridge's structured driver runs the
+ * request, with the same answer as for a terminal pane. A program on a crew member never comes here; it
+ * keeps the program's own send route (lib/send-path.ts), so this refuses one before any request.
+ */
+export async function postProgramSend(body: SendRequestBody, scope?: Scope): Promise<SendReply> {
+  if (textRouteFor({ program: true, crew: !isLead(scope), sendProtocol: true }) !== "api-send") {
+    throw new ApiError("A durable agent on a crew member takes its own send route.", 400);
+  }
+  stampSend(body.pane);
+  const got = await req<JsonObject>(withScope("/api/send", scope), { method: "POST", body: JSON.stringify(body) }, sendRecover());
+  const reply = readSendReply(got);
+  if (reply === null) throw new ApiError("The send route sent a body this phone cannot read.", 502);
+  if (reply.outcome === "sent" || reply.outcome === "effective") stampSend(body.pane);
+  return reply;
+}
+
+/**
+ * GET /api/send/receipts: the last ten sends the bridge ran for a pane, newest first (M56 spec 09):
+ * outcome, reason, time, keys by name and gaps. Never text and never a row of the screen. This
+ * machine's own panes only: a pane on a crew member answers nothing here, and the list is empty.
+ */
+export async function getSendReceipts(paneId: string, scope?: Scope): Promise<SendReceiptRow[]> {
+  if (normalizeScope(scope).host) return [];
+  const got = await req<JsonObject>(withScope(`/api/send/receipts?pane=${encodeURIComponent(paneId)}`, scope), undefined, sendRecover());
+  return readSendReceipts(got).receipts.slice();
+}
+
+/**
+ * GET /api/pane/:id/walky: the walky talky messages kept for one pane, newest first, each with its
+ * receipt (M62). A poll read, so it takes the poll's deadline. The lead's own panes only in 1.23.0:
+ * the lead answers a `?host=` read with a 400, so the pane loader does not ask it for a member's pane.
+ * The pane loader asks it beside the mirror, and the Chat card and the mirror row take their
+ * cross-check from the answer (lib/walky.ts).
+ */
+export async function fetchPaneWalky(paneId: string, scope?: Scope, signal?: AbortSignal, limit = WALKY_LIST_LIMIT): Promise<WalkyRow[]> {
+  const got = await req<{ messages: WalkyRow[] }>(
+    withScope(`/api/pane/${encodeURIComponent(paneId)}/walky?limit=${limit}`, scope),
+    { signal, timeoutMs: POLL_TIMEOUT_MS },
+  );
+  return got.messages;
+}
+
+/**
+ * POST /api/walky: send an operator message (M62). `to` is one address, `all` or `<memberId>/all`.
+ * Carries no scope: a lead routes by `to`. The bridge answers `{ receipt }` for one target and
+ * `{ receipts }` for a fan-out; this always hands back a list. The caller keeps `body.id` for a retry
+ * of the same attempt, and the same id twice returns the receipt without typing again.
+ */
+export async function postWalky(body: WalkySendBody): Promise<WalkyReceipt[]> {
+  const got = await req<{ receipt?: WalkyReceipt; receipts?: WalkyReceipt[] }>("/api/walky", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  if (got.receipts !== undefined) return got.receipts;
+  return got.receipt === undefined ? [] : [got.receipt];
+}
+
+/**
+ * GET /api/walky/who: every agent pane a message can reach, across the crew (M62), the shell panes that
+ * never receive one, and how many messages this bridge turned away. The last two are absent from an
+ * older bridge, which reads as none.
+ */
+export async function fetchWalkyWho(signal?: AbortSignal): Promise<WalkyWho> {
+  const got = await req<{ targets: WalkyTarget[]; skipped?: WalkySkipped[]; refusals?: WalkyRefusals | null }>(
+    "/api/walky/who",
+    { signal },
+  );
+  return { targets: got.targets, skipped: got.skipped ?? [], refusals: got.refusals ?? null };
+}
+
+/**
+ * DELETE /api/send/<id>: take back a held send, or dismiss an ended one (M56 spec 15). `refused` is an
+ * answer, not an error: the request is going out now, and a 409 carries it. This machine's own panes
+ * only; the route does not cross a crew link, so a pane on a member never comes here.
+ */
+export async function cancelHeldSend(requestId: string, paneId: string, scope?: Scope): Promise<HeldCancelAnswer> {
+  if (!isLead(scope)) throw new ApiError("A held send on a crew member is cancelled on that machine.", 400);
+  stampSend(paneId);
+  const got = await req<JsonObject>(
+    withScope(`/api/send/${encodeURIComponent(requestId)}?pane=${encodeURIComponent(paneId)}`, scope),
+    { method: "DELETE" },
+    // A 409 is the answer "it is going out now", a value; an unknown id (404) stays an error.
+    sendRecover((status, detail) => (status === 409 ? (parseJsonObject(detail) ?? null) : null)),
+  );
+  const answer = readHeldCancelAnswer(got);
+  if (answer === null) throw new ApiError("The send route sent a body this phone cannot read.", 502);
+  return answer;
+}
+
+/**
+ * POST /api/ask/<id>: a tap on a dialog card as one Answer to the single-use ask the bridge minted
+ * (M56 spec 08). This machine's own panes only; a crew member's pane keeps the guarded key route.
+ * Every outcome is a 200 with the reply; a refusal is a reply, not an error.
+ */
+export async function postAskAnswer(askId: string, body: AnswerBody, scope?: Scope): Promise<AskTapReply> {
+  stampSend(body.pane);
+  const got = await req<JsonObject>(withScope(`/api/ask/${encodeURIComponent(askId)}`, scope), { method: "POST", body: JSON.stringify(body) }, sendRecover());
+  const reply = readAskTapReply(got);
+  if (reply === null) throw new ApiError("The ask route sent a body this phone cannot read.", 502);
+  if (reply.outcome === "sent") stampSend(body.pane);
+  return reply;
 }
 
 /**
@@ -1309,6 +1615,21 @@ export function sendToPane(
   if (send.steer) body.steer = true;
   if (send.target !== null) Object.assign(body, send.target);
   return postControl(paneId, "send", body, scope);
+}
+
+/**
+ * POST /api/pane/:id/action: a tap on one of the buttons a durable program lists for the pane (M53 spec 07).
+ * It names the action and carries a request id, and the turn the phone saw when it has one: a turn that
+ * moved is refused with 409 before anything reaches the program. Same answers as a send or an abort.
+ */
+export function runPaneAction(
+  paneId: string,
+  run: { requestId: string; actionId: string; turnId?: string | undefined },
+  scope?: Scope,
+): Promise<ControlResult> {
+  const body: JsonObject = { requestId: run.requestId, actionId: run.actionId };
+  if (run.turnId !== undefined && run.turnId !== "") body.turnId = run.turnId;
+  return postControl(paneId, "action", body, scope);
 }
 
 /** POST /api/pane/:id/abort: stop the turn the phone saw. Same names and the same stale rule as a send. */
@@ -1390,6 +1711,21 @@ export function renameTab(
   scope?: Scope,
 ): Promise<ActionResponse> {
   return req<ActionResponse>(withScope(`/api/tab/${encodeURIComponent(tabId)}/rename`, scope), {
+    method: "POST",
+    body: JSON.stringify({ label }),
+  });
+}
+
+/**
+ * Set a space's name, on a machine whose multiplexer declares `renameSpace` (a durable program that takes
+ * renames). Non-empty required, like a tab: the bridge 400s a blank label.
+ */
+export function renameSpace(
+  spaceId: string,
+  label: string,
+  scope?: Scope,
+): Promise<ActionResponse> {
+  return req<ActionResponse>(withScope(`/api/space/${encodeURIComponent(spaceId)}/rename`, scope), {
     method: "POST",
     body: JSON.stringify({ label }),
   });
@@ -1541,6 +1877,57 @@ export function clearRecentRuns(scope?: Scope): Promise<RecentRunsResponse> {
   return req<RecentRunsResponse>(withScope("/api/launch/recent/clear", scope), { method: "POST", body: "{}" });
 }
 
+/** What GET /api/sent is asked (M61). Every field but `scope` narrows the answer. */
+export interface SentQuery {
+  scope: SentScope;
+  /** Exact folder match, absolute. Applied before repeats merge. */
+  cwd?: string;
+  /** Every whitespace-separated word must appear in the line, case-insensitive. */
+  q?: string;
+  /** 1 to 200; the bridge defaults to 50. */
+  limit?: number;
+  /** Epoch ms: only records older than this, for the next page. */
+  before?: number;
+}
+
+/**
+ * GET /api/sent: the shell lines sent through Collie, newest first (M61). `scope: "here"` reads the
+ * machine `scope.host` names (the lead when it names none). `scope: "all"` is asked of the lead
+ * alone, which merges its crew, so the pane's host is NOT sent with it. The session is never sent: a record belongs to a machine.
+ * A bridge older than Sent answers 404, which throws as an `ApiError` the sheet reads as "old".
+ */
+export function getSent(query: SentQuery, scope?: Scope, signal?: AbortSignal): Promise<SentAnswer> {
+  const params = new URLSearchParams({ scope: query.scope });
+  if (query.cwd !== undefined) params.set("cwd", query.cwd);
+  if (query.q !== undefined && query.q.trim() !== "") params.set("q", query.q.trim());
+  if (query.limit !== undefined) params.set("limit", String(query.limit));
+  if (query.before !== undefined) params.set("before", String(query.before));
+  const target = query.scope === "all" ? undefined : hostOnly(scope);
+  return req<SentAnswer>(withScope(`/api/sent?${params.toString()}`, target), { signal });
+}
+
+/** POST /api/sent/remove: forget every record of one line on the machine `scope.host` names. */
+export function removeSent(id: string, scope?: Scope): Promise<SentWriteResponse> {
+  return req<SentWriteResponse>(withScope("/api/sent/remove", hostOnly(scope)), {
+    method: "POST",
+    body: JSON.stringify({ id, requestId: mintRequestId() }),
+  });
+}
+
+/** POST /api/sent/clear: empty the record of the machine `scope.host` names. */
+export function clearSent(scope?: Scope): Promise<SentWriteResponse> {
+  return req<SentWriteResponse>(withScope("/api/sent/clear", hostOnly(scope)), {
+    method: "POST",
+    body: JSON.stringify({ requestId: mintRequestId() }),
+  });
+}
+
+/** A record belongs to a machine, not to a Herdr session: the session is never sent with a Sent write. */
+function hostOnly(scope?: Scope): Scope | undefined {
+  const { host } = normalizeScope(scope);
+  return host === undefined ? undefined : { host };
+}
+
 /**
  * GET /api/worktree/plan — what a branch from `cwd` would be (ADR 0093). A read, lead-local: the
  * sheet asks it only of the lead. `branch` and `parent` add the folder answers.
@@ -1667,6 +2054,19 @@ export function renameAddedLauncher(id: string, label: string, scope?: Scope): P
  */
 export function fetchFolders(scope?: Scope): Promise<FoldersResponse> {
   return req<FoldersResponse>(withScope("/api/folders", scope));
+}
+
+/**
+ * GET /api/folders/browse — the sub-folders of the folder the New page's Folder field names, on THIS
+ * scope's host (#467). `text` is the field as typed: the bridge resolves it with the New page's own
+ * rule, walks up to the nearest folder that exists, and answers the rest as a name filter. Read with
+ * the Files view's bound and gate (ADR 0083), so it answers as a Files read does: `unknown-path` for
+ * a text it will not browse, `stale` for a machine that predates the route, the two 403s for a device
+ * the gate refuses.
+ */
+export function fetchFolderBrowse(text: string, scope?: Scope, signal?: AbortSignal): Promise<FilesAnswer<FolderBrowseResponse>> {
+  const q = text === "" ? "" : `?${new URLSearchParams({ path: text }).toString()}`;
+  return filesRead<FolderBrowseResponse>(`/api/folders/browse${q}`, scope, signal);
 }
 
 /** POST /api/folders/star body — a named contract so `starFolder` infers against it. */
@@ -1846,6 +2246,44 @@ export function startUpdate(a: {
   return req<UpdateStartResponse>("/api/update", { method: "POST", body: JSON.stringify(body) });
 }
 
+/**
+ * Roll back to the build kept on disk (M60 spec 01): `collie update --rollback`, behind the same
+ * confirm and the same write gate as an update. `target` is the version the confirm sheet named, so a
+ * sheet left open over a prune or a second rollback cannot consent to another build. `requestId` is
+ * a UUID minted per confirm; the bridge makes it the run id, and a retry with the same id gets the
+ * same receipt rather than a second rollback.
+ */
+export function startRollback(a: { target: string; requestId: string }): Promise<RollbackStartResponse> {
+  return req<RollbackStartResponse>("/api/update/rollback", {
+    method: "POST",
+    body: JSON.stringify({ confirm: true, target: a.target, requestId: a.requestId }),
+  });
+}
+
+/**
+ * Set this machine's release line (M60 spec 01). The switch installs nothing: the answer is the saved
+ * record, and the next check offers what the new line offers. One request id per tap, so a retried
+ * request answers with the same receipt.
+ */
+export function setReleaseLine(a: { line: ReleaseLine; requestId: string }): Promise<ReleaseLineReceipt> {
+  return req<ReleaseLineReceipt>("/api/update/line", {
+    method: "POST",
+    body: JSON.stringify({ line: a.line, requestId: a.requestId }),
+  });
+}
+
+/**
+ * "Go back now" (M60 spec 01): from an Edge build down to the Stable release the bridge offered as
+ * `back`. The one downgrade a person starts from here besides a rollback. The request id becomes the
+ * run id, as on a rollback.
+ */
+export function startGoBack(a: { target: string; requestId: string }): Promise<GoBackStartResponse> {
+  return req<GoBackStartResponse>("/api/update/back", {
+    method: "POST",
+    body: JSON.stringify({ confirm: true, target: a.target, requestId: a.requestId }),
+  });
+}
+
 /** "Remind me next digest" — the card's dismiss. Not a mute: the banner keeps showing. */
 export function snoozeUpdate(): Promise<UpdateInfo> {
   return req<UpdateInfo>("/api/update/snooze", { method: "POST" });
@@ -1902,6 +2340,24 @@ const PAIR_FAILURES: readonly PairFailure[] = [
 ];
 
 const recoverPairFailure: Recover<{ ok: false; reason: PairFailure }> = (status, detail) => {
+  // The identity gate refuses BEFORE the claim, as a bare-text 403 from `checkAccess` (#512): on
+  // loopback no `tailscale serve` injects the login header, so this is the answer a host-local
+  // browser gets. It is a named refusal with a remedy, not a transport failure — recover it like
+  // the 400s, or the card collapses it into "couldn't reach the bridge" and the operator retries
+  // a code that was never tried. A JSON spelling is read too, so a bridge that starts coding
+  // this refusal needs no second client change.
+  if (status === 403) {
+    const text = detail.trim();
+    if (text === "identity required" || text === "identity not trusted") {
+      return { ok: false, reason: "identity-required" };
+    }
+    const body = parseJsonObject(detail);
+    const named = body ? (asJsonString(body.error) ?? asJsonString(body.code)) : undefined;
+    if (named === "identity-required" || named === "pairing.identity_required") {
+      return { ok: false, reason: "identity-required" };
+    }
+    return null;
+  }
   if (status !== 400) return null;
   // A non-JSON 400 body, or one with no `error` string, falls through to the usual ApiError.
   const body = parseJsonObject(detail);

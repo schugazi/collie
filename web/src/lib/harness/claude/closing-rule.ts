@@ -35,7 +35,7 @@
 import { lineText, type StyledLine } from "../../blocks";
 import { readKeyHintFooter } from "../menu-hints";
 import { hasInputBox } from "./chrome";
-import { classifyFooter, dialogTail, isBlank } from "./markers";
+import { classifyFooter, dialogTail, isBlank, isRuleRow, ruleTop } from "./markers";
 import { parseOptionRow } from "./prompt-select";
 
 // A run of rule glyphs and, optionally, ONE label set into it: ` capture lab ─`. The label holds no
@@ -60,18 +60,34 @@ function endsReviewPair(texts: string[], last: number): boolean {
 }
 
 /**
+ * The rows of the closing rule that ends `texts` (`top` to `end`), and the last non-blank row, or
+ * null. A rule that wrapped beside a theme's gutter (a plugin or theme narrows the dialog while Claude
+ * Code draws the rule at the full pane width, so it overflows by the gutter's width) ends in a stub
+ * row (`isRuleRow`), and the rule starts at the top of the run of rule rows that stub ends
+ * (`ruleTop`). The fork's task panel and queued messages (markers.ts `dialogTail`) may sit on either
+ * side of the rule: under it, so the rule ends on the row above them; or above it, between it and the
+ * footer, where the caller's own `dialogTail` sets them aside.
+ */
+function closingRuleRows(texts: string[]): { top: number; end: number; last: number } | null {
+  let last = texts.length - 1;
+  while (last >= 0 && isBlank(texts[last]!)) last--;
+  const atLast = last >= 1 && (isRuleRow(texts, last) || isClosingRule(texts[last]!));
+  const end = atLast ? last : dialogTail(texts);
+  if (end < 1) return null;
+  const top = isRuleRow(texts, end) ? ruleTop(texts, end, 1) : end;
+  return top >= 1 && isClosingRule(texts[top]!) ? { top, end, last } : null;
+}
+
+/**
  * `lines` without the closing rule 2.1.296 draws under a dialog in a named session, or the very same
  * array when the screen does not end that way. Pure; the caller owns pane access.
  */
 export function dropClosingRule(lines: StyledLine[]): StyledLine[] {
   const texts = lines.map(lineText);
 
-  let last = texts.length - 1;
-  while (last >= 0 && isBlank(texts[last]!)) last--;
-  // The fork's task panel and queued messages (markers.ts `dialogTail`) may sit on either side of
-  // the rule: under it, so the rule is the row above them; or above it, between it and the footer.
-  const rule = last >= 0 && isClosingRule(texts[last]!) ? last : dialogTail(texts);
-  if (rule < 1 || !isClosingRule(texts[rule]!)) return lines;
+  const found = closingRuleRows(texts);
+  if (found === null) return lines;
+  const rule = found.top;
 
   // What is left once the rule is gone: the screen a grammar would have read in an unnamed session.
   const head = texts.slice(0, rule);
@@ -88,7 +104,8 @@ export function dropClosingRule(lines: StyledLine[]): StyledLine[] {
 
   // A composer is on screen, with or without the rule: the rule is its border, not a dialog's.
   // Checked last, as it is the costliest read.
-  const rest = rule === last ? lines.slice(0, rule) : lines.filter((_, i) => i !== rule);
+  const rest =
+    found.end === found.last ? lines.slice(0, rule) : lines.filter((_, i) => i < rule || i > found.end);
   if (hasInputBox(lines) || hasInputBox(rest)) return lines;
   return rest;
 }

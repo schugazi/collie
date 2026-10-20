@@ -164,7 +164,18 @@ function ToolPart({
   );
 }
 
-function Part({ part, query, scope }: { part: TranscriptPart; query: string; scope?: Scope }) {
+function Part({
+  part,
+  query,
+  scope,
+  fromAgent,
+}: {
+  part: TranscriptPart;
+  query: string;
+  scope?: Scope;
+  /** The part belongs to an assistant turn, so its reply prose may carry stretches. */
+  fromAgent: boolean;
+}) {
   // Tool output is COMMAND output, not prose — it stays verbatim in a monospace block (see ToolPart).
   if (part.kind === "tool") return <ToolPart part={part} query={query} scope={scope} />;
   if (part.kind === "image") {
@@ -182,6 +193,7 @@ function Part({ part, query, scope }: { part: TranscriptPart; query: string; sco
         text={part.text}
         query={query}
         className={part.kind === "thinking" ? "italic text-muted-foreground" : undefined}
+        stretches={fromAgent && part.kind === "text"}
       />
       {part.truncated && (
         <div className="text-xs text-muted-foreground">{t("transcript.truncated")}</div>
@@ -226,13 +238,13 @@ function Turn({
   if (entry.role === "summary" || entry.role === "note") {
     return (
       <div className="rounded-lg border border-dashed bg-muted/30 px-3 py-2">
-        <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+        <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold label-caps text-muted-foreground">
           <Info className="size-3" />
           {entry.role === "summary" ? t("transcript.summaryLabel") : t("transcript.systemLabel")}
           {time && ` · ${time}`}
         </div>
         {entry.parts.map((part, i) => (
-          <Part key={i} part={part} query={query} scope={scope} />
+          <Part key={i} part={part} query={query} scope={scope} fromAgent={false} />
         ))}
       </div>
     );
@@ -252,7 +264,7 @@ function Turn({
           ) : (
             <AgentIcon agent={agent ?? "claude"} className="size-4" />
           )}
-          <span className={`text-[11px] font-semibold tracking-wide uppercase ${isUser ? "text-status-working" : "text-muted-foreground"}`}>
+          <span className={`text-[11px] font-semibold label-caps ${isUser ? "text-status-working" : "text-muted-foreground"}`}>
             {isUser ? t("transcript.youLabel") : (agent ?? t("transcript.agentFallback"))}
           </span>
           {time && <span className="text-[11px] text-muted-foreground">{time}</span>}
@@ -260,7 +272,7 @@ function Turn({
       )}
       <div className="space-y-1.5">
         {entry.parts.map((part, i) => (
-          <Part key={i} part={part} query={query} scope={scope} />
+          <Part key={i} part={part} query={query} scope={scope} fromAgent={entry.role === "assistant"} />
         ))}
       </div>
     </div>

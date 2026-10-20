@@ -159,7 +159,8 @@ export function CollieHome({
         className,
       )}
     >
-      {/* The 40px artwork sits in a 44px touch target and dims when disconnected. */}
+      {/* The 40px artwork sits in a 44px touch target and dims when disconnected. `paper` is the
+          header's own ground (`bg-band-ground`); app-header.test.tsx fails if the two drift apart. */}
       {/* The ramp's scope, and the reason this wrapper carries a ref at all: `getAnimations` is
           collected from HERE and not from the button, so the button's own `transition-opacity` — and
           anything a caller's `className` animates — is never handed a playback rate. */}
@@ -172,13 +173,14 @@ export function CollieHome({
           size={40}
           weight="header"
           loading={bloom || ((round || busy) && !lost)}
-          paper="var(--background)"
+          paper="var(--band-ground)"
           className={cn("transition-opacity", lost && "opacity-40 grayscale")}
         />
         {/* THE LOST BADGE. The strip under the header says the connection is gone, and the operator can
             hide it; this is what stays after that, so the state is never only a dimmed dog. It sits in
-            the corner of the 44px box (inside it, so the tap target does not grow) on the page colour
-            with the same `ring-2 ring-background` cut the status dot in agent-chat wears, which keeps
+            the corner of the 44px box (inside it, so the tap target does not grow) on the header's own
+            ground (`band-ground`, the page colour unless a theme says `chrome: band`) with a `ring-2`
+            cut of that ground, like the one the status dot in agent-chat wears, which keeps
             it legible over the orbit. The same two icons as the strip, picked by the host's `online`
             flag. Decorative: the button's own label already says "not connected". `text-status-blocked`
             is the danger token the red strip uses. It is outside the ramped subtree's animation set
@@ -188,7 +190,7 @@ export function CollieHome({
             data-slot="collie-lost-badge"
             data-icon={online ? "cloud-off" : "wifi-off"}
             aria-hidden
-            className="absolute bottom-0.5 right-0.5 size-3.5 rounded-full bg-background p-px text-status-blocked ring-2 ring-background"
+            className="absolute bottom-0.5 right-0.5 size-3.5 rounded-full bg-band-ground p-px text-status-blocked ring-2 ring-band-ground"
           />
         ) : null}
       </span>

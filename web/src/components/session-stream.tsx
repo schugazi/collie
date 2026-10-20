@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { ArrowUpToLine, CornerDownLeft, History, Loader2 } from "lucide-react";
 
-import { ItemView, ToolGroup, groupRuns } from "@/components/chat-cards";
+import { ItemView, PendingTurn, ToolGroup, groupRuns, standsAlone } from "@/components/chat-cards";
 import { PromptPin } from "@/components/prompt-pin";
 import { StatusDot } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
+import { QUEUED_BLOCK, QUEUED_BUTTON, QUEUED_HEAD, QUEUED_LABEL, QUEUED_TEXT } from "@/components/queued-block";
 import { ChatMessageList, type ChatMessageListHandle } from "@/components/ui/chat/chat-message-list";
 import { useLocale } from "@/hooks/use-locale";
 import type { ChatFeed } from "@/hooks/use-chat-window";
 import { ASKS_SHOWN, asksAt, shownAsks } from "@/lib/ask";
-import { itemsOf } from "@/lib/chat-items";
+import { finished, itemsOf } from "@/lib/chat-items";
 import type { ChatStatus } from "@/lib/chat-window";
+import { dropPending, unmatched, usePending } from "@/lib/durable-pending";
 import { t, type MessageKey } from "@/lib/i18n";
 import type { Ask } from "@/lib/types";
 import { AskCard, type AskCardProps } from "@/components/ask-card";
@@ -76,31 +78,27 @@ const STREAM_BLOCK = "flex min-w-0 flex-col -m-3 p-3";
 const LIVE_ROW = "mt-1 flex items-center gap-2 py-2 text-xs font-medium text-muted-foreground";
 
 /**
- * THE QUEUE: what the operator typed while the agent was busy.
- *
- * The operator's own colour, because it is the operator's own words — the same `status-working` well
- * `UserTurn` wears (`chat-cards.tsx`), at a lighter weight, so it reads as "mine, and not sent yet"
- * rather than as a turn the agent ignored. A uniform border with a soft shadow and no left accent,
- * per the house rule for a rounded box.
- *
- * Dashed, and that is the one thing carrying "not yet". A solid well would be indistinguishable from
- * a turn that has landed, which is the single mistake this row must not make.
+ * THE WORKING ROW OF A DURABLE THREAD (M53 spec 10): three dots in the muted ink, where the static "Still working…" line
+ * stands on any other pane. It is drawn while the newest thing in the thread is the person's own line and the program has
+ * not answered yet, and it appears the moment the program accepts a send, before the next read says `working`. The dots
+ * share {@link LIVE_ROW}'s box, so the row going to the static line or to nothing moves no neighbour (DESIGN.md §2). They
+ * dim and brighten in turn (opacity only, `.working-dots` in index.css) and stand still under reduced motion.
  */
-const QUEUED_BLOCK =
-  "mt-1 flex min-w-0 flex-col gap-1 rounded-md border border-dashed border-status-working/40 bg-status-working/5 px-3 py-2";
-const QUEUED_LABEL = "text-xs font-medium text-status-working";
-/** The label row. The button, when there is one, is its only other child, at the right. */
-const QUEUED_HEAD = "flex min-h-7 items-center justify-between gap-2";
-/**
- * "Send now": drawn 28px tall and bought up to the 44px floor as hit area (DESIGN.md §6), so the
- * card does not grow a row for it. `min-w-11` is the width half of the floor; the `::before` is the
- * height half and reaches into the card's own padding, never into the message text under it.
- */
-const SEND_NOW =
-  "relative h-7 min-w-11 gap-1 px-2 text-xs before:absolute before:inset-x-0 before:-inset-y-2 before:content-['']";
+function WorkingRow() {
+  useLocale();
+  return (
+    <div data-slot="stream-working" role="status" aria-label={t("durable.thread.working")} className={LIVE_ROW}>
+      <span aria-hidden="true" className="working-dots flex h-4 items-center gap-1">
+        <span className="size-1.5 rounded-full bg-current" />
+        <span className="size-1.5 rounded-full bg-current" />
+        <span className="size-1.5 rounded-full bg-current" />
+      </span>
+    </div>
+  );
+}
+
 /** How long "Send now" holds its pending face when the queue does not empty first. */
 const SEND_NOW_PENDING_MS = 5_000;
-const QUEUED_TEXT = "wrap-anywhere text-sm whitespace-pre-wrap text-foreground/80";
 
 /**
  * THE QUEUE CARD: one group, however many messages wait, with its one control at the head.
@@ -143,7 +141,7 @@ function QueuedCard({ queued, sendNow }: { queued: readonly string[]; sendNow: (
             variant="outline"
             size="sm"
             data-slot="stream-send-now"
-            className={SEND_NOW}
+            className={QUEUED_BUTTON}
             disabled={pending}
             aria-busy={pending}
             // The accessible name STARTS with the visible words in every language (WCAG 2.5.3, Label in
@@ -221,6 +219,10 @@ function topBlock(el: HTMLElement): number {
 const EDGE_ROW =
   "mb-2 flex w-full items-center justify-center gap-1.5 rounded-md py-2 text-xs font-medium text-muted-foreground transition-colors active:bg-muted/50 disabled:opacity-60";
 
+/** The room the top edge leaves for a prompt pin over it: the pin's fixed `h-14` (prompt-pin.tsx)
+ *  plus the 4px its overlay sits down from the scrollport's top (ChatMessageList). */
+const PIN_ROOM = "h-16";
+
 /**
  * THE SAVED-COPY LINE (M46 specs 09 and 10), at the top of the scrolled content of either body.
  *
@@ -268,6 +270,24 @@ export function chatStatusKey(status: ChatStatus): MessageKey | null {
 }
 
 /**
+ * The second line under an empty Chat whose session the bridge refused to guess: another pane runs
+ * the same harness in this folder and this pane's command line names no session (#508). The bridge
+ * gives the reason (`detail: "shared-folder"`), and the sentence names the remedy, because an empty
+ * Chat with no reason is the next issue. `null` on every other reading, and on an older bridge that
+ * sends no detail.
+ */
+export function sharedFolderLine(status: ChatStatus, agent: string | undefined): string | null {
+  if (status.kind !== "unavailable" || status.detail !== "shared-folder") return null;
+  return t("chat.empty.sharedFolder", { harness: harnessName(agent) });
+}
+
+/** The harness as a person names it: Herdr's agent string with its first letter capitalised. */
+function harnessName(agent: string | undefined): string {
+  if (agent === undefined || agent === "") return "agent";
+  return agent.charAt(0).toUpperCase() + agent.slice(1);
+}
+
+/**
  * The reader's own text size, as three token overrides rather than one `font-size`.
  *
  * Tailwind compiles `text-sm` to `font-size: var(--text-sm)`, and a custom property CASCADES, so
@@ -306,6 +326,9 @@ export function SessionStream({
   savedCopy = null,
   onSendQueuedNow,
   asks,
+  durable = false,
+  questionPending = false,
+  agent,
 }: {
   /** The held window plus its one control, from `useChatWindow`. */
   feed: ChatFeed;
@@ -349,6 +372,22 @@ export function SessionStream({
    * `shownAsks`). Absent on every pane with a screen, which draws none.
    */
   asks?: { list: readonly Ask[]; card: Omit<AskCardProps, "ask"> };
+  /**
+   * The pane is a durable conversation: a program with no screen (ADR 0101). Its thread ends with the working row
+   * ({@link WorkingRow}) in place of the static line while the newest thing is the person's own, and a text the program is
+   * still writing carries a cursor. Every other pane draws what it always drew.
+   */
+  durable?: boolean;
+  /**
+   * A question waits in the terminal that no card answers: OmO's `? Question pending` banner over a
+   * ready editor (HarnessAdapter.questionPending). The thread ends with one status line that says so,
+   * in place of the working line, because the turn waits on the person. The fact comes from the
+   * screen, as the card dock below this body does (ADR 0059); the line claims nothing about the
+   * question itself, which the banner and the running question card carry.
+   */
+  questionPending?: boolean;
+  /** The pane's agent string, named in the shared-folder line ({@link sharedFolderLine}). */
+  agent?: string;
 }) {
   // The subscription every `t()` caller owes, plus the counter the memo below needs.
   const { revision } = useLocale();
@@ -370,8 +409,42 @@ export function SessionStream({
     const entries = window.entries.filter((e) => e.abandoned !== true);
     // Tool calls off folds EVERY run, a lone step included, which is the same treatment the History
     // page gives a turn's steps. One idea, one look, two surfaces.
-    return groupRuns(entries.flatMap((e) => itemsOf(e, showCompactions)), showToolCalls ? 3 : 1);
-  }, [window.entries, showToolCalls, showCompactions, revision]);
+    //
+    // A text the program was still writing (`partial`) keeps its cursor only while the pane works: one that stopped
+    // will not grow, and a cursor left blinking on it would be a lie (WIRE.md 7.15).
+    return groupRuns(
+      entries.flatMap((e) => itemsOf(e, showCompactions).map((item) => (working ? item : finished(item)))),
+      showToolCalls ? 3 : 1,
+    );
+  }, [window.entries, showToolCalls, showCompactions, revision, working]);
+
+  // THE PERSON'S OWN LINES THE PROGRAM HAS NOT WRITTEN BACK YET (lib/durable-pending.ts). Only a durable pane's composer
+  // puts any, so every other pane has none and draws nothing here. A line goes when an item of the program's matches it.
+  const pending = usePending(address);
+  const { open: lines, done: answered } = useMemo(
+    () => unmatched(pending, window.entries, Date.now()),
+    [pending, window.entries],
+  );
+  const answeredKey = answered.join("\n");
+  useEffect(() => {
+    if (answeredKey !== "") dropPending(address, answeredKey.split("\n"));
+  }, [address, answeredKey]);
+  // A line the person just sent snaps the thread to its tail, where it stands.
+  const sentCount = lines.length;
+  const heldCount = useRef(sentCount);
+  useLayoutEffect(() => {
+    if (sentCount > heldCount.current) listRef.current?.scrollToBottom();
+    heldCount.current = sentCount;
+  }, [sentCount, listRef]);
+
+  // What the end of a durable thread says. The newest thing is the person's own when a line of theirs is waiting, or when
+  // the last item is a user turn. A text still growing says it is working by itself, with its cursor.
+  const newest = blocks.at(-1)?.at(-1);
+  const personsNewest = lines.some((line) => line.state !== "notSent") || newest?.kind === "user";
+  const growing = newest !== undefined && "partial" in newest && newest.partial === true;
+  const accepted = lines.some((line) => line.state === "sent");
+  const dotsRow = durable && ((working && personsNewest) || accepted);
+  const staticRow = working && !(durable && (personsNewest || growing)) && !questionPending;
 
   // A PANE KEEPS ITS PLACE (ADR 0063). Switching modes unmounts this body and switching panes
   // remounts it, so neither the DOM nor the scroller remembers where the reader was — the same gap
@@ -468,6 +541,11 @@ export function SessionStream({
     };
   }, [blocks, listRef]);
   const pin = savedCopy === null ? pinAt(prompts, top, lastPrompt, holdsLastPrompt, window.hasOlder) : null;
+  // The pin a reader at the very top sees. While there is one, the top edge starts under it: the pin
+  // floats over the scrollport, and a reported prompt (a phone with no history of the session yet)
+  // sat on "Load older" and took its tap (2026-10-17). It follows what the stream holds, never the
+  // scroll, so the room changes with a page or a new prompt, not under the reader's thumb.
+  const pinOnTop = savedCopy === null && pinAt(prompts, -1, lastPrompt, holdsLastPrompt, window.hasOlder) !== null;
 
   // One scroll does not land: the blocks above the target are `content-visibility: auto`, and a page
   // that just arrived has never been laid out, so each sits at its 64px placeholder until the jump
@@ -558,7 +636,10 @@ export function SessionStream({
   const status = window.status;
   const missing =
     status.kind === "unavailable" && (status.reason === "no-log" || status.reason === "no-session");
-  const explain = starting && missing ? null : chatStatusKey(status);
+  // A shared folder is no "nothing yet": no session will appear until the agent is restarted, so a
+  // new pane says it too (#508).
+  const shared = sharedFolderLine(status, agent);
+  const explain = starting && missing && shared === null ? null : chatStatusKey(status);
   const empty = blocks.length === 0;
   // The window answered, or the pane is new and nothing is missing that should be there. Either way
   // what the stream draws is the thread, and the thread may be running or empty.
@@ -587,6 +668,7 @@ export function SessionStream({
           none of it in memory. Where there is nothing older, the thread says where it starts — the
           History page's own line, because it is the same fact about the same session. A saved copy takes
           the slot instead of both: there is no bridge to load from (SavedCopyRow). */}
+      {pinOnTop && <div aria-hidden data-slot="pin-room" className={PIN_ROOM} />}
       {savedCopy !== null ? (
         <SavedCopyRow text={savedCopy} />
       ) : window.hasOlder ? (
@@ -605,8 +687,9 @@ export function SessionStream({
       {blocks.map((group, index) => (
         <div key={group[0]!.id} data-block data-n={group.length} className={STREAM_BLOCK}>
           {/* A group of one is an ordinary block, EXCEPT a lone tool call while tool calls are off:
-              that one folds too, or "off" would leave every single-step turn drawn in full. */}
-          {group.length === 1 && (showToolCalls || group[0]!.kind !== "tool") ? (
+              that one folds too, or "off" would leave every single-step turn drawn in full. An agent
+              call and a question never fold (`standsAlone`), so they are drawn either way. */}
+          {group.length === 1 && (showToolCalls || group[0]!.kind !== "tool" || standsAlone(group[0]!)) ? (
             <ItemView item={group[0]!} />
           ) : (
             <ToolGroup items={group} liveOpens={showToolCalls} />
@@ -639,16 +722,38 @@ export function SessionStream({
         </>
       )}
 
+      {/* THE LINES THE PERSON SENT THAT THE PROGRAM HAS NOT WRITTEN BACK (durable panes only), after the program's own
+          items and before the working row. Each is replaced in place by the program's item (lib/durable-pending.ts). */}
+      {lines.map((line) => (
+        <div key={line.requestId} data-slot="stream-pending" className={STREAM_BLOCK}>
+          <PendingTurn text={line.text} state={line.state} />
+        </div>
+      ))}
+
+      {/* A durable thread's working row: three dots, while the newest thing is the person's own. */}
+      {dotsRow && <WorkingRow />}
+
       {/* A turn is running. Last of the thread, because that is where its answer will arrive. Drawn
           only where the window is actually being read: a pane whose journal cannot be read is busy
           in the chrome, and saying so HERE would promise a turn this body will never show. */}
-      {working && reading && (
+      {staticRow && reading && (
         <div data-slot="stream-live" className={LIVE_ROW}>
           {/* The same mark a running step wears inside a card (`chat-cards.tsx` § StepStatus), so
               "still going" looks the same wherever the stream says it. UNNAMED: it leads the word,
               and a name here is the state announced twice (status-badge.tsx § label). */}
           <StatusDot status="working" live className="size-2.5" />
           <span>{t("chat.stream.working")}</span>
+        </div>
+      )}
+
+      {/* A question waits in the terminal and no card answers it (OmO's banner). One line, the
+          needs-you mark and the words, no control: the banner prints no keys a card could send, and
+          a reply sent now is OmO's own free-text answer, which the line says. LIVE_ROW's box, so it
+          stands where the working line stood. */}
+      {questionPending && reading && (
+        <div data-slot="stream-question-pending" className={LIVE_ROW}>
+          <StatusDot status="blocked" className="size-2.5" />
+          <span>{t("chat.stream.questionPending")}</span>
         </div>
       )}
 
@@ -674,6 +779,11 @@ export function SessionStream({
           )}
         >
           {t(explain)}
+          {shared !== null && (
+            <span data-slot="shared-folder" className="mt-2 block text-xs leading-snug">
+              {shared}
+            </span>
+          )}
         </p>
       )}
       {/* Nothing wrong, nothing said yet: one quiet line that says how to begin. `empty` alone is not
@@ -682,7 +792,7 @@ export function SessionStream({
           was wrong for one frame. A NEW pane is the exception, because there nothing was expected:
           Codex has no session before its first prompt, and pi writes no log before its first reply.
           A running turn says so on the row above instead, so the two never stand together. */}
-      {empty && explain === null && reading && !working && (
+      {empty && explain === null && reading && !working && lines.length === 0 && (
         <div className="py-16 text-center text-sm text-muted-foreground">{t("chat.stream.empty")}</div>
       )}
     </ChatMessageList>

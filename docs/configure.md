@@ -103,6 +103,9 @@ The config file groups every setting under a `[section]`. The environment name o
 | `standby` | the deputy's second door: port, bind address, arming |
 | `update` | where releases come from, how many versions stay, a GitHub token for the release check |
 | `serve` | whether Collie publishes the front door, on what, and under which path (`base_path`) |
+
+The durable agents one Collie runs beside its multiplexer are not in `config.toml`. Each is one entry in
+`sources.json`, in the same folder as `.env` ([Durable agents](durable-agents.md#attach-a-durable-agent)).
 | `stt` | speech-to-text, absent until `collie stt setup` runs |
 
 To read history from multiple agent home directories, provide a comma-separated list in
@@ -468,31 +471,34 @@ every add, rename and removal.
 > once before it first starts that row, and shows the command, the folder and the machine. Set
 > `adds = false` to turn off every phone-added row on a machine.
 
-### Reaching a durable program (experimental)
+### Reaching a durable agent (experimental)
 
-A peer that mirrors a durable agent program (`COLLIE_MUX=durable`) reaches it one of two ways. Set
-the socket, or the URL with its token, never both.
+Each durable agent a Collie runs beside its terminal is one entry in `sources.json`, written by
+`collie durable attach` ([Durable agents](durable-agents.md#attach-a-durable-agent)). The first three
+variables below are the older form, for a durable-only instance (`COLLIE_MUX=durable`) that drives
+one durable agent, named `default`. Set the socket, or the URL with its token, never both.
 
 | variable | example | what it means |
 | --- | --- | --- |
-| `COLLIE_DURABLE_SOCKET` | `/run/user/1000/durable/session.sock` | the program's private Unix socket on this machine. Absolute, at most 103 bytes, mode `0600` |
-| `COLLIE_DURABLE_URL` | `https://collie-durable-member.you.workers.dev` | the address of a program you deployed behind TLS. `https://` only, or `http://127.0.0.1:<port>` for `wrangler dev`. At most 2048 bytes, no query |
+| `COLLIE_DURABLE_SOCKET` | `/run/user/1000/durable/session.sock` | the durable agent's private Unix socket on this machine. Absolute, at most 103 bytes, mode `0600` |
+| `COLLIE_DURABLE_URL` | `https://durable-member.example.com` | the address of a durable agent you deployed behind TLS. `https://` only, or `http://127.0.0.1:<port>` for a durable agent on this machine. At most 2048 bytes, no query |
 | `COLLIE_DURABLE_TOKEN` | `your-32-byte-random-token-here` | the bearer token sent with every request to the URL. At least 32 bytes. A file holding it must be mode 600, and Collie never prints it |
+| `COLLIE_PROGRAMS` | `off` | the kill switch for durable agents. The bridge ignores `sources.json`, logs one line and registers no durable agent, so the phone shows no Durable agents section. `collie doctor` and `collie durable list` say durable agents are off. Unset it, then `collie restart`, to bring them back. It does not turn off the env form above |
 
-Both set, or a URL without a token, is a config error: the peer starts and shows the program as
-unreachable with that reason. Over https every poll is a billed request, so Collie polls every 2 s
-while a phone watches and every 10 s otherwise. [Multiplexers](multiplexers.md#two-ways-to-reach-a-program)
-says what each way keeps out, and what it does not.
+Both set, a URL without a token, or a token without a URL is a config error: the instance starts
+and shows the durable agent as unreachable with that reason. Over https every poll is a billed request,
+so Collie polls every 2 s while a phone watches and every 10 s otherwise.
+[Durable agents](durable-agents.md#two-ways-to-reach-a-durable-agent) says what each way keeps out, and what
+it does not.
 
-### Starters from a durable program (experimental)
+### Starters from a durable agent (experimental)
 
-A peer that mirrors a durable agent program (`COLLIE_MUX=durable`) lists the program's starters as
-rows on the New page, in the **Agent** select, on that machine. A starter is a named way to begin a
-conversation, such as a code review. It takes no text: you tap it, and the program decides what to
-start. The new conversation opens as a pane. A tap repeated with the same request id opens
-the same conversation and starts nothing new, and if the program does not answer, **Try again** sends
-the same request id. A program that cannot be reached lists no starters. This is experimental and may
-change in any minor release.
+A durable agent lists its starters on the New page that you open from it, under
+**New conversation**. A starter is a named way to begin a conversation, such as a code review. It
+takes no text: you tap it, and the durable agent decides what to start. The new conversation opens as a
+pane. A tap repeated with the same request id opens the same conversation and starts nothing new,
+and if the durable agent does not answer, **Try again** sends the same request id. A durable agent that cannot
+be reached lists no starters. This is experimental and may change in any minor release.
 
 ### One-off commands and their history
 
@@ -538,8 +544,9 @@ typed.
 ## Your own typefaces
 
 The interface font is a per-device setting. Under **Settings → Appearance → Typeface**, you can choose between
-System, Space Grotesk (the default), and Aldrich. You can add custom fonts in `theme.toml`, the
-fourth configuration file:
+System, Space Grotesk, Aldrich (the default), IBM Plex Sans, Geist and Atkinson Hyperlegible Next. A
+[theme](themes.md) that names a face writes it here once, when you pick the theme. You can add custom fonts in
+`theme.toml`, the fourth configuration file:
 
 ```bash
 cp theme.toml.example ~/.config/collie/theme.toml
@@ -559,7 +566,7 @@ Custom fonts append to the built-in list rather than replacing it
 `commands.toml` and the other configuration files. Because fonts do not trigger actions, there is
 nothing to shadow.
 
-They appear below the three default entries, and each client device selects its own.
+They appear below the shipped entries, and each client device selects its own.
 
 Three behaviors to note:
 
@@ -738,6 +745,20 @@ A tap on a row fills the Folder field and starts nothing, so you can still chang
 beside a row moves it to **Favourites**, up to 12, in the order you starred them. A second tap on the
 star moves it back to the top of Recent.
 
+**Browse** sits under the two lists. A tap on it lists the sub-folders of the folder in the field, or
+of home when the field is blank. Tap a folder to go into it, and the field follows. **Up**, or a part
+of the path above the list, goes back. A folder that is a Git repository carries a `git` badge.
+**Use this folder** fills the field, like a tap on a Recent row.
+
+When the field holds a path that does not exist, such as `~/src/plektra-`, Browse opens at the
+nearest folder that does (`~/src`) and lists only the names that start with the rest (`plektra-`).
+So typing in the field narrows the list. A path outside your home shows "Nothing to browse here".
+
+Browse reads folder names only, under your home folder, with the limits of the Files view. It hides
+dot-folders unless you type the dot, never lists `.git` or Collie's own state and config folders,
+does not follow a link out of home, and shows at most 200 folders. It creates nothing, and it needs
+a paired device, as Files does.
+
 The list belongs to the machine, not to the phone. Each machine keeps its own in `folders.json` in
 its state directory, `~/.local/state/collie/folders.json` unless `COLLIE_STATE_DIR` moves it. Every
 device you use sees the same list, and the file appears only after the first start in a folder or
@@ -746,7 +767,8 @@ folder the branch's own folder goes in.
 
 In a [crew](crew.md), each machine keeps the folders that exist on it, and the page shows the list
 of the machine you picked. A machine that runs an older Collie has no list, and the page then shows
-none for it.
+none for it. Browse lists the disk of the machine you picked too, and an older machine says it needs
+an update.
 
 ## Secret masking
 
@@ -774,14 +796,16 @@ By default, one Collie instance serves every Herdr session it finds.
 
 `COLLIE_MULTI_SESSION=on` (the default) discovers and serves every named Herdr session under your
 config root, switchable from the header. Setting `COLLIE_MULTI_SESSION=off` serves only the primary
-session. Every discovered session is accessible through the same URL, including private or sandbox
+Herdr session. Every discovered Herdr session is accessible through the same URL, including private or sandbox
 sessions. [Security](security.md) lists this behavior as a sharp edge.
 
 ## Dark mode / light mode
 
 > **Note.** Collie follows your phone's appearance by default.
 
-To pin it, open **Settings → Appearance → Theme** and pick **System**, **Light** or **Dark**. The setting is
+To pin it, open **Settings → Appearance**, find the **Appearance** card under the **Theme** card, and pick
+**System**, **Light** or **Dark**. The [Theme](themes.md) card picks the colours; this card picks the light or
+the dark half of them. The setting is
 stored **per device** in the browser rather than on the bridge. Your phone can remain on Dark while
 a laptop tracks the OS. The preference persists across reloads and PWA reinstalls on the same
 device.
@@ -840,6 +864,8 @@ When you queue a message while Claude Code works, Chat shows it on a **Waiting t
 the card's **Send now** button sends the whole queue to the running turn at once. Only Claude Code
 offers it, because the button presses Ctrl+Enter, the key that agent defines for this. The button is
 hidden on a read-only device and on a saved copy.
+
+The display gear has a **Stretchtext replies** switch, off by default. With it on, Chat, the full reply card and History show a reply written with the cc-stretch plugin as its short form, and a tap on a phrase opens it. A `{{name}}` without a bar shows as `name`.
 
 One thing in Chat is known to be incomplete. Hermes can remove a turn from its log after Collie
 read it, for example when it compacts. Chat then keeps showing that turn until the session is read

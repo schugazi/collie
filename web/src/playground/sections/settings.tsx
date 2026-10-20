@@ -1,16 +1,20 @@
 // Settings section of the states playground. Split out of app.tsx; see that file's header comment
 // for the whole page's rules.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { LauncherHowSheet } from "@/components/launcher-how-sheet";
 import { CommandPicker } from "@/components/new-command-picker";
+import { FolderBrowse } from "@/components/new-space-browse";
 import { NoPromptsSheet } from "@/components/no-prompts-sheet";
 import { NotifyPrefsCard } from "@/components/notify-prefs-control";
 import { SpaceOverview } from "@/components/space-overview";
+import { ThemePickerControl, ThemePreviewSheet } from "@/components/theme-picker-control";
 import { CodexConsentSheet, SpeechCards, type SpeechCardsProps } from "@/components/speech-control";
+import { DEFAULT_THEME_ID, type Theme } from "@/lib/theme/schema";
+import { addImported, removeImported, shippedThemes } from "@/lib/theme/store";
 import { commandChoice, commandKey, commandOptions, offerFor, pickOfKey } from "@/lib/new-page";
-import type { LauncherItem, RecentRun, SttCapability, SttHostStatus, WhistleStatus } from "@/lib/types";
+import type { FolderBrowseResponse, LauncherItem, RecentRun, SttCapability, SttHostStatus, WhistleStatus } from "@/lib/types";
 import {
   devicesPaired,
   devicesUnpaired,
@@ -80,6 +84,64 @@ function CommandPickerDemo({ run, pick, line = "" }: { run: boolean; pick: strin
         typed={command.kind === "typed" ? { line: typed, onLine: setTyped, onGo: () => {} } : null}
         recent={command.kind === "run" ? { busy: false, onRemove: () => {}, onClear: () => {} } : null}
       />
+    </div>
+  );
+}
+
+// ── The New page's Browse row (#467) ──────────────────────────────────────────────────────────────
+
+const BROWSE_HOME = "/home/op";
+/** A small disk for the card: each folder's sub-folders, `*` marking a repository. */
+const BROWSE_TREE = new Map<string, readonly string[]>([
+  [BROWSE_HOME, ["docs", "src", "notes"]],
+  [`${BROWSE_HOME}/docs`, []],
+  [`${BROWSE_HOME}/notes`, []],
+  [`${BROWSE_HOME}/src`, ["*collie", "*plektra-api", "plektra-web", "*website"]],
+  [`${BROWSE_HOME}/src/collie`, []],
+  [`${BROWSE_HOME}/src/plektra-api`, []],
+  [`${BROWSE_HOME}/src/plektra-web`, []],
+  [`${BROWSE_HOME}/src/website`, []],
+]);
+
+/**
+ * The bridge's walk over {@link BROWSE_TREE}: the text resolved under home, the nearest folder that
+ * exists, the rest as a case-insensitive name filter. Outside home is the bridge's `unknown-path`.
+ */
+const browseFixture: NonNullable<Parameters<typeof FolderBrowse>[0]["read"]> = (text) => {
+  const raw = text.trim();
+  const abs = (raw === "" || raw === "~" ? BROWSE_HOME : raw.startsWith("~/") ? `${BROWSE_HOME}/${raw.slice(2)}` : raw.startsWith("/") ? raw : `${BROWSE_HOME}/${raw}`).replace(/\/+$/u, "");
+  if (abs !== BROWSE_HOME && !abs.startsWith(`${BROWSE_HOME}/`)) return Promise.resolve({ outcome: "unknown-path" });
+  const parts = abs.slice(BROWSE_HOME.length).split("/").filter(Boolean);
+  for (let depth = parts.length; depth >= 0; depth--) {
+    const path = [BROWSE_HOME, ...parts.slice(0, depth)].join("/");
+    const subs = BROWSE_TREE.get(path);
+    if (subs === undefined) continue;
+    const filter = parts.slice(depth).join("/");
+    const folders = subs
+      .map((s) => ({ name: s.replace(/^\*/u, ""), git: s.startsWith("*") }))
+      .filter((f) => f.name.toLowerCase().startsWith(filter.toLowerCase()));
+    const parent = depth === 0 ? null : [BROWSE_HOME, ...parts.slice(0, depth - 1)].join("/");
+    const body: FolderBrowseResponse = { path, parent, folders, filter, truncated: false };
+    return Promise.resolve({ outcome: "body", body });
+  }
+  return Promise.resolve({ outcome: "unknown-path" });
+};
+
+/** The Folder field and the Browse row under it, over the fixed tree. Use this folder only fills the field. */
+function BrowseDemo({ initial }: { initial: string }) {
+  const [value, setValue] = useState(initial);
+  return (
+    <div className="flex flex-col gap-2 p-4">
+      <input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="~ (home dir)"
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck={false}
+        className="h-11 rounded-md border border-border bg-background px-3 font-mono text-sm"
+      />
+      <FolderBrowse value={value} home={BROWSE_HOME} scope={undefined} onNavigate={setValue} onUse={setValue} read={browseFixture} />
     </div>
   );
 }
@@ -175,6 +237,52 @@ function SpeechDemo(over: Partial<SpeechCardsProps>) {
   );
 }
 
+// ── The Theme card (M57 spec 05) ─────────────────────────────────────────────────────────────────
+
+/** The default theme's two halves, which a playground theme is built from. */
+function baseTheme(): Theme {
+  const found = shippedThemes().find((theme) => theme.id === DEFAULT_THEME_ID);
+  if (found === undefined) throw new Error("the shipped theme collie is missing");
+  return found;
+}
+
+/** An imported theme for the library card: a warm light ground and a blue-black dark one. */
+function seedTheme(): Theme {
+  const base = baseTheme();
+  return {
+    version: 1,
+    id: "playground-warm",
+    name: "Playground warm",
+    author: "Playground",
+    light: { ...base.light, background: "#f6f1ea", card: "#fffdf8" },
+    dark: { ...base.dark, background: "#10141c", card: "#171c26" },
+  };
+}
+
+/** A theme whose light ink is too pale for its ground: two failing floors, both in the light half. */
+function paleTheme(): Theme {
+  const base = baseTheme();
+  return {
+    version: 1,
+    id: "playground-pale",
+    name: "Playground pale",
+    author: "Playground",
+    light: { ...base.light, foreground: "#aaaaaa" },
+    // The default theme's own dark destructive pair is 2.77:1 (a known finding); a darker ground and
+    // a white ink keep this card at exactly the two light failures.
+    dark: { ...base.dark, destructive: "#7f1d1d", "destructive-foreground": "#ffffff" },
+  };
+}
+
+/** The real card over a library that holds one imported theme, put there for as long as the card is mounted. */
+function ThemePickerDemo() {
+  useEffect(() => {
+    addImported(seedTheme());
+    return () => removeImported("playground-warm");
+  }, []);
+  return <ThemePickerControl />;
+}
+
 export function SettingsSection() {
   return (
     <Section def={DEF}>
@@ -200,6 +308,32 @@ export function SettingsSection() {
         >
           <PhoneFrameCard height={760}>
             <SettingsRouter home={homeCrew} devices={devicesPaired} />
+          </PhoneFrameCard>
+        </Card>
+      </Group>
+
+      <Group title="Theme">
+        <Card
+          state="theme-picker"
+          label="the Theme card, one imported theme in the library"
+          reach="open Settings, Appearance. The card is the first one on the page, above System, Light and Dark."
+          note="The real component over the real store. The pills are the shipped themes, then the imported one, each with a disc of its light and dark ground. Tapping a pill applies it to this whole page, because that is what it does on a phone; tap the first pill to come back. Import opens a file chooser, Export saves the active theme, Remove is a disabled slot until an imported theme is active, so nothing in the card changes height."
+        >
+          <PhoneFrameCard height={420}>
+            <div className="p-3">
+              <ThemePickerDemo />
+            </div>
+          </PhoneFrameCard>
+        </Card>
+
+        <Card
+          state="theme-preview-failing"
+          label="the preview sheet, a theme with two failing contrast floors"
+          reach="pick a theme file with Import. The sheet opens before anything is kept."
+          note="Two warnings, both for the light half, one line each. A failed floor warns and Apply stays on; only a refused file stops an import, and that shows a different sheet with only Close."
+        >
+          <PhoneFrameCard height={880}>
+            <ThemePreviewSheet theme={paleTheme()} onApply={() => {}} onCancel={() => {}} />
           </PhoneFrameCard>
         </Card>
       </Group>
@@ -645,6 +779,17 @@ export function SettingsSection() {
           <PhoneFrameCard height={640}>
             <NewRouter home={homeSolo} />
           </PhoneFrameCard>
+        </Card>
+
+        <Card
+          state="new-page-browse"
+          label="New page, Browse folders"
+          reach="on the New page, tap Browse under the Folder field, beside Favourites and Recent."
+          note="The sub-folders of what the field holds, on the chosen machine, read by name under home with the Files view's limits. Tap a folder to go in (the field follows), Up or a crumb to go back, Use this folder to fill the field and move on to Start. Typing narrows the list after a pause: try ~/src/ple. A folder that is a repository carries a git badge. This card reads a fixed tree, not the bridge."
+        >
+          <Stage height={560}>
+            <BrowseDemo initial="~/src" />
+          </Stage>
         </Card>
 
         <Card

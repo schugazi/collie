@@ -388,38 +388,6 @@ describe("the New page: Agent and Command", () => {
     await waitFor(() => expect(screen.getByRole("switch", { name: /New worktree/ })).toBeEnabled());
   });
 
-  it("Home folders open on one machine start folded on another", async () => {
-    server.use(
-      http.get("/api/launchers", () =>
-        HttpResponse.json({ launchers: [], home: "/home/op", harnesses: HARNESSES, directories: ["/home/op/webapp"] }),
-      ),
-    );
-    mount({ servers: roster });
-    await userEvent.click(await screen.findByRole("button", { name: "Home folders" }));
-    expect(screen.getByRole("button", { name: "Home folders" })).toHaveAttribute("aria-expanded", "true");
-    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Host" }), "minibuch");
-    await waitFor(() => expect(screen.getByRole("button", { name: "Home folders" })).toHaveAttribute("aria-expanded", "false"));
-  });
-
-  it("Home folders start folded, and the title opens and closes them", async () => {
-    server.use(
-      http.get("/api/launchers", () =>
-        HttpResponse.json({ launchers: [], home: "/home/op", harnesses: HARNESSES, directories: ["/home/op/webapp"] }),
-      ),
-    );
-    mount({});
-    const toggle = await screen.findByRole("button", { name: "Home folders" });
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByRole("list", { name: "Home folders" })).toBeNull();
-    await userEvent.click(toggle);
-    expect(toggle).toHaveAttribute("aria-expanded", "true");
-    await userEvent.click(within(screen.getByRole("list", { name: "Home folders" })).getByRole("button", { name: /webapp/ }));
-    expect(screen.getByPlaceholderText("~ (home dir)")).toHaveValue("/home/op/webapp");
-    await userEvent.click(toggle);
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
-    await waitFor(() => expect(screen.queryByRole("list", { name: "Home folders" })).toBeNull());
-  });
-
   it("a folder chosen on one machine is not carried to another", async () => {
     serveLaunchers();
     mount({ servers: roster });
@@ -1702,13 +1670,16 @@ describe("the New page: a durable program's starters", () => {
     expect(bodies[0]).toMatchObject({ requestId: expect.stringMatching(/^[0-9a-f-]{36}$/u) });
   });
 
-  it("a durable peer lists only the starters, not the built-in agents or the Shell", async () => {
+  it("a durable peer lists only the starters, as rows in sight, not the built-in agents or the Shell", async () => {
     serveStarterItems([BUILT_IN, SHELL, STARTER]);
     mount();
-    const select = await agentSelect();
-    await waitFor(() => expect(within(select).getAllByRole("option").map((o) => o.textContent)).toContain("Code review"));
-    expect(within(select).getAllByRole("option").map((o) => o.textContent)).toEqual(["Code review"]);
-    // No Agent or Command switch to move to the half that cannot start here.
+    const rows = await screen.findByRole("radiogroup", { name: "Starters" });
+    await waitFor(() => expect(within(rows).getAllByRole("radio").map((o) => o.textContent)).toEqual(["Code review"]));
+    // The first starter is chosen, so one tap on Start starts it.
+    expect(within(rows).getByRole("radio", { name: "Code review" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("heading", { name: "New conversation" })).toBeInTheDocument();
+    // No select, and no Agent or Command switch to move to the half that cannot start here.
+    expect(screen.queryByRole("combobox", { name: "Agent" })).toBeNull();
     expect(screen.queryByRole("radio", { name: "Shell" })).toBeNull();
     expect(screen.queryByRole("combobox", { name: "Command" })).toBeNull();
   });
@@ -1717,10 +1688,10 @@ describe("the New page: a durable program's starters", () => {
     declares({ paneGrid: false });
     serveStarterItems([BUILT_IN, SHELL]);
     mount();
-    const select = await agentSelect();
-    expect(await screen.findByText("This machine's program offers no starters yet.")).toBeInTheDocument();
-    // Only the blank placeholder: neither Claude Code nor the Shell is offered.
-    expect(within(select).queryAllByRole("option").map((o) => o.textContent)).toEqual([""]);
+    expect(await screen.findByText("This machine's durable agent offers no starters yet.")).toBeInTheDocument();
+    // Neither Claude Code nor the Shell is offered.
+    expect(screen.queryByRole("radiogroup", { name: "Starters" })).toBeNull();
+    expect(screen.queryByRole("radio", { name: "Claude Code" })).toBeNull();
     expect(screen.getByRole("button", { name: "Start" })).toBeDisabled();
   });
 

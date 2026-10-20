@@ -1,8 +1,8 @@
-import { useId, useState } from "react";
-import { ChevronRight, Star } from "lucide-react";
+import { useId } from "react";
+import { Star } from "lucide-react";
 
 import { Collapse } from "@/components/ui/collapse";
-import { ListGroup } from "@/components/ui/list-group";
+import { LIST_ROW_CORNERS_END, LIST_ROW_CORNERS_START, ListGroup } from "@/components/ui/list-group";
 import { SectionLabel } from "@/components/ui/section-label";
 import { folderName, hasFolders, type FolderList } from "@/lib/folders";
 import { t } from "@/lib/i18n";
@@ -30,20 +30,13 @@ interface FolderSectionsProps {
   onUse: (folder: string) => void;
   /** Star (`true`) or unstar (`false`) one folder of this machine. */
   onStar: (folder: string, starred: boolean) => void;
-  /** The fork's visible immediate home subdirectories of this machine, under the two lists. */
-  directories?: readonly string[];
 }
 
-const NO_DIRECTORIES: readonly string[] = [];
-
-export function FolderSections({ folders, onUse, onStar, directories = NO_DIRECTORIES }: FolderSectionsProps) {
+export function FolderSections({ folders, onUse, onStar }: FolderSectionsProps) {
   useLocale();
-  const listed = new Set([...folders.favourites, ...folders.recent]);
-  const homeRows = directories.filter((d) => !listed.has(d));
-  const any = hasFolders(folders) || homeRows.length > 0;
   return (
-    <Collapse open={any}>
-      {any ? (
+    <Collapse open={hasFolders(folders)}>
+      {hasFolders(folders) ? (
         <div className="flex flex-col gap-3">
           <Section
             title={t("space.new.folders.favourites")}
@@ -61,16 +54,6 @@ export function FolderSections({ folders, onUse, onStar, directories = NO_DIRECT
             onUse={onUse}
             onStar={onStar}
           />
-          {/* No star: the bridge stars only a folder it already has under Recent. Folded until its
-              title is tapped, so a full home folder never buries the page. */}
-          <Section
-            title={t("space.new.folders.home")}
-            rows={homeRows}
-            starred={false}
-            home={folders.home}
-            onUse={onUse}
-            collapsible
-          />
         </div>
       ) : null}
     </Collapse>
@@ -84,79 +67,58 @@ interface SectionProps {
   starred: boolean;
   home: string;
   onUse: (folder: string) => void;
-  /** Absent: the rows carry no star. */
-  onStar?: (folder: string, starred: boolean) => void;
-  /** Starts folded; its title is a button that opens and closes the list. */
-  collapsible?: boolean;
+  onStar: (folder: string, starred: boolean) => void;
 }
 
 /** One labelled list: "Favourites, list, 3 items" to a screen reader. Absent when it has no rows. */
-function Section({ title, rows, starred, home, onUse, onStar, collapsible = false }: SectionProps) {
+function Section({ title, rows, starred, home, onUse, onStar }: SectionProps) {
   const id = useId();
-  const [open, setOpen] = useState(!collapsible);
   return (
     <Collapse open={rows.length > 0}>
       {rows.length > 0 ? (
         <div>
-          {collapsible ? (
-            <button
-              type="button"
-              aria-expanded={open}
-              onClick={() => setOpen(!open)}
-              className="flex min-h-11 w-full items-center gap-1 text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-            >
-              <ChevronRight
-                aria-hidden
-                className={cn("size-3.5 text-muted-foreground transition-transform", open && "rotate-90")}
-              />
-              <SectionLabel id={id} placement="above" className="mb-0">
-                {title}
-              </SectionLabel>
-            </button>
-          ) : (
-            <SectionLabel id={id} placement="above">
-              {title}
-            </SectionLabel>
-          )}
-          <Collapse open={open}>
-            {open ? (
-              <ListGroup as="ul" aria-labelledby={id}>
-                {rows.map((folder) => {
-                  const shown = shortenHome(folder, home);
-                  return (
-                    <li key={folder} className="flex items-stretch">
-                      <button
-                        type="button"
-                        onClick={() => onUse(folder)}
-                        aria-label={t("space.new.folders.use", { path: shown })}
-                        className="flex min-h-11 min-w-0 flex-1 flex-col justify-center py-1.5 pl-3.5 text-left font-mono transition-colors active:bg-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-                      >
-                        <span className="truncate text-sm">{folderName(folder)}</span>
-                        <span className="truncate text-xs text-muted-foreground">{shown}</span>
-                      </button>
-                      {/* 44px square, the star 16px inside it: a pressed star FILLS, it never grows,
-                          so the row's text holds its x whichever list it is in (DESIGN.md §2). */}
-                      {onStar !== undefined && (
-                        <button
-                          type="button"
-                          aria-pressed={starred}
-                          aria-label={
-                            starred
-                              ? t("space.new.folders.unstar", { folder: shown })
-                              : t("space.new.folders.star", { folder: shown })
-                          }
-                          onClick={() => onStar(folder, !starred)}
-                          className="flex size-11 shrink-0 items-center justify-center text-muted-foreground transition-colors active:bg-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-                        >
-                          <Star aria-hidden className={cn("size-4", starred && "fill-current text-foreground")} />
-                        </button>
-                      )}
-                    </li>
-                  );
-                })}
-              </ListGroup>
-            ) : null}
-          </Collapse>
+          <SectionLabel id={id} placement="above">
+            {title}
+          </SectionLabel>
+          <ListGroup as="ul" aria-labelledby={id}>
+            {rows.map((folder) => {
+              const shown = shortenHome(folder, home);
+              return (
+                <li key={folder} className="flex items-stretch">
+                  <button
+                    type="button"
+                    onClick={() => onUse(folder)}
+                    aria-label={t("space.new.folders.use", { path: shown })}
+                    className={cn(
+                      "flex min-h-11 min-w-0 flex-1 flex-col justify-center py-1.5 pl-3.5 text-left font-mono transition-colors active:bg-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+                      LIST_ROW_CORNERS_START,
+                    )}
+                  >
+                    <span className="truncate text-sm">{folderName(folder)}</span>
+                    <span className="truncate text-xs text-muted-foreground">{shown}</span>
+                  </button>
+                  {/* 44px square, the star 16px inside it: a pressed star FILLS, it never grows,
+                      so the row's text holds its x whichever list it is in (DESIGN.md §2). */}
+                  <button
+                    type="button"
+                    aria-pressed={starred}
+                    aria-label={
+                      starred
+                        ? t("space.new.folders.unstar", { folder: shown })
+                        : t("space.new.folders.star", { folder: shown })
+                    }
+                    onClick={() => onStar(folder, !starred)}
+                    className={cn(
+                      "flex size-11 shrink-0 items-center justify-center text-muted-foreground transition-colors active:bg-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+                      LIST_ROW_CORNERS_END,
+                    )}
+                  >
+                    <Star aria-hidden className={cn("size-4", starred && "fill-current text-foreground")} />
+                  </button>
+                </li>
+              );
+            })}
+          </ListGroup>
         </div>
       ) : null}
     </Collapse>

@@ -56,10 +56,16 @@ export interface MenuBlockProps {
 // because these are the agent's own terminal colours.
 //
 // There are NO digit buttons, and there never will be: in the `/model` picker a digit confirms AND
-// persists the choice as the user's default (.adr/0009). Only footer-named keys and arrows ship.
+// persists the choice as the user's default (.adr/0009). Only footer-named keys and arrows ship. The
+// one card with digits is a notice above a live box (`liveBox`, ADR 0109): its digits are the keys
+// its own row prints as `<digit>: <label>`, never a number read off a list row.
 export function MenuBlock({ menu, lines, onAction, disabled }: MenuBlockProps) {
   useLocale();
   const [sending, setSending] = useState<string | null>(null);
+  // A notice above a live box (`liveBox`) reads a digit only from a box that holds nothing else: with a
+  // draft there, the digit would join the draft, so the card's keys wait for the box to empty.
+  const draftBlocks = menu.liveBox?.draft === true;
+  const blocked = disabled === true || draftBlocks;
   // An arrow or Cancel tapped while an earlier key is still in flight is QUEUED behind it, never
   // dropped: locking the row swallowed a Cancel tapped right after an arrow, so it took two taps
   // (operator, from the phone). Each queued tap still runs its own identity guard when its turn comes.
@@ -77,14 +83,14 @@ export function MenuBlock({ menu, lines, onAction, disabled }: MenuBlockProps) {
   // or the operator left the pane) or goes disabled, so nothing fires after its controls are gone.
   const live = useRef(true);
   useEffect(() => {
-    live.current = !disabled;
+    live.current = !blocked;
     return () => {
       live.current = false;
     };
-  }, [disabled]);
+  }, [blocked]);
 
   function press(id: string, action: MenuBlockAction) {
-    if (disabled || (!action.nav && pending > 0)) return;
+    if (blocked || (!action.nav && pending > 0)) return;
     setPending((n) => n + 1);
     const run = async () => {
       try {
@@ -121,6 +127,9 @@ export function MenuBlock({ menu, lines, onAction, disabled }: MenuBlockProps) {
   // render it. One predicate, two uses below: it also decides the chip row, because a card with
   // chips to show is exactly a card that no longer needs the mirror.
   const readsBody = scale.length >= 2 && current >= 0;
+  // A notice card's title is the notice's whole text, so mirroring its rows would say it twice; its
+  // rows stay one tap away behind the Terminal toggle, as a card that reads the body keeps them.
+  const mirrors = !readsBody && menu.liveBox === undefined;
 
   /** The arrow presses that walk the marker from `current` to `target`, in order. */
   const stepKeys = (target: number): string[] => {
@@ -133,7 +142,7 @@ export function MenuBlock({ menu, lines, onAction, disabled }: MenuBlockProps) {
       key={id}
       type="button"
       aria-label={label}
-      disabled={disabled}
+      disabled={blocked}
       onClick={() => press(id, { keys, nav: true })}
       className="flex h-9 min-w-0 flex-1 items-center justify-center rounded-lg border border-border bg-secondary text-muted-foreground shadow-sm transition-colors active:border-primary/50 active:bg-primary/5 disabled:opacity-60"
     >
@@ -142,16 +151,24 @@ export function MenuBlock({ menu, lines, onAction, disabled }: MenuBlockProps) {
   );
 
   return (
-    // rawMode (ADR 0056 counsel fix): !readsBody is exactly the branch below that still renders
+    // rawMode (ADR 0056 counsel fix): `mirrors` is exactly the branch below that still renders
     // the RawMirror in children, so the control there only puts the buttons away, never a swap.
-    <PromptPanel ariaLabel={menu.title} raw={lines} rawMode={readsBody ? "reveal" : "declutter"}>
+    <PromptPanel ariaLabel={menu.title} raw={lines} rawMode={mirrors ? "declutter" : "reveal"}>
       <OptionGroupCaption>{menu.title}</OptionGroupCaption>
 
       {/* The region, mirrored verbatim by default — ONLY for a card that reads just the footer. A
           card that reads the body (readsBody, above) has already parsed everything the mirror could
           show, so rendering both would repeat the same scale twice, wrapped fragments and all; its
           way back to these rows is the Terminal toggle above instead (ADR 0056). */}
-      {!readsBody && <RawMirror lines={lines} />}
+      {mirrors && <RawMirror lines={lines} />}
+
+      {/* The draft note's line is always there on a notice card and only its text comes and goes, so a
+          poll that sees a draft appear never moves the buttons under a thumb (DESIGN.md §2). */}
+      {menu.liveBox !== undefined && (
+        <p aria-hidden={!draftBlocks} className={cn("font-content text-xs text-muted-foreground", !draftBlocks && "invisible")}>
+          {t("dialog.menu.noticeDraft")}
+        </p>
+      )}
 
       {/* Arrow cluster — only the directions the screen itself advertised (a `❯` row for Up/Down, an
           "←/→ to <verb>" row for Left/Right). Each is one keystroke; they move a highlight and commit
@@ -208,14 +225,14 @@ export function MenuBlock({ menu, lines, onAction, disabled }: MenuBlockProps) {
                 }
                 // A chip's arrow count is measured from THIS render's marker, so it never queues
                 // behind a key still in flight: that key may move the marker first.
-                disabled={disabled || pending > 0 || isCurrent}
+                disabled={blocked || pending > 0 || isCurrent}
                 onClick={() => press(`level-${i}`, { keys: stepKeys(i), nav: true })}
                 className={cn(
                   "flex min-h-11 min-w-11 grow items-center justify-center rounded-lg border border-transparent px-3 text-center font-mono text-xs transition-colors",
                   isCurrent
                     ? "border-primary/60 bg-primary/15 text-foreground"
                     : "border-border bg-secondary text-muted-foreground active:bg-primary/5",
-                  (disabled || pending > 0) && "opacity-60",
+                  (blocked || pending > 0) && "opacity-60",
                 )}
               >
                 {value}
@@ -240,7 +257,7 @@ export function MenuBlock({ menu, lines, onAction, disabled }: MenuBlockProps) {
               <button
                 key={id}
                 type="button"
-                disabled={disabled || pending > 0}
+                disabled={blocked || pending > 0}
                 onClick={() => press(id, { keys: action.keys, nav: false })}
                 className="font-content relative flex w-full items-center justify-center rounded-lg border border-primary/60 bg-primary/15 px-3 py-2 text-sm font-medium text-foreground transition-colors active:bg-primary/25 disabled:opacity-60"
               >
@@ -257,7 +274,7 @@ export function MenuBlock({ menu, lines, onAction, disabled }: MenuBlockProps) {
               <button
                 key={id}
                 type="button"
-                disabled={disabled}
+                disabled={blocked}
                 onClick={() => press(id, { keys: action.keys, nav: true })}
                 className="font-content relative flex w-full items-center justify-center rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors active:bg-muted disabled:opacity-60"
               >

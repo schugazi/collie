@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Copy, GitBranchPlus, Maximize2, MessagesSquare, Monitor, Pencil, Pin, PinOff, ScrollText, Search, SlidersHorizontal, SquareTerminal, XCircle } from "lucide-react";
 
 import { BottomSheet } from "@/components/ui/sheet";
+import { WalkyIcon } from "@/components/walky-icon";
 import { ActionRow, DestructiveActionRow, RenameView } from "@/components/action-sheet-rows";
 import { HostChip } from "@/components/host-chip";
 import { useHostWriteBlock, useCrew } from "@/components/crew-provider";
@@ -62,6 +63,12 @@ interface PaneActionsSheetProps {
    *  absent over plain HTTP, a supported deploy), so an unusable row is HIDDEN — the same "a row is a
    *  thing you can do" rule find/history/zen follow. */
   onCopyOutput?: () => void;
+  /**
+   * Open the pane's Messages sheet (M62): the walky talky messages kept for this pane, newest first. A
+   * read in the sense find and history are, so the row sits with them and outside every write gate. The
+   * pane view passes it; the strip does not, and absence is the gate as it is for the others.
+   */
+  onMessages?: () => void;
   /** Open this pane's own settings — today one switch, the prompt-cache warning (ADR 0042).
    *
    *  The FOURTH read row, and it is a read in the sense the other three are: it changes a preference on
@@ -129,6 +136,12 @@ interface PaneActionsSheetProps {
    * the route is lead-local and a crew does not forward it. A write, so read-only hides it too.
    */
   onBranchOff?: () => void;
+  /**
+   * The pane is a durable program's conversation (a pane with no screen). Its sheet holds the writes only:
+   * no Pin to top, since the conversation list orders itself and ignores pins, and Close says what it
+   * closes (durable-simple, 2026-10-13).
+   */
+  conversation?: boolean;
 }
 
 const NO_HERD: readonly AgentView[] = [];
@@ -159,6 +172,7 @@ export function PaneActionsSheet({
   onHistory,
   onCopyOutput,
   onSettings,
+  onMessages,
   openInRename = false,
   onZen,
   paneView,
@@ -167,6 +181,7 @@ export function PaneActionsSheet({
   herd = NO_HERD,
   onPinChange,
   onBranchOff,
+  conversation = false,
 }: PaneActionsSheetProps) {
   useLocale();
   // Whether this pane is pinned on this device, read live from the store so the row's word is right
@@ -196,13 +211,15 @@ export function PaneActionsSheet({
   // Asked of the PANE's own machine, for `hostBlock`'s reason one step on (M22/03): a member runs
   // its own multiplexer, so a row this sheet offers has to be a row that machine can carry out.
   // Undefined on a solo install and for a pane on the lead, which is the lead's own answer.
-  const paneHost = { host: pane?.host };
+  // The session comes off the sheet's scope (M55): a program session's panes answer for their program.
+  const paneHost = { host: pane?.host, session: scope?.session };
   const canRename = useMuxCapability("renamePane", paneHost);
   const canClose = useMuxCapability("closePane", paneHost);
   const canFocus = useMuxCapability("setFocus", paneHost);
   // Asked of the LEAD, with no host: the branch-off route never leaves the lead, so the lead's own
-  // multiplexer is the one that must be able to do it.
-  const canWorktree = useMuxCapability("createWorktree");
+  // multiplexer is the one that must be able to do it. In the session the sheet acts in (M55): a
+  // program session on the lead makes no worktree, whatever its terminal neighbour can do.
+  const canWorktree = useMuxCapability("createWorktree", { session: scope?.session });
   const showBranchOff = onBranchOff !== undefined && branchOffOffered(canWorktree.capable, scope);
   const [focusing, setFocusing] = useState(false);
   // The mux name for the "Focus in <mux>" row and its toast — see `focusMux` below for why this
@@ -410,6 +427,18 @@ export function PaneActionsSheet({
               }}
             />
           )}
+          {/* The pane's walky talky messages: one more way to LOOK at what happened here, so it sits with
+              the looking rows. Close-then-act, for the reason the find row states. */}
+          {onMessages && (
+            <ActionRow
+              icon={<WalkyIcon className="size-4 shrink-0 text-muted-foreground" />}
+              label={t("walky.sheet.row")}
+              onClick={() => {
+                onClose();
+                onMessages();
+              }}
+            />
+          )}
           {/* THE BODY SWITCH, with find/history/copy above it: it is the same family — "look at this
               pane differently" — and it is the most standing of them, so it sits after the three
               you reach for inside one visit and before the two that take the screen over.
@@ -461,6 +490,7 @@ export function PaneActionsSheet({
               }}
             />
           )}
+          {!conversation && (
           <ActionRow
             icon={
               pinned ? (
@@ -472,6 +502,7 @@ export function PaneActionsSheet({
             label={pinned ? t("paneActions.unpin.label") : t("paneActions.pin.label")}
             onClick={togglePin}
           />
+          )}
         </div>
       )}
       {readOnly ? (
@@ -530,7 +561,7 @@ export function PaneActionsSheet({
           {canClose.capable && (
             <DestructiveActionRow
               icon={<XCircle className="size-4 shrink-0" />}
-              label={t("paneActions.close.label")}
+              label={conversation ? t("paneActions.close.conversation") : t("paneActions.close.label")}
               confirmLabel={t("paneActions.close.confirm")}
               closingLabel={t("paneActions.close.closing")}
               armed={confirming}

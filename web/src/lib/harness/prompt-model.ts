@@ -156,6 +156,18 @@ export interface PromptModel {
    */
   signature: string;
   /**
+   * The dialog block alone, for the bridge's single-use ask id (M56 spec 08): the rows from the
+   * dialog's own top edge to the footer, joined. That is the header, the subject inside the frame,
+   * the question, the option labels and the key hints. Nothing above the edge: {@link signature}
+   * reaches into the transcript, where a tool row's blinking bullet changes it every second, so an
+   * ask bound to it changed under every tap.
+   *
+   * Set by a grammar whose `signature` reads above the dialog. `null` means that grammar found no
+   * edge: the bridge then refuses a tap, and never binds to the lookback instead. Absent means the
+   * grammar's `signature` already starts at the dialog, so the bridge binds to that.
+   */
+  askRegion?: string | null;
+  /**
    * The canonical styled lines of the SAME rows as {@link signature} (`canonicalStyledLines`,
    * lib/styled-region.ts), as the wire value `encodeStyledRegion` builds: a `v1` format line, then
    * the lines, joined with "\n". Set ONLY by a grammar whose pointer, or any other state
@@ -180,6 +192,20 @@ export interface PromptModel {
    * `identityDiff` compares it: a model that gained, lost or moved its range is another reading.
    */
   bindColumns?: ColumnRange;
+  /**
+   * How many of the read's last non-blank rows the region may end in, when that is more than the
+   * bridge's default six (`lib/tail-lines.ts`). Set ONLY by a grammar that has recognised every row
+   * below its region as its harness's OWN chrome, painted live under the dialog: Hermes's classic CLI
+   * keeps a spinner, a countdown hint, a status bar and the input row under every panel, six or seven
+   * rows that tick every second and so cannot be bound. The phone sends it as `expected_tail_lines`
+   * beside the region and the bridge widens its tail window to it, never past `MAX_TAIL_LINES`. Built
+   * with `tailLinesFor`, which adds one row of headroom. Absent means the default window, which every
+   * other grammar binds; an older bridge ignores the field, keeps six rows and refuses the tap.
+   *
+   * Not part of identity: it counts chrome outside the dialog, which a status row that wraps may
+   * move by one without the dialog changing at all.
+   */
+  bindTail?: number;
 }
 
 /**

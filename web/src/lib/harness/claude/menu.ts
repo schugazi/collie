@@ -127,8 +127,11 @@ export function detectMenuRegion(lines: StyledLine[]): MenuRegion | null {
     }
   }
 
-  // Signed from the row UNDER the top: a `▔` edge carries Claude's notice for the modal's first
-  // seconds (region-top.ts), and a tap must not be refused because that notice cleared.
+  // The signature starts under the region's top, not on it. Claude Code splices timed notices into a
+  // `▔` edge (`You've used 94% of your weekly limit · …`) and takes them away a few seconds later,
+  // which changed the signature of a dialog nobody touched (upstream: the /model picker, 2.1.302,
+  // 2026-10-17). The fork signs under a `─` opening rule too, which carries the same notice in the
+  // /model and /effort pickers' first seconds. The top stays the region's first row for the renderer.
   return {
     model: { title, actions, nav, signature: regionSignature(texts, top + 1, fi) },
     startLine: top,
