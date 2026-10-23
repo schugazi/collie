@@ -29,7 +29,7 @@ Set `COLLIE_UPDATE_REPO=schugazi/collie` on deployments; origin is the personal 
 upstream is AltanS/collie.
 Walky talky is off on mycroftxxx (`COLLIE_WALKY=off` in `~/.config/herdr/plugins/config/herdr.collie/.env`, the unit's
 `EnvironmentFile`) and its skill is not installed: the voice dispatcher (`~/voice-hub`) and Claude Code's own messaging cover it. Deploy main with the existing full build, then restart the bridge.
-Take upstream by merge, never rebase, via `/sync-upstream` (`.claude/skills/sync-upstream/`).
+Take upstream by merge, never rebase, via `/sync-upstream` (`.claude/skills/sync-upstream/`), and only its latest stable release, never `upstream/main` or an edge prerelease.
 The logo is a local bitmap asset, not the upstream generated Collie mark.
 The host's `~/.bun/bin/bun` must stay at or above `MIN_BUN` (`cli/update-check.ts`, 1.4.0); the flake pins 1.4.1.
 Older Bun does not enforce the crew listener's pinned client certificate, so `integration/crew-harness.test.ts` fails and hangs.
