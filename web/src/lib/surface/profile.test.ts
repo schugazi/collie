@@ -79,7 +79,7 @@ describe("every profile file", () => {
     // The slice 0 lab (M56 spec 01, LAB.md table 1) named the inert character; spec 05 writes it in.
     expect(claude.probe.char).toBe("⌁");
     expect(claude.probe.status).toBe("verified");
-    expect(claude.paste).toEqual({ bracketed: true });
+    expect(claude.paste).toEqual({ bracketed: true, block: true, image: "\\[Image #\\d+\\]" });
     // M56 spec 08: an ask that left the screen is voided after this lifetime.
     expect(claude.ask).toEqual({ lifetimeMs: 5000 });
     expect(claude.hooks.PermissionRequest).toBe("ask");
@@ -180,6 +180,27 @@ describe("the codex profile (M56 spec 13)", () => {
     expect(queuedRow.hintGap).toBe(0);
   });
 
+  it("muse: Enter steers a turn, Tab queues in it, and the queued header stands over the text (lab, 1.4.10, 2026-10-18; MUSE-06/07, #519)", () => {
+    const muse = loadProfiles().get("muse")!;
+    // Tab is no submit on Muse: an idle draft is untouched by it, so Enter stays the only submit key.
+    expect(muse.keys.submit).toEqual(["Enter"]);
+    expect(muse.keys.enterWhileRunning).toBe("steers");
+    expect(muse.keys.queueKey).toBe("Tab");
+    // A slash command in a turn was not measured: nothing declared, so commands stay Collie-held,
+    // and the session-acting spellings (MUSE-08) refuse before any queueing.
+    expect(muse.keys.commandWhileRunning).toBeUndefined();
+    expect(muse.keys.neverHeld).toEqual(["/clear", "/new", "/exit", "/quit", "/logout", "/resume", "/fork", "/rewind", "!"]);
+    // The rows as captured in muse--queued-input-1410.txt, header first.
+    const queuedRow = muse.keys.queuedRow!;
+    expect(queuedRow.hintAbove).toBe(true);
+    expect(queuedRow.hintGap).toBe(0);
+    expect(new RegExp(queuedRow.hint, "u").test("◆ Queued input · ↑ to edit")).toBe(true);
+    expect(new RegExp(queuedRow.pattern, "u").exec("└ Reply with exactly: QUEUED-CAP-06")?.groups?.text).toBe("Reply with exactly: QUEUED-CAP-06");
+    // No harness that draws the hint under its texts has taken the field.
+    expect(parseProfile(rawClaude()).keys.queuedRow?.hintAbove).toBeUndefined();
+    expect(parseProfile(rawCodex()).keys.queuedRow?.hintAbove).toBeUndefined();
+  });
+
   it("claude: the footer rows name the agents panel and its hints, and no statusline row (incident 2026-10-16)", () => {
     const rows = parseProfile(rawClaude()).idle.volatile.below.footerRows!;
     const nameOf = (text: string): string | null => rows.find((row) => new RegExp(row.pattern, "u").test(text))?.name ?? null;
@@ -234,7 +255,7 @@ describe("the codex profile (M56 spec 13)", () => {
       return { list, pointer: (text: string) => commandOf(list.pointer, text), entry: (text: string) => commandOf(list.entry, text), wrapped: (text: string) => new RegExp(list.wrapped, "u").test(text) };
     };
     const stock = read("pi");
-    expect(stock.list).toMatchObject({ lead: "/", sides: ["under"], footer: { maxRows: 4 } });
+    expect(stock.list).toMatchObject({ lead: "/", sides: ["under"], footer: { pattern: "^(?:\\S| ↳ \\S)", maxRows: 6 } });
     // Stock pi 0.87.1 and 1.3.0, pi 1.2.0 with editor padding, OmO on pi.
     expect(stock.pointer("→ model          <provider/model> — Select model (opens selector UI)")).toBe("model");
     expect(stock.pointer(" → settings       Open settings menu")).toBe("settings");
@@ -468,7 +489,9 @@ const SPEC14_CASES: readonly Spec14Case[] = [
     collapse: { text: "[Image #1]", group: "", value: "" },
     submit: ["Enter"],
     probeStatus: "provisional",
-    enterWhileRunning: undefined,
+    // Muse Code 1.4.10 (lab, 2026-10-18): Enter steers a turn, Tab queues in it (MUSE-06, #519).
+    enterWhileRunning: "steers",
+    queueKey: "Tab",
     pasteSettleMs: 350,
   },
   {
@@ -584,7 +607,45 @@ const SPEC14_CASES: readonly Spec14Case[] = [
     enterWhileRunning: "queues",
     rangeStatus: "provisional",
   },
+  {
+    id: "kiro",
+    binary: "kiro-cli",
+    versionOutput: "kiro-cli 2.32.0\n",
+    version: "2.32.0",
+    above: "2.32.1",
+    takes: [
+      { anchor: "top", row: "─".repeat(60) },
+      { anchor: "prompt", row: "› ask a question or describe a task ↵", draft: "ask a question or describe a task ↵" },
+      { anchor: "prompt", row: "› collie normal draft probe", draft: "collie normal draft probe" },
+      { anchor: "prompt", row: "›" },
+      { anchor: "bottom", row: "" },
+    ],
+    refuses: [
+      { anchor: "top", row: "──── hello" },
+      { anchor: "prompt", row: "  collie normal draft probe" },
+      { anchor: "prompt", row: "❯ collie normal draft probe" },
+    ],
+    collapse: { text: "40 lines ▸", group: "lines", value: "40" },
+    submit: ["Enter"],
+    probeStatus: "verified",
+    enterWhileRunning: "steers",
+  },
 ];
+
+describe("kiro's running signs", () => {
+  it("the busy prompt row, the hint and the queued row are all running rows, and a draft that names the busy line later is not", () => {
+    // Given: Kiro's profile as shipped.
+    const raw = parseJsonObject(readFileSync(join(PROFILES_DIR, "kiro.json"), "utf8"));
+    if (raw === undefined) throw new Error("kiro.json is not a JSON object");
+    const rows = (parseProfile(raw).idle.runningRows ?? []).map((source) => new RegExp(source, "u"));
+    const running = (text: string): boolean => rows.some((sign) => sign.test(text));
+    // Then: each sign matches its own row, and the prompt sign is anchored on the glyph and the busy words.
+    expect(running("›  Kiro is working · 1s · Type to steer · Ctrl+S to queue")).toBe(true);
+    expect(running("› ask why Kiro is working · so slowly")).toBe(false);
+    expect(running("ᗥ Thinking... (esc to cancel)")).toBe(true);
+    expect(running("  ◇ 1 message queued")).toBe(true);
+  });
+});
 
 describe.each(SPEC14_CASES)("the $id profile (M56 spec 14)", (c) => {
   const profile = (): Profile => loadProfiles().get(c.id)!;
@@ -660,6 +721,7 @@ describe("the frame schema of the interior walk (M56 spec 14)", () => {
     ["an under row that is no expression", ["idle", "frame", "under"], "[unclosed", "idle.frame.under"],
     ["an underPainted flag that is no boolean", ["idle", "frame", "underPainted"], "yes", "idle.frame.underPainted"],
     ["an underPainted flag with no under pattern", ["idle", "frame", "underPainted"], true, "idle.frame.underPainted"],
+    ["an ownPrompt flag that is no boolean", ["idle", "frame", "ownPrompt"], "yes", "idle.frame.ownPrompt"],
     ["a dialogsInBox flag that is no boolean", ["idle", "dialogsInBox"], "yes", "idle.dialogsInBox"],
     ["a placeholder prefix list that is no list", ["idle", "placeholders", "prefixes"], "Ask", "idle.placeholders.prefixes"],
     ["an answer prompt that is no expression", ["idle", "answerPrompt"], "[unclosed", "idle.answerPrompt"],
@@ -674,6 +736,17 @@ describe("the frame schema of the interior walk (M56 spec 14)", () => {
     expect(failure(change(rawOpencode(), ["idle", "frame", "walk"], "edges")).path).toMatch(/^idle\.frame\./u);
     expect(failure(change(rawClaude(), ["idle", "frame", "rows"], "^x$")).path).toBe("idle.frame.rows");
     expect(failure(change(rawClaude(), ["idle", "frame", "bottom", "open"], true)).path).toBe("idle.frame.bottom.open");
+    expect(failure(change(rawClaude(), ["idle", "frame", "ownPrompt"], true)).path).toBe("idle.frame.ownPrompt");
+  });
+
+  it("takes the box's own prompt glyph (`ownPrompt`) only beside a rows pattern (issue 544)", () => {
+    const own = change(rawOpencode(), ["idle", "frame", "ownPrompt"], true);
+    expect(parseProfile(own).idle.frame.ownPrompt).toBe(true);
+    expect(parseProfile(change(rawOpencode(), ["idle", "frame", "ownPrompt"], false)).idle.frame.ownPrompt).toBeUndefined();
+    expect(failure(change(own, ["idle", "frame", "rows"], undefined)).path).toBe("idle.frame.ownPrompt");
+    const pi = parseProfile(parseJsonObject(readFileSync(join(PROFILES_DIR, "pi.json"), "utf8"))!);
+    expect(pi.idle.frame.ownPrompt).toBeUndefined();
+    expect(pi.idle.frameAlternates?.map((frame) => frame.ownPrompt)).toEqual([true]);
   });
 
   it("names the alternate frame shape in the path of a bad field", () => {
@@ -730,10 +803,32 @@ describe("the frame schema of the interior walk (M56 spec 14)", () => {
     expect(failure(change(rawClaude(), ["idle", "notices"], "no list")).path).toBe("idle.notices");
     expect(failure(change(rawClaude(), ["idle", "notices", 0], "no object")).path).toBe("idle.notices[0]");
     expect(parseProfile(rawClaude()).idle.notices).toEqual([
-      { head: "^✦ (?:Heads up|You should know) ·(?:\\s|$)" },
+      { head: "^✦ (?:Heads up|You should know) ·(?:\\s|$)", body: true },
       { head: "^● How is Claude doing this session\\? \\(optional\\)$" },
+      { head: "^● Can Anthropic look at your session transcript to help us improve Claude Code\\?$", letters: true },
+      { head: "^✦ Dismissed\\.(?=\\s|$)" },
     ]);
     expect(parseProfile(rawOpencode()).idle.notices).toBeUndefined();
+  });
+
+  it("accepts `body: true` on a notice head and rejects any other value", () => {
+    expect(parseProfile(change(rawClaude(), ["idle", "notices", 1, "body"], true)).idle.notices?.[1]).toEqual({
+      head: "^● How is Claude doing this session\\? \\(optional\\)$",
+      body: true,
+    });
+    for (const bad of [false, "true", 1, null, {}]) {
+      expect(failure(change(rawClaude(), ["idle", "notices", 0, "body"], bad)).path, JSON.stringify(bad)).toBe("idle.notices[0].body");
+    }
+  });
+
+  it("accepts `letters: true` on a notice head and rejects any other value", () => {
+    expect(parseProfile(change(rawClaude(), ["idle", "notices", 1, "letters"], true)).idle.notices?.[1]).toEqual({
+      head: "^● How is Claude doing this session\\? \\(optional\\)$",
+      letters: true,
+    });
+    for (const bad of [false, "true", 1, null, {}]) {
+      expect(failure(change(rawClaude(), ["idle", "notices", 0, "letters"], bad)).path, JSON.stringify(bad)).toBe("idle.notices[0].letters");
+    }
   });
 
   it("accepts a profile that names no hook", () => {
@@ -760,6 +855,8 @@ describe("parseProfile names the failing field", () => {
     ["a paste settle that is not a whole number", ["paste", "settleMs"], 1.5, "paste.settleMs"],
     ["a paste settle below its floor", ["paste", "settleMs"], 0, "paste.settleMs"],
     ["a paste settle above its ceiling", ["paste", "settleMs"], 99_999, "paste.settleMs"],
+    ["a paste image token that is no expression", ["paste", "image"], "[unclosed", "paste.image"],
+    ["a paste image token without the whole paste", ["paste", "block"], false, "paste.image"],
     ["an ask lifetime that is not a whole number", ["ask", "lifetimeMs"], 1.5, "ask.lifetimeMs"],
     ["an ask lifetime below its floor", ["ask", "lifetimeMs"], 10, "ask.lifetimeMs"],
     ["an unknown hook kind", ["hooks", "Stop"], "level", "hooks.Stop"],
@@ -773,6 +870,7 @@ describe("parseProfile names the failing field", () => {
     ["a queued row pattern with no text group", ["keys", "queuedRow", "pattern"], "^❯ .*$", "keys.queuedRow.pattern"],
     ["a queued row hint that is no expression", ["keys", "queuedRow", "hint"], "[unclosed", "keys.queuedRow.hint"],
     ["a queued row gap below zero", ["keys", "queuedRow", "hintGap"], -1, "keys.queuedRow.hintGap"],
+    ["a queued row hintAbove that is not a boolean", ["keys", "queuedRow", "hintAbove"], "above", "keys.queuedRow.hintAbove"],
     ["footer rows that are no list", ["idle", "volatile", "below", "footerRows"], "● main", "idle.volatile.below.footerRows"],
     ["a footer row with no name", ["idle", "volatile", "below", "footerRows", 0, "name"], undefined, "idle.volatile.below.footerRows[0].name"],
     ["a footer row name used twice", ["idle", "volatile", "below", "footerRows", 1, "name"], "agents-panel-main", "idle.volatile.below.footerRows[1].name"],
