@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Collapse } from "@/components/ui/collapse";
 import {
   DurableBar,
+  ScreenStop,
   HarnessBar,
   useHarnessBarItems,
   type DurableBarProps,
+  type ScreenStopProps,
 } from "@/components/harness-bar";
 import { StatusDot } from "@/components/status-badge";
 import { OverflowEdges } from "@/components/ui/overflow-edges";
@@ -21,9 +23,10 @@ import { t as translate } from "@/lib/i18n";
 import type { OperatorCommand } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-// TWO ROWS OF ACTIONS, DIRECTLY ABOVE THE INPUT. Collie's own controls on the top row — Keys, Type,
-// Quick, Agent, the display gear — and the running harness's own commands on the row under it, in a
-// section of their own. Nothing wraps and nothing is dropped.
+// TWO ROWS OF ACTIONS, DIRECTLY ABOVE THE INPUT. Stop stands at the top row's start (in view at rest,
+// no scroll needed; dimmed while no turn runs, so the row never reflows), then Collie's own controls —
+// Keys, Type, Quick, Agent, the display gear — and the running harness's own commands on the row under
+// it, in a section of their own. Nothing wraps and nothing is dropped.
 //
 // IT WAS ONE SCROLLING ROW, AND THE OPERATOR ASKED FOR TWO (2026-09-22): "shows two rows rather than
 // requiring horizontal scrolling to see all the options". One row held ~817px of pills on a Claude
@@ -197,6 +200,14 @@ export interface ActionsRowProps {
    * whole of the old behaviour. The composer of a pane with no screen is the one caller.
    */
   durable?: Pick<DurableBarProps, "items" | "state">;
+  /**
+   * STOP FOR A PANE WITH A SCREEN (M68 spec 02), the FIRST child of the controls row, before Collie's
+   * own controls, so it is in view at rest and needs no scroll. Present whenever the bridge says a key
+   * exists (`stopFor`), dimmed in place while `running` is false; absent is the whole of the old
+   * behaviour. The composer owns the request and the receipt. A pane with no screen keeps the program
+   * bar's own Stop and never gets this one.
+   */
+  stop?: Pick<ScreenStopProps, "onStop" | "paneId" | "running">;
   /** Which thumb the belt is laid out for; see {@link Hand}. Default `"right"`, the shipped layout. */
   hand?: Hand;
   /**
@@ -287,7 +298,7 @@ export interface ActionsRowProps {
   };
 }
 
-export function ActionsRow({ general, agent, mine, onRun, disabled, durable, hand = "right", handle, changes, clear, agents }: ActionsRowProps) {
+export function ActionsRow({ general, agent, mine, onRun, disabled, durable, stop, hand = "right", handle, changes, clear, agents }: ActionsRowProps) {
   useLocale();
 
   const harnessItems = useHarnessBarItems(agent, mine);
@@ -296,7 +307,8 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, durable, han
   // Nothing to draw at all. Render nothing rather than an empty scroller, so the belt costs no
   // height.
   const harnessRow = harnessItems.length > 0 || (durable?.items.length ?? 0) > 0;
-  if (general.length === 0 && !harnessRow) return null;
+  const controlsRow = general.length > 0 || stop !== undefined;
+  if (!controlsRow && !harnessRow) return null;
 
   // The harness row keeps NO gutter: its tinted section grows over the whole row and carries the
   // gutter as its own padding (harness-bar.tsx), so the tint runs from the screen edge to the Switch
@@ -347,10 +359,15 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, durable, han
             the cue, and a chevron was tried here and read as clutter (operator's call, 2026-09-14).
             `flex-none` overrides the wrapper's `flex-1`, which in this column would share the
             belt's height out between the rows instead of letting each take its own 40px. */}
-        {general.length > 0 && (
+        {controlsRow && (
           <OverflowEdges className="flex-none" cue="none">
             {(scrollerRef) => (
               <div ref={scrollerRef} className={controlsRowClass}>
+                {/* STOP IS THE FIRST CHILD OF THE CONTROLS ROW, so a running turn can be stopped
+                    without a scroll, and a button that is always drawn moves nothing when a turn
+                    starts or ends. Under `hand="left"` the row is `[direction:rtl]`, so it lands at
+                    the right end, mirrored like every other control. */}
+                {stop !== undefined && <ScreenStop onStop={stop.onStop} paneId={stop.paneId} running={stop.running} disabled={disabled} hand={hand} />}
                 {/* The word "Controls" is `sr-only` and load-bearing: sighted it labelled a run of
                     self-labelling buttons and earned nothing, but in the accessibility tree it is
                     the only thing that names this group at all. The harness section names itself,

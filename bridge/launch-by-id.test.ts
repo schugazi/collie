@@ -20,6 +20,7 @@ import {
   type MuxGrid,
   type MuxOutcome,
   type MuxSpaceRequest,
+  type MuxTabRequest,
 } from "./mux/types.ts";
 import { declareCapabilities } from "./mux/capabilities.ts";
 
@@ -36,12 +37,16 @@ import { declareCapabilities } from "./mux/capabilities.ts";
 const ID = "0b9e6a1c-3f2d-4c5e-8a7b-1d2e3f4a5b6c";
 const HTOP: Launcher = { command: "htop", label: "htop", cwd: "/home/op/pinned" };
 
+/** A pane a launch can open a tab beside, in space `w9`; a launch that names no `paneId` never looks. */
+const BESIDE = { paneId: "w9:p1", workspaceId: "w9", cwd: "/home/op/beside" };
+
 function engine(): StateEngine {
   const stub: Partial<StateEngine> = {
     pokeNow: () => {},
-    current: () => ({ agents: [], shellPanes: [], workspaces: [], tabs: [], bridge: "connected" }),
+    // SAFETY: the beside-pane lookup reads only `paneId`, `workspaceId` and `cwd` off a shell pane.
+    current: () => ({ agents: [], shellPanes: [BESIDE as never], workspaces: [], tabs: [], bridge: "connected" }),
   };
-  // SAFETY: `launch` reaches only `current()` (a beside-pane lookup, unused here) and `pokeNow()`.
+  // SAFETY: `launch` reaches only `current()` (a beside-pane lookup) and `pokeNow()`.
   return stub as StateEngine;
 }
 
@@ -58,6 +63,7 @@ function clock() {
 
 class FakeMux {
   readonly spaces: MuxSpaceRequest[] = [];
+  readonly tabs: MuxTabRequest[] = [];
   readonly texts: Array<[string, string]> = [];
   readonly closes: string[] = [];
   readonly tabRenames: Array<[string, string]> = [];
@@ -80,6 +86,10 @@ class FakeMux {
     if (this.gate) await this.gate;
     this.n++;
     return muxOk({ paneId: `w${this.n}:p1`, spaceId: `w${this.n}`, spaceLabel: request.label ?? "shell", tabId: `w${this.n}:t1`, cwd: request.cwd ?? "/" });
+  }
+  createTab(request: MuxTabRequest): Promise<MuxOutcome<MuxCreatedPane>> {
+    this.tabs.push(request);
+    return Promise.resolve(muxOk({ paneId: `${request.spaceId}:p2`, spaceId: request.spaceId, spaceLabel: "beside", tabId: `${request.spaceId}:t2`, cwd: request.cwd ?? "/" }));
   }
   renameTab(tabId: string, label: string): Promise<MuxAck> {
     this.tabRenames.push([tabId, label]);
@@ -161,6 +171,15 @@ describe("POST /api/launch — by id", () => {
     expect(body?.ok).toBe(true);
     expect(mux.spaces).toEqual([{ cwd: "/home/op/pinned" }]);
     expect(mux.tabRenames).toEqual([["w1:t1", "htop"]]);
+  });
+
+  test("the fork: an agent's tab beside a pane takes no label on Herdr, a row's tab takes the row's", async () => {
+    const mux = new FakeMux();
+    expect((await run(mux, { harness: "claude", paneId: BESIDE.paneId })).status).toBe(200);
+    expect((await run(mux, { command: "htop", paneId: BESIDE.paneId })).status).toBe(200);
+    expect(mux.spaces).toEqual([]);
+    expect(mux.tabs.map((t) => t.label)).toEqual([undefined, "htop"]);
+    expect(mux.tabRenames).toEqual([]);
   });
 
   test("where the multiplexer does not name spaces, a new space takes its folder's free name and an agent's tab takes the agent's", async () => {

@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { COLLAPSE_MS } from "@/components/ui/collapse";
 import { __resetHarnessBar, setHarnessBarEnabled } from "@/lib/harness-bar-pref";
+import { DURABLE_BAR } from "@/lib/harness-bar";
 import { ActionsRow, type ActionsRowProps, type GeneralAction } from "./actions-row";
 
 afterEach(() => {
@@ -51,14 +52,14 @@ describe("ActionsRow", () => {
   });
 
   it("draws the general actions on a pane whose harness has no bar at all", () => {
-    render(<ActionsRow general={[general()]} agent="grok" onRun={took} />);
+    render(<ActionsRow general={[general()]} agent="hermes" onRun={took} />);
     expect(names()).toEqual(["Keys"]);
   });
 
   it("costs no height when there is neither a general action nor a harness bar", () => {
     // With nothing to carry, the row must not render an empty scroller — that would spend 12px on
     // nothing.
-    const { container } = render(<ActionsRow general={[]} agent="grok" onRun={took} />);
+    const { container } = render(<ActionsRow general={[]} agent="hermes" onRun={took} />);
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -77,7 +78,7 @@ describe("ActionsRow", () => {
           general({ id: "type", icon: Terminal, label: "Type into terminal", pressed: true }),
           general({ id: "quick", icon: Keyboard, label: "Quick", disabled: true }),
         ]}
-        agent="grok"
+        agent="hermes"
         onRun={took}
       />,
     );
@@ -614,5 +615,57 @@ describe("ActionsRow — hand", () => {
     expect(section.className).not.toMatch(/(?:^|\s)border-l-border(?=\s|$)/);
     // The section's gutter follows its mark to the right.
     expect(section.className).toMatch(/(?:^|\s)pr-2(?=\s|$)/);
+  });
+});
+
+describe("ActionsRow: Stop (M68 spec 02)", () => {
+  // The fork's belt has two rows; Stop stands first in the controls row, the first scroller.
+  const controlsRow = () => document.querySelector<HTMLElement>(".overflow-x-auto")!;
+
+  it("draws no Stop without the stop prop: an idle pane, or a running one the bridge has no key for", () => {
+    render(<ActionsRow general={[general()]} agent="claude" onRun={took} />);
+    expect(document.querySelector("[data-slot='belt-stop']")).toBeNull();
+    expect(document.querySelector("[data-slot='durable-bar']")).toBeNull();
+  });
+
+  it("draws the Stop dimmed, and still first, while the turn is idle", () => {
+    render(<ActionsRow general={[general()]} agent="claude" onRun={took} stop={{ onStop: async () => {}, paneId: "w1:p1", running: false }} />);
+    const stop = document.querySelector<HTMLElement>("[data-slot='belt-stop']")!;
+    expect(stop).toHaveAttribute("aria-disabled", "true");
+    expect(stop).not.toBeDisabled();
+    expect(controlsRow().firstElementChild).toBe(stop);
+  });
+
+  it("keeps every other belt button in the same order whether the turn runs or not", () => {
+    const order = (running: boolean) => {
+      const { unmount } = render(<ActionsRow general={[general()]} agent="claude" onRun={took} stop={{ onStop: async () => {}, paneId: "w1:p1", running }} />);
+      const labels = Array.from(controlsRow().querySelectorAll("button")).map((b) => b.getAttribute("data-slot") ?? b.textContent);
+      unmount();
+      return labels;
+    };
+    const idle = order(false);
+    expect(idle[0]).toBe("belt-stop");
+    expect(order(true)).toEqual(idle);
+  });
+
+  it("draws one Stop, first in the controls row, before the composer controls", () => {
+    render(<ActionsRow general={[general()]} agent="claude" onRun={took} stop={{ onStop: async () => {}, paneId: "w1:p1", running: true }} />);
+    expect(document.querySelectorAll("[data-slot='belt-stop']")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Stop the turn" })).toBeInTheDocument();
+    const buttons = Array.from(controlsRow().querySelectorAll("button"));
+    expect(buttons[0]).toHaveAttribute("data-slot", "belt-stop");
+    const controls = controlsRow().querySelector("[data-slot='composer-controls']")!;
+    expect(buttons[0].compareDocumentPosition(controls) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("keeps a durable pane's own Stop and draws no second one", () => {
+    const state = {
+      steer: { pressed: false, offered: true, onPressedChange: vi.fn() },
+      stop: { offered: true, busy: false, onStop: vi.fn() },
+    };
+    render(<ActionsRow general={[general()]} agent={null} onRun={took} durable={{ items: DURABLE_BAR, state }} />);
+    expect(document.querySelector("[data-slot='durable-bar']")).not.toBeNull();
+    expect(document.querySelector("[data-slot='belt-stop']")).toBeNull();
+    expect(screen.getByRole("button", { name: "Stop the running turn" })).toBeInTheDocument();
   });
 });

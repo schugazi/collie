@@ -122,14 +122,21 @@ function NewPage({ search }: { search: string }) {
   const paneAgent =
     at.pane === undefined ? undefined : [...data.agents, ...data.shellPanes].find((a) => a.paneId === at.pane);
   const from = paneAgent === undefined ? undefined : { cwd: paneAgent.cwd, branch: paneBranchName(paneAgent) };
+  // `?beside=`: the pane whose space this agent starts in, as a new tab there (a large screen's "New agent
+  // in this space"). A pane that is gone leaves the plain page, which starts a new space as it always did.
+  const besidePane =
+    at.beside === undefined || from !== undefined
+      ? undefined
+      : [...data.agents, ...data.shellPanes].find((a) => a.paneId === at.beside);
 
   // ── Which machine ─────────────────────────────────────────────────────────────────────────────
   const { servers, health } = useCrew();
   const multiHost = isMultiHost(servers);
   const lead = leadHost(servers);
-  // A page opened from a pane stays on that pane's machine: a worktree is the lead's (ADR 0089).
+  // A page opened from a pane stays on that pane's machine: a worktree is the lead's (ADR 0089), and a
+  // space is on one machine, so a tab in it cannot start on another.
   const [host, setHost] = useState<string | undefined>(() =>
-    from !== undefined ? (asked.host ?? lead) : defaultHost(servers, health, asked.host),
+    from !== undefined || besidePane !== undefined ? (asked.host ?? lead) : defaultHost(servers, health, asked.host),
   );
   const chosen = multiHost ? host : undefined;
   const chosenServer = servers.find((s) => s.id === chosen);
@@ -183,7 +190,8 @@ function NewPage({ search }: { search: string }) {
   const command = commandChoice(offer, commandPick ?? keyToWhat(at.pick), usable);
   const what: StartWhat | null = whatFor(kind, agentItem, command, typedLine);
   const chosenItem = what === null ? undefined : itemOf(offer, what);
-  const [cwd, setCwd] = useState(() => from?.cwd ?? readAgain(machineKey)?.cwd ?? "");
+  // In a space, the folder starts as the space's own pane's: the bridge would take it when none is named.
+  const [cwd, setCwd] = useState(() => from?.cwd ?? besidePane?.cwd ?? readAgain(machineKey)?.cwd ?? "");
   // Whether the person changed the Folder field on this visit. A Recent pick fills the folder with the
   // entry's own, but never over a folder the person chose.
   const cwdTouched = useRef(false);
@@ -220,9 +228,12 @@ function NewPage({ search }: { search: string }) {
   // disabled there, and its reason line says so. "Type a command…" counts as chosen before the first
   // character, so typing moves nothing.
   const branchWaiting = (what === null || what.kind === "starter") && !(kind === "shell" && command.kind === "typed");
+  // A worktree is a space of its own, so there is none to offer while the agent starts in this one.
+  // `besidePane` is known at the first paint, so leaving the block out moves nothing either.
+  const branchShown = besidePane === undefined;
   const branchBlocked: Unavailable | null =
     offer.branchBlocked ?? (branchWaiting || branchAllowed(offer, what) ? null : { kind: "commandRow" });
-  const branchActive = !branchWaiting && branchBlocked === null && branchOn;
+  const branchActive = branchShown && !branchWaiting && branchBlocked === null && branchOn;
 
   // ── The plan: what the bridge says a branch from this folder would be (ADR 0093) ─────────────
   const [plan, setPlan] = useState<{ key: string; answer: WorktreePlanResponse } | null>(null);
@@ -350,6 +361,7 @@ function NewPage({ search }: { search: string }) {
         cwd: sendCwd,
         requestId: requestId.current,
         legacyShell: legacy,
+        beside: besidePane === undefined ? undefined : { paneId: besidePane.paneId, workspaceId: besidePane.workspaceId },
         branch: ask.branch ? { cwd: ask.cwd === "" ? "~" : ask.cwd, name: branchName.trim(), base, folder: folderChoice } : undefined,
       },
       multiHost ? target : undefined,
@@ -488,7 +500,7 @@ function NewPage({ search }: { search: string }) {
   /** "Add your own": a level below this page, on the machine chosen here and the pane it was opened for. */
   function openAdd(next: Kind) {
     // Adding to the second half adds a command row, so there the word is Command.
-    nav.down(newAddPath({ machine: target.host, pane: at.pane, session: at.session }, next === "shell" ? "command" : "agent"));
+    nav.down(newAddPath({ machine: target.host, pane: at.pane, beside: at.beside, session: at.session }, next === "shell" ? "command" : "agent"));
   }
   const backLabel = t("newPage.back");
 
@@ -509,7 +521,7 @@ function NewPage({ search }: { search: string }) {
               <ArrowLeft className="size-5" />
             </Button>
             <h1 className="min-w-0 truncate text-lg font-semibold tracking-tight">
-              {offer.startersOnly ? t("newPage.starters.title") : t("home.new.label")}
+              {offer.startersOnly ? t("newPage.starters.title") : besidePane !== undefined ? t("newPage.title.inSpace") : t("home.new.label")}
             </h1>
           </>
         }
@@ -517,7 +529,7 @@ function NewPage({ search }: { search: string }) {
       {/* `relative` for the reason SettingsPage gives: an `sr-only` deep in the page would escape the
           scroller and grow the document's own scrollbar. */}
       <BandMain base={16} className="relative flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
-        {multiHost && from === undefined && (
+        {multiHost && from === undefined && besidePane === undefined && (
           <MachineSelect
             chosen={chosen}
             refusal={refusal}
@@ -665,7 +677,7 @@ function NewPage({ search }: { search: string }) {
           )}
         </div>
 
-        <BranchBlock
+        {branchShown && <BranchBlock
           on={branchOn && branchBlocked === null}
           blocked={branchBlocked}
           waiting={branchWaiting}
@@ -684,7 +696,7 @@ function NewPage({ search }: { search: string }) {
           checking={branchActive && current === null}
           targetPath={targetPath === null ? null : shortenHome(targetPath, home)}
           problem={branchProblem}
-        />
+        />}
 
         {showWhere ? (
           <div className="flex flex-col gap-2">
