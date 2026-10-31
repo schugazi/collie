@@ -31,7 +31,7 @@ import {
 import { apiError, type ApiErrorBody, type ApiErrorDetail, type ErrorCode } from "./error-codes.ts";
 import { keysDeliverable, MUX_CAPABILITIES, supportsCapability, type MuxCapability, type MuxCapabilityDeclaration } from "./mux/capabilities.ts";
 import { muxUnsupported } from "./mux/types.ts";
-import type { MuxAdapter, MuxAck, MuxGrid, MuxGridRequest, MuxHistoryPage, MuxReadHint, MuxStarters, MuxWorktreeCreateRequest } from "./mux/types.ts";
+import type { MuxAdapter, MuxAck, MuxGrid, MuxGridRequest, MuxHistoryPage, MuxReadHint, MuxReadPurpose, MuxStarters, MuxWorktreeCreateRequest } from "./mux/types.ts";
 import { allCacheRules } from "./cache/rules/index.ts";
 import type { CacheOverride } from "./cache/engine.ts";
 import type { GitHeadSurface } from "./git-head.ts";
@@ -152,7 +152,7 @@ import {
 import { type ReleaseLine, type UpdateLineRecord, withLine } from "./update-line.ts";
 import { REPORT_SCREEN_ROWS, reportDoctorRows, reportScreen, type DoctorRowSource, type ReportContext, type ReportDoctorRow } from "./report.ts";
 import type { StateEngine } from "./state-engine.ts";
-import { adapterFor, buildJournalRegistry } from "./journal/registry.ts";
+import { adapterFor, buildJournalRegistry, journalAgentName } from "./journal/registry.ts";
 import { readClaudeSubagent } from "./journal/claude.ts";
 import { chatParams, LiveWindows } from "./journal/live.ts";
 import { JournalSubagents } from "./subagents-journal.ts";
@@ -4115,10 +4115,22 @@ export function paneReadHint(
   return pane?.status === "blocked" ? { blocked: true } : undefined;
 }
 
-/** A `recent` read in the mirror's shape (styling kept), carrying the bridge's hint when it has one. */
-function recentRead(lines: number, hint: MuxReadHint | undefined): MuxGridRequest {
-  return hint === undefined ? { scope: "recent", lines, styling: "preserve" } : { scope: "recent", lines, styling: "preserve", hint };
+/**
+ * A `recent` read in the mirror's shape (styling kept), carrying the bridge's hint when it has one
+ * and the purpose when it is `older`. A request without `purpose` is a `poll` (mux/types.ts
+ * `MuxGridRequest.purpose`), so the mirror's refresh and the bridge's own checks leave it out.
+ */
+function recentRead(lines: number, hint: MuxReadHint | undefined, purpose: MuxReadPurpose = "poll"): MuxGridRequest {
+  const base = { scope: "recent", lines, styling: "preserve" } as const;
+  const hinted: MuxGridRequest = hint === undefined ? base : { ...base, hint };
+  return purpose === "older" ? { ...hinted, purpose } : hinted;
 }
+
+/**
+ * The query word with which the phone's Load older asks for the rows above the screen:
+ * `GET /api/pane/:id?lines=N&purpose=older`. Any other value, or none, is the mirror's poll.
+ */
+export const PANE_READ_PURPOSE_PARAM = "purpose";
 
 export async function readPane(
   herdr: MuxAdapter,
@@ -4141,8 +4153,11 @@ export async function readPane(
     // web app asked for (600 for the history view), well past any pane's height, so switching this
     // to `strip` would move someone's screen on every revalidate — see the adapter's `readGrid`.
     // `hint` is the state engine's word on the pane (paneReadHint): a pane it reads as blocked gets
-    // no history read on herdr-core, whose history reads hold the terminal's keys.
-    const read = await herdr.readGrid(paneId, recentRead(lines, hint));
+    // no history read on herdr-core, whose history reads hold the terminal's keys. `purpose=older`
+    // is the phone's Load older; every other read is the mirror's poll, which herdr-core answers from
+    // the screen alone.
+    const purpose: MuxReadPurpose = url.searchParams.get(PANE_READ_PURPOSE_PARAM) === "older" ? "older" : "poll";
+    const read = await herdr.readGrid(paneId, recentRead(lines, hint, purpose));
     if (!read.ok) return text(`${herdr.mux} read failed: ${read.detail}`, 502);
     // A URL the pane's column edge cut in two is the one thing the mirror cannot repair on its own,
     // and the repair needs the same rows with soft wraps undone. Ask for them only when the grid
@@ -4212,6 +4227,8 @@ export function paneReadResponse(
   // Absent, never empty, when there is nothing to repair: the ETag is computed over this body, so an
   // always-present key would invalidate every client's cached copy once for no gain.
   if (logicalText !== undefined) body.logicalText = logicalText;
+  // Same rule: only a Load older the multiplexer answered without older rows carries it.
+  if (read.olderNote !== undefined) body.olderNote = read.olderNote;
   // The same mask a crew lead puts on a member's mirror (bridge/answer-mask.ts).
   return redact ? maskPaneRead(body) : body;
 }
@@ -4295,10 +4312,14 @@ export async function discoveryHints(
   return { screen: paneScreen(mux, paneId), processes: await discoverProcesses(mux, paneId) };
 }
 
-/** Another pane running `adapter`'s harness sits in `pane`'s folder. */
+/**
+ * Another pane running `adapter`'s harness sits in `pane`'s folder. A harness counts under any name
+ * its adapter answers to (`AGENT_ALIASES`): an `omp` pane and a `pi` pane write the same log format,
+ * and one adapter's folder walk would find either's session.
+ */
 function sharesFolder(adapter: JournalAdapter, pane: AgentView, panes: readonly AgentView[]): boolean {
   return panes.some(
-    (other) => other.paneId !== pane.paneId && other.agent === adapter.agent && other.cwd === pane.cwd,
+    (other) => other.paneId !== pane.paneId && journalAgentName(other.agent) === adapter.agent && other.cwd === pane.cwd,
   );
 }
 
