@@ -669,3 +669,39 @@ describe("ActionsRow: Stop (M68 spec 02)", () => {
     expect(screen.getByRole("button", { name: "Stop the running turn" })).toBeInTheDocument();
   });
 });
+
+// THE OUTPUT, ZOOMED: upstream pins it left of the Switch mark; the fork's Switch cell holds two
+// buttons already, so it stands on the controls row, left of the agents mark. The pane decides
+// whether there is one (agent-chat.tsx); this file only draws it.
+describe("ActionsRow, the Zoom pill", () => {
+  const handle = () => ({ ref: vi.fn(), onClick: vi.fn(), label: "Switch pane" });
+  const zoomPill = (onClick = vi.fn()) => ({ onClick, label: "Zoom output" });
+
+  it("stands on the controls row, before the agents mark, and opens the view on a tap", async () => {
+    const onClick = vi.fn();
+    render(
+      <ActionsRow
+        general={[general()]}
+        agent="claude"
+        onRun={took}
+        handle={handle()}
+        zoom={zoomPill(onClick)}
+        agents={{ count: 2, onClick: vi.fn(), label: "Agents 2", expanded: false }}
+      />,
+    );
+    const pill = screen.getByRole("button", { name: "Zoom output" });
+    const controls = document.querySelector<HTMLElement>('[data-slot="composer-controls"]')!;
+    expect(controls.contains(pill)).toBe(true);
+    const agents = screen.getByRole("button", { name: "Agents 2" });
+    expect(pill.compareDocumentPosition(agents) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(pill.textContent).toBe("");
+    expect(pill).not.toHaveAttribute("aria-haspopup");
+    await userEvent.click(pill);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("has no Zoom pill without the prop", () => {
+    render(<ActionsRow general={[general()]} agent="claude" onRun={took} handle={handle()} />);
+    expect(screen.queryByRole("button", { name: "Zoom output" })).not.toBeInTheDocument();
+  });
+});

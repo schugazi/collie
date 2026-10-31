@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { Bot, Layers, ListTree, Undo2, X } from "lucide-react";
+import { Bot, Layers, ListTree, Undo2, X, ZoomIn } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -255,6 +255,18 @@ export interface ActionsRowProps {
     label: string;
   };
   /**
+   * THE OUTPUT, ZOOMED (components/output-zoom.tsx). Upstream pins it directly left of the Switch
+   * mark; the fork's Switch cell has no room for a third button, so it stands on the controls row,
+   * left of the agents mark, nearest the cell. It navigates (`/pane/:id/zoom`), so no
+   * `aria-haspopup`. Absent on a pane with no screen, where there is nothing to zoom.
+   */
+  zoom?: {
+    /** Opens the zoomed output for this pane. */
+    onClick: () => void;
+    /** ALREADY TRANSLATED. The button's accessible name, `zoom.open` ("Zoom output"). */
+    label: string;
+  };
+  /**
    * THE COMPOSER'S CLEAR SLOT (upstream M40 spec 04, issue #291). An icon-only X in the Switch
    * cell's top half, in place of Changes, while the box holds text or chips (`mode: "clear"`), and
    * Undo in the same box after a tap (`mode: "undo"`). Absent otherwise, so the belt at rest is
@@ -298,7 +310,7 @@ export interface ActionsRowProps {
   };
 }
 
-export function ActionsRow({ general, agent, mine, onRun, disabled, durable, stop, hand = "right", handle, changes, clear, agents }: ActionsRowProps) {
+export function ActionsRow({ general, agent, mine, onRun, disabled, durable, stop, hand = "right", handle, changes, zoom, clear, agents }: ActionsRowProps) {
   useLocale();
 
   const harnessItems = useHarnessBarItems(agent, mine);
@@ -402,6 +414,20 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, durable, sto
                       {action.word ?? action.label}
                     </Button>
                   ))}
+                  {/* THE OUTPUT, ZOOMED: the `zoom` prop above, on the controls row for the same
+                      reason as the agents mark after it. */}
+                  {zoom && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      aria-label={zoom.label}
+                      onClick={zoom.onClick}
+                      className={cn(STRIP_ROW_PILL, OFF)}
+                    >
+                      <ZoomIn className={cn(BELT_ICON, "text-primary")} />
+                    </Button>
+                  )}
                   {/* THE AGENTS MARK (the `agents` prop), last on the controls row: the fork's Switch
                       cell has no room for a third button. It eases in and out through `Collapse` on its
                       x axis; the count is a corner badge, absolutely placed, so a step moves nothing. */}

@@ -12,11 +12,10 @@ import {
 import { acceptOperatorFonts, operatorFontCss, operatorFontUrl } from "@/lib/operator-fonts";
 import { DEFAULT_UI_FONT_URL, FONT_URLS, UI_COMPANION_FONT_URLS, UI_FONT_URLS } from "@/lib/sw-routes";
 
-// Collie ships nine webfonts: two Nerd Font symbol subsets, one terminal-symbol subset, five UI
-// typefaces and a Cyrillic companion. The design rests on facts that are silent when broken: the
-// stylesheet, the service worker and the disk agree on which files exist; the symbol faces stay
-// range-restricted so they stay lazy; the UI face is preloaded and metric-matched so its swap moves
-// nothing; and none of them re-enters the precache.
+// Collie ships eight webfonts: two Nerd Font symbol subsets, five UI typefaces and a Cyrillic companion. The design
+// rests on facts that are silent when broken: the stylesheet, the service worker and the disk agree
+// on which files exist; the symbol faces stay range-restricted so they stay lazy; the UI face is
+// preloaded and metric-matched so its swap moves nothing; and none of them re-enters the precache.
 // A renamed file is a tofu box again (#70); a woff2 back in `globPatterns` charges every install
 // ~1.2 MB; a URL the SW doesn't know gets swept out of the font cache on activate; a UI face without
 // its `size-adjust` twin reflows the whole app when it lands.
@@ -55,6 +54,20 @@ describe("bundled fonts", () => {
     for (const cp of [0x20, 0x231a, 0x231b, 0x2329, 0x232a, 0x23e9, 0x23ec, 0x23f0, 0x23f3]) {
       expect(inRange(cp)).toBe(false);
     }
+  });
+
+  // pyftsubset strips nameIDs above 6 unless told to keep them, which would silently drop the OFL
+  // copyright/trademark/licence records (0, 7, 13, 14) before the rename loop runs.
+  it("preserves OFL name records in build-terminal-symbols.py and ships both symbol licences", () => {
+    const buildScript = readFileSync(resolve(root, "../scripts/build-terminal-symbols.py"), "utf8");
+    expect(buildScript).toContain("--name-IDs=0,1,2,3,4,5,6,7,13,14");
+
+    const license = read("public/fonts/LICENSE.txt");
+    expect(license).toContain("The MIT License (MIT)");
+    expect(license).toContain("Copyright (c) 2014 Ryan L McIntyre");
+    expect(license).toContain("Copyright (c) 2020 cormullion (https://github.com/cormullion/juliamono)");
+    expect(license).toContain("Terminal Symbols");
+    expect(license).toContain("SIL OPEN FONT LICENSE Version 1.1");
   });
 
   // Drift here is the whole failure mode: the SW sweeps every font-cache entry it can't name, so a

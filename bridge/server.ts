@@ -31,13 +31,14 @@ import {
 import { apiError, type ApiErrorBody, type ApiErrorDetail, type ErrorCode } from "./error-codes.ts";
 import { keysDeliverable, MUX_CAPABILITIES, supportsCapability, type MuxCapability, type MuxCapabilityDeclaration } from "./mux/capabilities.ts";
 import { muxUnsupported } from "./mux/types.ts";
-import type { MuxAdapter, MuxAck, MuxGrid, MuxHistoryPage, MuxStarters, MuxWorktreeCreateRequest } from "./mux/types.ts";
+import type { MuxAdapter, MuxAck, MuxGrid, MuxGridRequest, MuxHistoryPage, MuxReadHint, MuxStarters, MuxWorktreeCreateRequest } from "./mux/types.ts";
 import { allCacheRules } from "./cache/rules/index.ts";
 import type { CacheOverride } from "./cache/engine.ts";
 import type { GitHeadSurface } from "./git-head.ts";
 import { localWatchPane, peerWatchPane, type CacheWarnPane } from "./cache/watch-key.ts";
 import { watchKeyOf, type CacheWatchSurface } from "./cache/watch.ts";
 import { createCacheRulesReader } from "./operator-cache-rules.ts";
+import { createSessionFolders, createSessionLabels, resolveSessionFolder, withSessionLabels } from "./operator-space-labels.ts";
 import { computeEtag, gzipJsonResponse, notModified, wantsGzip } from "./http-cache.ts";
 import { pluginRoot } from "./root.ts";
 import { DEFAULT_NOTIFY_PREFS, type NotifyPrefs, type NotifyPrefsStore } from "./notify-prefs.ts";
@@ -74,7 +75,8 @@ import {
   type WorktreeReceipt,
   type WorktreeReceiptSurface,
 } from "./worktree-receipts.ts";
-import { claudeConfigDir, discoverClaudeCommands } from "./claude-commands.ts";
+import { discoverAgentSkills, skillAgentFor } from "./agent-skills.ts";
+import { claudeConfigDir, discoverClaudeCommands, type ClaudeCommand } from "./claude-commands.ts";
 import { canonicalAgent } from "../web/src/lib/operator-scope.ts";
 import { createOperatorCommands } from "./operator-commands.ts";
 import { createOperatorKeys } from "./operator-keys.ts";
@@ -148,7 +150,7 @@ import {
   type PreflightReport,
 } from "./update-action.ts";
 import { type ReleaseLine, type UpdateLineRecord, withLine } from "./update-line.ts";
-import { REPORT_SCREEN_ROWS, reportScreen, type ReportContext } from "./report.ts";
+import { REPORT_SCREEN_ROWS, reportDoctorRows, reportScreen, type DoctorRowSource, type ReportContext, type ReportDoctorRow } from "./report.ts";
 import type { StateEngine } from "./state-engine.ts";
 import { adapterFor, buildJournalRegistry } from "./journal/registry.ts";
 import { readClaudeSubagent } from "./journal/claude.ts";
@@ -201,6 +203,7 @@ import type { CrewLead } from "./crew/lead.ts";
 import { crewDeviceOf, crewGate, type GateLevel } from "./crew/peer-gate.ts";
 import { snapshotPlan } from "./crew/merge.ts";
 import { selectHostFrom, type HostSelector } from "./crew/registry.ts";
+import { machineHost } from "./crew/machine-host.ts";
 import type { CrewHandler, CrewSurface } from "./crew/router.ts";
 import type { CrewTlsOptions } from "./crew/transport.ts";
 import { createSttAdmission, MAX_STT_AUDIO_BYTES, sttCapability, transcribeRequest } from "./stt/http.ts";
@@ -584,11 +587,13 @@ const PANE_FILES_IMAGE_ROUTE = /^\/api\/pane\/([^/]+)\/files\/image$/;
 const WORKSPACE_FILES_IMAGE_ROUTE = /^\/api\/workspace\/([^/]+)\/files\/image$/;
 
 /**
- * `GET /api/pane/<id>/claude-commands`: the slash commands Claude Code would load in that pane's cwd,
- * read off this machine's disk. The pane id is only looked up in the snapshot; the cwd the read
- * starts from is the one the multiplexer reported, never the request's. Not in `FORWARDABLE`: a pane
- * on a crew member answers the lead's 501, and the phone keeps the palette it already had. A read
- * of this machine's disk, so it asks `device-read` like the Files routes.
+ * `GET /api/pane/<id>/claude-commands`: the commands the pane's agent would load in its cwd, read off
+ * this machine's disk: Claude Code's and seven other agents' (`bridge/agent-skills.ts`, which keeps
+ * the route's first name). Any other agent answers an empty list. The pane id is only looked up in
+ * the snapshot; the cwd the read starts from is the one the multiplexer reported, never the
+ * request's. Not in `FORWARDABLE`: a pane on a crew member answers the lead's 501, and the phone
+ * keeps the palette it already had. A read of this machine's disk, so it asks `device-read` like the
+ * Files routes.
  */
 const PANE_CLAUDE_COMMANDS_ROUTE = /^\/api\/pane\/([^/]+)\/claude-commands$/;
 
@@ -1116,6 +1121,8 @@ export function startServer(opts: {
   updateAction?: UpdateActionDeps;
   /** The release line record (M60 spec 01). See {@link UpdateLineDeps}. */
   updateLine?: UpdateLineDeps;
+  /** The doctor's send rows for Report a problem (M71 spec 05). See {@link ReportMachine.sendHealth}. */
+  sendHealth?: () => readonly DoctorRowSource[];
   /**
    * The BARE version string this process answers with (`bridge/version.ts`'s `collieVersionBare`) —
    * `<semver>` or `<semver>+<short sha>`. Resolved once in index.ts, never re-read here: it is the
@@ -1548,6 +1555,15 @@ export function startServer(opts: {
   };
   // The sixth on that contract: the operator's own prompt-cache TTLs, cache-rules.toml off the hot path.
   const operatorCacheRules = createCacheRulesReader(cfg.cacheRulesFile);
+  // The seventh: the operator's display labels for their sessions, spaces.toml. `localSnapshot` is
+  // synchronous, so the reader holds the labels and each snapshot refreshes them behind its answer:
+  // an edit shows on the next poll, browser and crew sweep alike. The first read starts here.
+  const sessionLabels = createSessionLabels(cfg.spacesFile ?? null);
+  void sessionLabels.refresh();
+  // The same file's `[folders]`: where a launch or a new space in a session opens when nothing named
+  // a folder. Read per launch, and only a folder that is there on disk is used; else home, as before.
+  const sessionFolders = createSessionFolders(cfg.spacesFile ?? null);
+  const sessionFolderOf = (name: string) => resolveSessionFolder(sessionFolders, name, diskFolderFs);
   // ONE registry for the process, built by the caller so the cache tracker probes through the same
   // adapters (and therefore the same memoised path caches) the history route reads.
   const journals = cfg.transcript ? (opts.journals ?? buildJournalRegistry(cfg.journalRoots, cfg.modelCatalogs)) : null;
@@ -1602,6 +1618,7 @@ export function startServer(opts: {
   ): SnapshotResponse | undefined => {
     const rt = registry.get(sessionName);
     if (!rt) return undefined;
+    void sessionLabels.refresh();
     const { workspaces, tabs, bridge, muxFault } = rt.engine.current();
     // Attach each pane's activity timestamps. Done here rather than in the state engine so the
     // engine stays a pure Herdr-poller with no knowledge of the ledger — and so the two numbers
@@ -1731,7 +1748,8 @@ export function startServer(opts: {
       shellPanes: paneList((from) => from.engine.current().shellPanes),
       workspaces,
       tabs,
-      sessions: registry.list(),
+      // A label is display-only: `name` stays the identity the phone sends back as `?session=`.
+      sessions: withSessionLabels(registry.list(), sessionLabels.labelOf),
       notifications: { snoozedUntil: snooze.until() },
       update: updateStatusWithPeers(),
       ts: Date.now(),
@@ -1846,7 +1864,7 @@ export function startServer(opts: {
       if (denied) return denied;
       const rt = await caller.resolve();
       if (rt instanceof Response) return rt;
-      return createWorkspace(rt.herdr, rt.engine, req, caller.audit, caller.device(), rt.name, folders);
+      return createWorkspace(rt.herdr, rt.engine, req, caller.audit, caller.device(), rt.name, folders, await sessionFolderOf(rt.name));
     }
     // A launch is a `/api/workspace` create the operator pre-declared: the client names a row in
     // `launchers.toml` and the bridge, never the client, supplies the command line. It sits here
@@ -1865,6 +1883,7 @@ export function startServer(opts: {
         switches: launcherSources.switches,
         recentRuns,
         sent,
+        sessionFolder: await sessionFolderOf(rt.name),
       });
     }
     // Rows must come from the host that runs them: today's `/api/config` (a lead-only body) sent
@@ -2046,18 +2065,27 @@ export function startServer(opts: {
         return text("malformed URL", 400);
       }
       const pane = rt.engine.current().agents.find((p) => p.paneId === paneId);
-      if (pane === undefined || canonicalAgent(pane.agent?.toLowerCase().trim() ?? "") !== "claude") {
+      if (pane === undefined) {
         return json({ commands: [] }, req.headers.get("accept-encoding"));
       }
       const home = homedir();
+      const cwd = pane.cwd === "" ? null : pane.cwd;
       // Fail closed: a fault anywhere in the scan is an empty list, never a 500 that names a path.
-      let commands: Awaited<ReturnType<typeof discoverClaudeCommands>> = [];
+      let commands: ClaudeCommand[] = [];
       try {
-        commands = await discoverClaudeCommands({
-          home,
-          cwd: pane.cwd === "" ? null : pane.cwd,
-          configDir: claudeConfigDir(cfg.journalRoots.claude, home),
-        });
+        if (canonicalAgent(pane.agent?.toLowerCase().trim() ?? "") !== "claude") {
+          const family = canonicalAgent(pane.agent?.toLowerCase().trim() ?? "");
+          const skillAgent = skillAgentFor(family);
+          if (skillAgent !== undefined) {
+            commands = await discoverAgentSkills(skillAgent, { home, cwd, env: process.env });
+          }
+        } else {
+          commands = await discoverClaudeCommands({
+            home,
+            cwd,
+            configDir: claudeConfigDir(cfg.journalRoots.claude, home),
+          });
+        }
       } catch (err) {
         console.warn(`[claude-commands] the scan failed, answering an empty list: ${String(err)}`);
       }
@@ -2184,7 +2212,7 @@ export function startServer(opts: {
       const device = isRead ? null : caller.device();
       const audit_ = caller.audit;
 
-      if (!action && req.method === "GET") return readPane(herdr, cfg, paneId, url, req);
+      if (!action && req.method === "GET") return readPane(herdr, cfg, paneId, url, req, paneReadHint(rt.engine, paneId));
       if (action === "history" && req.method === "GET")
         return paneHistory(cfg, journals, transcripts, rt.engine, herdr, paneId, url, req);
       if (action === "chat" && req.method === "GET")
@@ -2203,9 +2231,9 @@ export function startServer(opts: {
       // A reply that submits text runs this session's Send Protocol (M56 spec 06), on any terminal
       // pane: an agent's (its string picks the profile) or a bare shell's (no profile, typed and Entered blind).
       if (action === "reply" && req.method === "POST")
-        return afterPaneInput(rt.engine, await replyPane(herdr, cfg, paneId, req, audit_, device, session, replySendOf(rt)));
+        return afterPaneInput(rt.engine, await replyPane(herdr, cfg, paneId, req, audit_, device, session, { ...replySendOf(rt), readHint: paneReadHint(rt.engine, paneId) }));
       if (action === "keys" && req.method === "POST")
-        return afterPaneInput(rt.engine, await keysPane(herdr, cfg, paneId, req, audit_, device, session));
+        return afterPaneInput(rt.engine, await keysPane(herdr, cfg, paneId, req, audit_, device, session, paneReadHint(rt.engine, paneId)));
       if (action === "upload" && req.method === "POST") return uploadPane(cfg, paneId, req, audit_, device, session);
       if (action === "close" && req.method === "POST") return closePane(herdr, rt.engine, paneId, req, audit_, device, session);
       if (action === "rename" && req.method === "POST") return renamePane(herdr, rt.engine, paneId, req, audit_, device, session);
@@ -2309,6 +2337,20 @@ export function startServer(opts: {
       const active = registry.get();
       return active === undefined ? null : muxConfigBody(active.herdr);
     },
+    // M76 spec 04: the agent panes this machine serves, for its `snapshot` answer. `null` until the
+    // primary session's engine has read its multiplexer once (`bridge` is `disconnected` before the
+    // first good poll and while the multiplexer is down): a count it cannot make is not zero.
+    panes: () => {
+      const runtimes = registry.ordered();
+      if (runtimes.find((rt) => rt.isPrimary)?.engine.current().bridge !== "connected") return null;
+      return runtimes
+        .map((rt) => rt.engine.current())
+        .filter((snap) => snap.bridge === "connected")
+        .reduce((sum, snap) => sum + snap.agents.length, 0);
+    },
+    // M77 spec 01: this machine's own host name, for its `snapshot` answer, so a lead can tell which
+    // members share a machine.
+    host: machineHost,
     // M55: every session's card, so the lead can answer `/api/config?host=&session=` for a program
     // session on this machine. Null on a machine that runs no program, so its `hello` is unchanged.
     sessions: () => registry.cards(),
@@ -2811,7 +2853,13 @@ export function startServer(opts: {
         if (host.kind === "member") return text("a report reads this machine's panes only for now", 400);
         const rt = localRuntime(sessionName, req.headers.get("accept-encoding"));
         if (rt instanceof Response) return rt;
-        const machine: ReportMachine = { collie: opts.version, line: opts.updateLine?.read().line ?? null, os: HOST.platform, arch: process.arch };
+        const machine: ReportMachine = {
+          collie: opts.version,
+          line: opts.updateLine?.read().line ?? null,
+          os: HOST.platform,
+          arch: process.arch,
+          sendHealth: opts.sendHealth,
+        };
         return reportContextRoute(rt, url.searchParams.get("pane"), url.searchParams.get("screen") === "1", machine, req.headers.get("accept-encoding"));
       }
       // ── Walky talky (M62) ────────────────────────────────────────────────
@@ -4052,12 +4100,33 @@ export function hasSplitUrl(ansiText: string): boolean {
   );
 }
 
+/**
+ * What the bridge knows about a pane that its multiplexer may not, for a `recent` read of it
+ * (mux/types.ts `MuxReadHint`): `blocked` when the state engine reads the pane as waiting on a
+ * person. The engine lifts a pane whose screen shows an ask to `blocked` even when the multiplexer
+ * reports `working` (state-engine.ts `liftScreenAsks`), which is the case herdr-core cannot see on
+ * its own: pi under a dialog. `undefined` when the engine knows nothing to add.
+ */
+export function paneReadHint(
+  engine: { current(): { readonly agents: readonly Pick<AgentView, "paneId" | "status">[] } },
+  paneId: string,
+): MuxReadHint | undefined {
+  const pane = engine.current().agents.find((agent) => agent.paneId === paneId);
+  return pane?.status === "blocked" ? { blocked: true } : undefined;
+}
+
+/** A `recent` read in the mirror's shape (styling kept), carrying the bridge's hint when it has one. */
+function recentRead(lines: number, hint: MuxReadHint | undefined): MuxGridRequest {
+  return hint === undefined ? { scope: "recent", lines, styling: "preserve" } : { scope: "recent", lines, styling: "preserve", hint };
+}
+
 export async function readPane(
   herdr: MuxAdapter,
   cfg: Config,
   paneId: string,
   url: URL,
   req: Request,
+  hint?: MuxReadHint,
 ): Promise<Response> {
   const linesParam = Number.parseInt(url.searchParams.get("lines") ?? "", 10);
   // Clamp to a sane ceiling — don't trust the client (or Herdr) to bound an enormous read.
@@ -4071,7 +4140,9 @@ export async function readPane(
     // an alt-screen pane — scrolling it up and back — in `text` format. `lines` here is whatever the
     // web app asked for (600 for the history view), well past any pane's height, so switching this
     // to `strip` would move someone's screen on every revalidate — see the adapter's `readGrid`.
-    const read = await herdr.readGrid(paneId, { scope: "recent", lines, styling: "preserve" });
+    // `hint` is the state engine's word on the pane (paneReadHint): a pane it reads as blocked gets
+    // no history read on herdr-core, whose history reads hold the terminal's keys.
+    const read = await herdr.readGrid(paneId, recentRead(lines, hint));
     if (!read.ok) return text(`${herdr.mux} read failed: ${read.detail}`, 502);
     // A URL the pane's column edge cut in two is the one thing the mirror cannot repair on its own,
     // and the repair needs the same rows with soft wraps undone. Ask for them only when the grid
@@ -5108,6 +5179,8 @@ export async function typeIntoFreshShell(
 export interface ReplySendContext {
   readonly protocol: SendProtocol | undefined;
   readonly harnessOf: (paneId: string) => string | null;
+  /** The state engine's hint for the binding read of this pane (paneReadHint). Absent: none. */
+  readonly readHint?: MuxReadHint;
 }
 
 /** What a reply that ran the Send Protocol answers: the old shape for an old reader, and the protocol's answer beside it. */
@@ -5241,7 +5314,7 @@ export async function replyPane(
     return json(refusal, ae);
   }
   const binding = expected.present
-    ? await checkPromptBinding(herdr, cfg, paneId, expected.value, styled.value, columns.value, tail.value)
+    ? await checkPromptBinding(herdr, cfg, paneId, expected.value, styled.value, columns.value, tail.value, send.readHint)
     : null;
   if (binding && !binding.ok) {
     audit.record({
@@ -5304,6 +5377,7 @@ export async function keysPane(
   audit: AuditLog,
   device: string | null,
   session: string,
+  hint?: MuxReadHint,
 ): Promise<Response> {
   let body: JsonValue;
   try {
@@ -5327,7 +5401,7 @@ export async function keysPane(
   if (keys.length === 0) return text("no keys", 400);
   const ae = req.headers.get("accept-encoding");
   const binding = expected.present
-    ? await checkPromptBinding(herdr, cfg, paneId, expected.value, styled.value, columns.value, tail.value)
+    ? await checkPromptBinding(herdr, cfg, paneId, expected.value, styled.value, columns.value, tail.value, hint)
     : null;
   if (binding && !binding.ok) {
     audit.record({
@@ -5354,6 +5428,14 @@ export async function keysPane(
       detail: keysDetail,
     });
     return json({ ok: true } satisfies ActionResponse, ae);
+  }
+  if (!sent.ok && sent.reason === "unconfirmed") {
+    // The keys left and the multiplexer did not confirm them in time: they may still land (MuxRefusal,
+    // `unconfirmed`). Recorded as sent-unconfirmed, and answered as "not confirmed", never "failed",
+    // so nobody sends them twice on a wrong word.
+    keysDetail.sent = "unconfirmed";
+    audit.record({ action: "keys", paneId, session, device, detail: keysDetail });
+    return json({ ok: false, ...apiError("keys.unconfirmed", { reason: sent.detail }) } satisfies ActionResponse, ae);
   }
   if (binding) {
     audit.record({
@@ -5513,6 +5595,7 @@ async function checkPromptBinding(
   expectedStyledLines?: string,
   columns?: ColumnRange,
   tailLines?: number,
+  hint?: MuxReadHint,
 ): Promise<PromptBindingCheck> {
   const tailWindow = tailLines ?? DEFAULT_PROMPT_TAIL_LINES;
   let fresh: MuxGrid;
@@ -5530,11 +5613,7 @@ async function checkPromptBinding(
     // not follow cfg.readLines alone because a small legal setting may not contain the expected
     // region; include room for the accepted tail, a task panel under it, and for blank separator
     // lines normalization drops.
-    const read = await herdr.readGrid(paneId, {
-      scope: "recent",
-      lines: bindingReadLines,
-      styling: "preserve",
-    });
+    const read = await herdr.readGrid(paneId, recentRead(bindingReadLines, hint));
     if (!read.ok) return readFailed(herdr, expected, read.detail);
     fresh = read.value;
   } catch (err) {
@@ -5918,8 +5997,8 @@ async function createTab(
   } satisfies CreateResponse, ae);
 }
 
-// Create a new workspace ("space") with a fresh shell pane. `cwd` defaults to the user's home dir
-// when the client doesn't specify one (typing a path on a phone is painful) — it's a shell, so you
+// Create a new workspace ("space") with a fresh shell pane. `cwd` defaults to the session's folder
+// from `spaces.toml` `[folders]`, else the user's home dir, when the client doesn't specify one (typing a path on a phone is painful), it's a shell, so you
 // can cd from there. Same structural-only threat model as createTab.
 //
 // A create that WORKED, and that named a folder, puts the folder the multiplexer REPORTED for the new
@@ -5936,6 +6015,8 @@ export async function createWorkspace(
   device: string | null,
   session: string,
   folders?: Pick<FolderSurface, "recordRecent">,
+  // The operator's folder for this session (`spaces.toml` `[folders]`), already checked to exist.
+  sessionFolder?: string,
 ): Promise<Response> {
   let body: JsonValue;
   try {
@@ -5949,7 +6030,7 @@ export async function createWorkspace(
   const fields = asJsonRecord(body) ?? {};
   // Checked, not declared — see createTab.
   const typed = typeof fields.cwd === "string" ? fields.cwd.trim() : "";
-  const cwd = typed || homedir();
+  const cwd = typed || sessionFolder || homedir();
   const label = typeof fields.label === "string" ? fields.label : undefined;
   const ae = req.headers.get("accept-encoding");
   const outcome = await herdr.createSpace({ cwd, label });
@@ -6956,7 +7037,7 @@ export async function launch(
     }
   }
   const row = picked.row;
-  const resolvedCwd = row?.cwd ?? asked ?? besidePane?.cwd ?? homedir();
+  const resolvedCwd = row?.cwd ?? asked ?? besidePane?.cwd ?? deps.sessionFolder ?? homedir();
 
   // Checked again with no await between it and `track`, so two requests with one id that both got
   // past the check above cannot both start a launch.
@@ -7030,6 +7111,8 @@ export interface LaunchDeps {
   sent?: Pick<SentSurface, "record">;
   /** The launch window (bridge/launch-window.ts): a `harness` launch marks its pane. Absent: nothing is marked. */
   launchWindow?: Pick<LaunchWindow, "mark"> | undefined;
+  /** The operator's folder for this session (`spaces.toml` `[folders]`), checked to exist. Absent: home. */
+  sessionFolder?: string;
 }
 
 /**
@@ -8238,13 +8321,29 @@ export interface ReportRouteRuntime extends Pick<SendRouteRuntime, "send" | "eng
   readonly herdr: Pick<MuxAdapter, "controlTurn" | "readGrid" | "mux">;
 }
 
-/** What `reportContextRoute` takes of this machine: its version and its release line. */
+/** What `reportContextRoute` takes of this machine: its version, its release line and its send rows. */
 export interface ReportMachine {
   readonly collie: string;
   readonly line: ReleaseLine | null;
   /** `HOST.platform` and `process.arch`, read at the edge. */
   readonly os: string;
   readonly arch: string;
+  /**
+   * The doctor's sends section over this bridge's state dir (M71 spec 05), read when the route is
+   * called, never on a poll. index.ts wires it to `sendsReportRows` (cli/send-findings.ts); undefined
+   * with the Send Protocol off, and the answer then carries no `doctor` field.
+   */
+  readonly sendHealth?: () => readonly DoctorRowSource[];
+}
+
+/** The report's doctor rows, or undefined when there is no reader or it threw: the route never fails for them. */
+function reportDoctor(machine: ReportMachine, harness: string | null): readonly ReportDoctorRow[] | undefined {
+  if (machine.sendHealth === undefined) return undefined;
+  try {
+    return reportDoctorRows(machine.sendHealth(), harness);
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -8265,7 +8364,9 @@ export async function reportContextRoute(
   const harness = pane === null ? null : replySendOf(rt).harnessOf(pane);
   if (pane !== null && harness === null) return text("no such pane", 404);
   const screenable = pane !== null && rawInputRefusal(rt.herdr) === null;
-  const context: ReportContext = { collie: machine.collie, line: machine.line, os: machine.os, arch: machine.arch, mux: rt.herdr.mux, harness, screenable };
+  const doctor = reportDoctor(machine, harness);
+  const facts: ReportContext = { collie: machine.collie, line: machine.line, os: machine.os, arch: machine.arch, mux: rt.herdr.mux, harness, screenable };
+  const context: ReportContext = doctor === undefined ? facts : { ...facts, doctor };
   if (!wantScreen) return json(context, acceptEncoding);
   if (pane === null || !screenable) return text("this pane has no screen to include", 400);
   // The mirror's own read shape (`readPane`): `recent` with styling kept, which leaves the operator's

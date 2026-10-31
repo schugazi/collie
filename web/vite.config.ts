@@ -84,7 +84,9 @@ const git = (cmd: string) =>
 function gitSha(): string {
   let sha: string;
   try {
-    sha = git("git rev-parse --short HEAD") || "nogit";
+    // A fixed 10, not git's per-repository default (7 to 9 or more): two machines on one commit must
+    // stamp one string, or the crew build-skew check reads them as different builds.
+    sha = git("git rev-parse --short=10 HEAD") || "nogit";
   } catch {
     return "nogit";
   }
@@ -352,6 +354,13 @@ export default defineConfig({
     emptyOutDir: true,
     // A couple of small chunks beat one big one on a phone over the tailnet.
     chunkSizeWarningLimit: 900,
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [{ name: "router", test: /node_modules\/(?:react-router|@remix-run)\// }],
+        },
+      },
+    },
   },
   server: {
     port: 5173,

@@ -45,7 +45,7 @@ export { canonicalMuxKey, formatMuxKey, isMuxKey, parseMuxKey } from "./keys.ts"
 // ── The one refusal shape ─────────────────────────────────────────────────────
 
 /**
- * Why a call did not happen. Four reasons, and the first one is not a failure at all:
+ * Why a call did not happen, or may not have. Five reasons, and the first one is not a failure at all:
  *
  *  • `unsupported` — this multiplexer has no such thing, and never will while it is this
  *    multiplexer. The route renders an explanation, not an error (M10/06). It names the
@@ -56,6 +56,11 @@ export { canonicalMuxKey, formatMuxKey, isMuxKey, parseMuxKey } from "./keys.ts"
  *    not take). Retrying the same call gets the same answer.
  *  • `unreachable` — the multiplexer did not answer. This is the only one worth retrying, and it is
  *    what drives the connected/disconnected banner.
+ *  • `unconfirmed` — a write left Collie and the multiplexer did not confirm it in time (herdr-core
+ *    holds a terminal's keys behind its slow history reads and delivers them later). The call MAY
+ *    STILL HAPPEN, so it is neither a failure nor worth a retry. THE RULE: a caller never sends the
+ *    same write again on this answer; the next read of the pane decides what happened. A route says
+ *    "not confirmed", never "failed".
  *
  * An adapter MUST return this rather than throw for anything it declared absent — that is checked by
  * conformance (M10/03), because a throw is what forces every route to guess.
@@ -64,7 +69,8 @@ export type MuxRefusal =
   | { readonly reason: "unsupported"; readonly capability: MuxCapability; readonly detail: string }
   | { readonly reason: "gone"; readonly detail: string }
   | { readonly reason: "refused"; readonly detail: string }
-  | { readonly reason: "unreachable"; readonly detail: string };
+  | { readonly reason: "unreachable"; readonly detail: string }
+  | { readonly reason: "unconfirmed"; readonly detail: string };
 
 /** A refusal, as a failed outcome. */
 export type MuxRefusalOutcome = { readonly ok: false } & MuxRefusal;
@@ -150,6 +156,11 @@ export function muxRefused(detail: string): MuxRefusalOutcome {
 /** "The multiplexer did not answer." */
 export function muxUnreachable(detail: string): MuxRefusalOutcome {
   return { ok: false, reason: "unreachable", detail };
+}
+
+/** "Sent, and not confirmed in time: it may still land." Never retried; see {@link MuxRefusal}. */
+export function muxUnconfirmed(detail: string): MuxRefusalOutcome {
+  return { ok: false, reason: "unconfirmed", detail };
 }
 
 /**
@@ -301,6 +312,11 @@ export interface MuxPane extends MuxIdentity {
    * reason: a wrong agent name picks a wrong harness grammar AND a wrong journal adapter, so the
    * port's answer to "which agent runs here" is `agentDetection` or `"shell"` — never a process
    * name, however much this one looks like an identity.
+   *
+   * One exception: a foreground process name is never identity on its own, but an adapter whose agent
+   * report is absent for a pane (herdr-core, when the program sends no OSC 7501) may take an exact,
+   * known program name from its table as a provisional identity, with status `unknown` and never a
+   * status word. No prefix, no path component.
    */
   readonly foregroundCommand?: string;
   /**
@@ -395,6 +411,22 @@ export interface MuxGridRequest {
   readonly scope: "viewport" | "recent";
   readonly lines: number;
   readonly styling: "preserve" | "strip";
+  /** What the bridge knows about the pane that the multiplexer may not. See {@link MuxReadHint}. */
+  readonly hint?: MuxReadHint;
+}
+
+/**
+ * What the bridge knows about the pane that the multiplexer may not; an adapter may ignore it.
+ * OPTIONAL on both sides: a caller that knows nothing sends none, and the conformance suite never
+ * requires an adapter to act on it.
+ *
+ * `blocked`: the bridge's state engine reads the pane as waiting on a person (the screen shows an
+ * ask), even when the multiplexer reports the program `working`, as herdr-core does for pi's
+ * dialogs. herdr-core reads such a pane's screen alone and starts no history read, because the core
+ * holds the terminal's keys behind a history read (herdr-core/adapter.ts, HISTORY_READ_BACKOFF_MS).
+ */
+export interface MuxReadHint {
+  readonly blocked?: boolean;
 }
 
 /**
@@ -409,6 +441,12 @@ export interface MuxGrid {
   readonly text: string;
   /** The multiplexer truncated the read to fit its own limits. */
   readonly truncated: boolean;
+  /**
+   * The multiplexer says rows may be missing from this read: show it, decide nothing on it. Distinct
+   * from {@link truncated}, which means the scrollback was cut. The Send Protocol takes a partial read
+   * as no read and waits for a whole one. Absent on a whole read, and on every adapter that cannot tell.
+   */
+  readonly partial?: true;
   /**
    * A number that CHANGES when this pane's content changes and never decreases while the pane lives.
    *

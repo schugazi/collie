@@ -768,11 +768,11 @@
  * same terms as the Nerd Font faces above, and in the same position in `--font-mono`: the range
  * leaves out U+0020, so it can never be the face that sets the line.
  *
- * A subset of JuliaMono v0.63.2 (OFL — public/fonts/LICENSE-juliamono.txt), renamed as the licence
- * requires, 19 KB, built by scripts/build-tech-font.sh. Unlike the Nerd Font faces it does override
- * codepoints some platforms already draw, and on purpose: a monospace glyph fills one cell, where a
- * phone's own ⏺ is often a colour emoji twice as wide. The range leaves out the block's two-cell
- * codepoints (⌚⌛ 〈〉 ⏩-⏬ ⏰ ⏳); the script says why. */
+ * A subset of JuliaMono v0.63.2 (OFL — public/fonts/LICENSE.txt), renamed as the licence
+ * requires, 19 KB, built by scripts/build-terminal-symbols.py. Unlike the Nerd Font faces it does
+ * override codepoints some platforms already draw, and on purpose: a monospace glyph fills one
+ * cell, where a phone's own ⏺ is often a colour emoji twice as wide. The range leaves out the
+ * block's two-cell codepoints (⌚⌛ 〈〉 ⏩-⏬ ⏰ ⏳); the script says why. */
 @font-face {
   font-family: "Terminal Symbols";
   src: url("/fonts/terminal-symbols-0.63.2.woff2") format("woff2");
