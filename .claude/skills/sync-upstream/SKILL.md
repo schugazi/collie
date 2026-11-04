@@ -1,6 +1,6 @@
 ---
 name: sync-upstream
-description: Merge upstream AltanS/collie's latest stable release (never edge or prerelease builds) into the fork's main, resolve conflicts, get exactly one astra review, apply agreed fixes, then commit, deploy and push. Use when asked to sync, update from, or merge upstream.
+description: Merge upstream AltanS/collie's latest stable release (never edge or prerelease builds) into the fork's main, resolve conflicts, get exactly one sol review, apply agreed fixes, then commit, deploy and push. Use when asked to sync, update from, or merge upstream.
 disable-model-invocation: true
 ---
 
@@ -81,9 +81,9 @@ Write the body in the style of `git log -1 7d7e8eff`. Say what upstream brought 
 
 This checkout has no git hooks installed (`core.hooksPath` is unset); don't install them. If they are ever active, the merge commit is the one legitimate `SKIP_VERSION_CHECK=1` case. The pre-commit rule that `## [Unreleased]` must be empty when the version moves is meant for upstream's release commits, not for a fork merge.
 
-## 4. One astra review — exactly once
+## 4. One sol review — exactly once
 
-Make **one** Agent tool call with `subagent_type: "code-reviewer"`, `model: "astra"`. Never call it a second time, even after fixes, retries, or a new failure. Anything that comes up after this point is yours to judge alone. Put this in the prompt: the repo path, the merge commit hash, the release tag merged, the commit message, the list of files that conflicted, and this ask:
+Make **one** Agent tool call with `subagent_type: "code-reviewer"`, `model: "sol"`. Never call it a second time, even after fixes, retries, or a new failure. Anything that comes up after this point is yours to judge alone. Put this in the prompt: the repo path, the merge commit hash, the release tag merged, the commit message, the list of files that conflicted, and this ask:
 
 > Review how the upstream merge `<hash>` in /home/schu/collie resolved its conflicts. It merges upstream's stable release `<tag>`, fetched as `upstream/stable`. It is local and unpublished. Start with `git show --remerge-diff <hash>`, which shows exactly how each conflict was resolved. For context, `git diff upstream/stable <hash>` shows the fork's remaining delta on top of that release. Look for: fork behaviour lost or half re-applied, upstream fixes dropped or clobbered, duplicate implementations of one feature, semantic breaks in files that merged cleanly, and branding that was missed. Report findings only; don't edit.
 
@@ -122,7 +122,7 @@ dev-run -- git push origin main     # main only — no tags
 
 Never push tags. The fork's `release.yml` runs on `v*.*.*` tags, and Actions is enabled on the fork. The native updater reads the fork's tags, so a mirrored upstream tag would advertise an upstream build without the fork's changes.
 
-Finish with a short report: the release merged, the conflicts and how each was resolved, astra's findings (applied or rejected, with reasons), and the deploy status.
+Finish with a short report: the release merged, the conflicts and how each was resolved, sol's findings (applied or rejected, with reasons), and the deploy status.
 
 ## Hard stops (report, don't force)
 
