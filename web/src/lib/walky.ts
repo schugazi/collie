@@ -107,6 +107,12 @@ export interface WalkySkipped {
   memberId: string;
   machine: string;
   label: string;
+  /**
+   * Why a broadcast leaves the pane out (M85): `shell`, a pane that never receives a message, or
+   * `resting`, an agent that finished 15 minutes ago, which gets the message in its inbox only unless the
+   * sender wakes it. Absent from an older bridge: a shell.
+   */
+  reason?: "shell" | "resting";
 }
 
 /**
@@ -131,6 +137,8 @@ export interface WalkySendBody {
   to: string;
   body: string;
   replyTo?: string;
+  /** M85: a broadcast also types into resting panes. Sent only when true. */
+  wake?: true;
 }
 
 /** The most the bridge keeps for a message body (README → "Switches"/decision 6). */
@@ -513,17 +521,38 @@ export function isHeld(receipt: WalkyReceipt): boolean {
   return receipt.state === "accepted" && receipt.reason !== undefined && receipt.reason !== "";
 }
 
-/** Where a message stands, in words, with the bridge's reason when there is one. A held one reads "held: <reason>". */
+/**
+ * The bridge's own reason strings as a person reads them. The strings are the wire's and stay English
+ * in the log, the CLI and `who`; only this screen words them. A reason not listed here stays verbatim.
+ */
+export function reasonWord(reason: string): string {
+  switch (reason) {
+    case "draft present":
+      return t("walky.reason.draftPresent");
+    case "turn running":
+      return t("walky.reason.turnRunning");
+    case "resting":
+      return t("walky.reason.resting");
+    default:
+      return reason;
+  }
+}
+
+/** The reason an older lead's receipt carries while the outcome is still on the lead (CREW_PROTOCOL §21). */
+const OUTCOME_ON_LEAD = "outcome known on the lead";
+
+/** Where a message stands, in words, with the bridge's reason (worded by {@link reasonWord}) when there is one. A held one reads "held: <reason>". */
 export function stateWord(receipt: WalkyReceipt): string {
   switch (receipt.state) {
     case "accepted":
-      return isHeld(receipt) ? t("walky.state.held", { reason: receipt.reason ?? "" }) : t("walky.state.accepted");
+      if (receipt.reason === OUTCOME_ON_LEAD) return t("walky.state.onLead");
+      return isHeld(receipt) ? t("walky.state.held", { reason: reasonWord(receipt.reason ?? "") }) : t("walky.state.accepted");
     case "delivered":
       return t("walky.state.delivered");
     case "inbox-only":
       return receipt.reason === undefined || receipt.reason === ""
         ? t("walky.state.inboxOnly")
-        : t("walky.state.inboxOnlyBecause", { reason: receipt.reason });
+        : t("walky.state.inboxOnlyBecause", { reason: reasonWord(receipt.reason) });
     case "expired":
       return t("walky.state.expired");
     case "unknown":
@@ -531,7 +560,7 @@ export function stateWord(receipt: WalkyReceipt): string {
     case "refused":
       return receipt.reason === undefined || receipt.reason === ""
         ? t("walky.state.refused")
-        : t("walky.state.refusedBecause", { reason: receipt.reason });
+        : t("walky.state.refusedBecause", { reason: reasonWord(receipt.reason) });
   }
 }
 

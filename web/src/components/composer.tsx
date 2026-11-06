@@ -97,8 +97,9 @@ import { textToKeySequence } from "@/lib/key-queue";
 import { isLead, paneScopeKey, scopeKey, type Scope } from "@/lib/scope";
 import { closeTrouble, noteSend, openReport, streakIds, useTroubleOffer } from "@/lib/report/store";
 import { takeBeltIntent } from "@/lib/belt-intent";
-import type { PaneSubagent, PaneTodo } from "@/lib/types";
+import type { PaneJob, PaneSubagent, PaneTodo } from "@/lib/types";
 import { AgentsSheet, subagentName } from "@/components/agents-sheet";
+import { JobsSheet } from "@/components/jobs-sheet";
 import { SubagentSheetCtx, type SubagentTarget } from "@/components/chat-cards";
 import { DirectTypingStrip } from "@/components/direct-typing-strip";
 import { VoiceTakeover } from "@/components/voice-takeover";
@@ -329,6 +330,11 @@ interface ComposerProps {
    * on the belt's fixed block and an in-flow dock when non-empty. A finished one leaves the list and stays in Chat.
    */
   subagents?: readonly PaneSubagent[];
+  /**
+   * The pane's background jobs (bridge/jobs-journal.ts), running or ended in the last minutes, drawn as
+   * the jobs mark on the belt's fixed block and the Jobs sheet it opens, while the list is non-empty.
+   */
+  jobs?: readonly PaneJob[];
 }
 
 // The composer cluster at the bottom of the pane view — everything a phone keyboard can't do on its
@@ -492,7 +498,7 @@ interface ClearedDraft {
 
 
 export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Composer(
-  { paneId, instance, surface, starting = false, unreachableNote, scope, stopOffered = false, agent, canSteer, returnedDraft = false, isShell, cwd, gone, readOnly, composing, onAnswerDialog, dialogCard = false, text, terminalDraft, rawTerminalDraft, prefs, display, onSent, onOpenMessages, held: heldRows, chatEntries, pullHandle, draftNoticeSlot, changesPill, zoomPill, stale, hand = "right", aboveBelt, floatingHint, screen, todos, subagents },
+  { paneId, instance, surface, starting = false, unreachableNote, scope, stopOffered = false, agent, canSteer, returnedDraft = false, isShell, cwd, gone, readOnly, composing, onAnswerDialog, dialogCard = false, text, terminalDraft, rawTerminalDraft, prefs, display, onSent, onOpenMessages, held: heldRows, chatEntries, pullHandle, draftNoticeSlot, changesPill, zoomPill, stale, hand = "right", aboveBelt, floatingHint, screen, todos, subagents, jobs },
   ref,
 ) {
   const revalidator = useRevalidator();
@@ -1043,6 +1049,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   // M69: the Steer row of that menu. Only while the turn reads running, only where the bridge says the
   // profile has a steer key, and never for a reply in message mode (a walky message always queues).
   const steerRow = canSteer === true && shownSurface.turn === "running" && walky.aim === null;
+  // The Send button when it cannot act: it stays focusable and under the finger instead of `disabled`.
+  const sendInert = locked || sending || ((starting || offline) && !direct.active);
   const sendHold = useLongPress(canMessage ? () => setSendMenu(true) : undefined);
 
   // ── THE VOICE TAKEOVER (design 3.3) ───────────────────────────────────────────────────────────
@@ -1462,6 +1470,13 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
     if (target.agentId !== undefined && runningIds.split(" ").includes(target.agentId)) return;
     syncSubagent({ ...target, status: "done" });
   }, [activeSheetKey, runningIds, syncSubagent]);
+  // The background jobs (issue 670, ADR 0128): the jobs mark beside the agents mark, and the Jobs sheet
+  // it opens, a sheet over the page for the same reason. The badge counts the running ones; the mark
+  // stays while a job that ended in the last minutes is listed, so its result can be read.
+  const jobList = jobs ?? [];
+  const runningJobs = jobList.filter((job) => job.endedAt === undefined).length;
+  const jobsLabel = jobList.length > 0 ? translate("belt.jobs.label", { count: runningJobs }) : "";
+  const [jobsOpen, setJobsOpen] = useState(false);
   // The suggestions above the box read the agent's command list only (the shipped catalog, or the
   // operator's rows): never the skill and command files the palette finds on disk.
   const commandSuggestions = locked || direct.active || isShell ? [] : suggestCommands(input, commandsFor(agent, operatorCommands));
@@ -2344,8 +2359,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
           { id: "none", icon: X, label: translate("composer.agentOffer.none"), onSelect: answerPick },
         ]
       : controls;
-  const beltTap = useRef({ locked, send, stop: stopOffered ? stopTurn : null, changesPill, agents: subagentList.length > 0 });
-  beltTap.current = { locked, send, stop: stopOffered ? stopTurn : null, changesPill, agents: subagentList.length > 0 };
+  const beltTap = useRef({ locked, send, stop: stopOffered ? stopTurn : null, changesPill, agents: subagentList.length > 0, jobs: jobList.length > 0 });
+  beltTap.current = { locked, send, stop: stopOffered ? stopTurn : null, changesPill, agents: subagentList.length > 0, jobs: jobList.length > 0 };
   // The tap moved the focus here and left its act, which runs once, through the same handler and gates
   // as a tap on this belt. A pill this belt does not draw, or draws disabled, does nothing.
   useEffect(() => {
@@ -2361,6 +2376,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
       tap.changesPill?.onClick();
     } else if (intent.kind === "agents") {
       if (tap.agents) setAgentsOpen(true);
+    } else if (intent.kind === "jobs") {
+      if (tap.jobs) setJobsOpen(true);
     } else if (tap.stop !== null) {
       void tap.stop();
     }
@@ -2682,6 +2699,18 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
                   label: agentsLabel,
                   expanded: agentsOpen,
                   onClick: () => setAgentsOpen(true),
+                }
+              : undefined
+          }
+          // The background jobs: the mark right of the agents mark, while any job is listed. Its badge
+          // counts the running ones. A tap opens the Jobs sheet.
+          jobs={
+            jobList.length > 0
+              ? {
+                  count: runningJobs,
+                  label: jobsLabel,
+                  expanded: jobsOpen,
+                  onClick: () => setJobsOpen(true),
                 }
               : undefined
           }
@@ -3249,9 +3278,27 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
               data-slot="composer-primary"
               size="icon"
               {...sendHold}
-              className={cn(TOOLBAR_TAP_TARGET, "size-9 shrink-0 select-none rounded-full [-webkit-touch-callout:none]")}
-              onClick={direct.active ? () => direct.deactivate() : () => onSendClick()}
-              disabled={locked || sending || ((starting || offline) && !direct.active)}
+              // Mouse down, not pointer down: cancelling `pointerdown` makes iPhone WebKit drop the click that
+              // follows (see the belt's clear control in actions-row.tsx), and the press must not move focus
+              // off the field or the first tap only lowers the keyboard.
+              onMouseDown={(e) => e.preventDefault()}
+              className={cn(
+                TOOLBAR_TAP_TARGET,
+                "size-9 shrink-0 select-none rounded-full [-webkit-touch-callout:none]",
+                sendInert && "opacity-50",
+              )}
+              // INERT, NOT `disabled`. A disabled button has `pointer-events: none` (ui/button.tsx), so a tap on
+              // a busy Send fell through to the box and blurred the field. `aria-disabled` keeps the button under
+              // the finger, and the click is dropped here. `canMessage` (above) already holds the hold handlers
+              // off in every inert state, so a long press cannot open the menu either.
+              aria-disabled={sendInert ? true : undefined}
+              onClick={
+                sendInert
+                  ? undefined
+                  : direct.active
+                    ? () => direct.deactivate()
+                    : () => onSendClick()
+              }
               title={offline && !direct.active ? translate("composer.send.reconnect") : undefined}
               aria-label={
                 direct.active
@@ -3306,6 +3353,9 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
         subagents={subagentList}
         onOpen={openSubagent}
       />
+
+      {/* The background jobs, over the page: the jobs mark opens it, and nothing in flow moves. */}
+      <JobsSheet open={jobsOpen && jobList.length > 0} onClose={() => setJobsOpen(false)} title={jobsLabel} jobs={jobList} />
 
       {isShell && <SentSheet open={sentOpen} onClose={() => setSentOpen(false)} cwd={cwd} scope={scope} onPick={pickSent} />}
 

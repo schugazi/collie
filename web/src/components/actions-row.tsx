@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { Bot, Layers, ListTree, Undo2, X, ZoomIn } from "lucide-react";
+import { Bot, Layers, ListTree, Timer, Undo2, X, ZoomIn } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -308,9 +308,25 @@ export interface ActionsRowProps {
     /** The Agents sheet is open: `aria-expanded`, as on the other controls that open a surface. */
     expanded: boolean;
   };
+  /**
+   * THE JOBS MARK (issue 670, ADR 0128): the pane's background jobs, the commands an agent started that
+   * run on after its turn. Built like the agents mark and standing right of it, last on the fork's
+   * controls row: the Timer glyph, the count of RUNNING jobs as the same corner badge, the same `Collapse` on its x axis.
+   * The composer passes it while the pane has a job running or one that ended in the last minutes, so
+   * the count can be zero, and then the mark wears no badge. A tap opens the Jobs sheet.
+   */
+  jobs?: {
+    /** How many jobs are running. Zero while only ended ones are listed: no badge then. */
+    count: number;
+    onClick: () => void;
+    /** ALREADY TRANSLATED. "Jobs 1": the accessible name, the running count in words a reader hears. */
+    label: string;
+    /** The Jobs sheet is open: `aria-expanded`. */
+    expanded: boolean;
+  };
 }
 
-export function ActionsRow({ general, agent, mine, onRun, disabled, durable, stop, hand = "right", handle, changes, zoom, clear, agents }: ActionsRowProps) {
+export function ActionsRow({ general, agent, mine, onRun, disabled, durable, stop, hand = "right", handle, changes, zoom, clear, agents, jobs }: ActionsRowProps) {
   useLocale();
 
   const harnessItems = useHarnessBarItems(agent, mine);
@@ -454,6 +470,37 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, durable, sto
                         >
                           {agents.count}
                         </span>
+                      </Button>
+                    )}
+                  </Collapse>
+                  {/* THE JOBS MARK (the `jobs` prop), right of the agents mark and built as it is. The
+                      badge counts the RUNNING jobs and is not drawn at zero, when the mark stays only
+                      for the jobs that ended in the last minutes. */}
+                  <Collapse axis="x" appear open={jobs !== undefined}>
+                    {jobs && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        data-slot="belt-jobs"
+                        aria-label={jobs.label}
+                        aria-expanded={jobs.expanded}
+                        onClick={jobs.onClick}
+                        className={cn(`${STRIP_ROW_PILL} relative`, OFF)}
+                      >
+                        <Timer className={cn(BELT_ICON, "text-primary")} />
+                        {jobs.count > 0 && (
+                          <span
+                            aria-hidden
+                            data-slot="belt-jobs-count"
+                            className={cn(
+                              PINNED_MARK_BADGE,
+                              "flex h-2.5 min-w-2.5 items-center justify-center text-[9px] leading-none font-semibold tabular-nums text-primary",
+                            )}
+                          >
+                            {jobs.count}
+                          </span>
+                        )}
                       </Button>
                     )}
                   </Collapse>

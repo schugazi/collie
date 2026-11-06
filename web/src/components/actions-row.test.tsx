@@ -432,6 +432,58 @@ describe("ActionsRow — the agents mark's glyph and count", () => {
   });
 });
 
+// THE JOBS MARK (issue 670, ADR 0128): the agents mark's twin for background jobs, right of it and
+// last on the fork's controls row, with the running count as the same corner badge, and no badge at
+// zero.
+describe("ActionsRow, the jobs mark", () => {
+  function renderJobs(count: number, onClick = vi.fn()) {
+    render(
+      <ActionsRow
+        general={[general()]}
+        agent="pi"
+        onRun={took}
+        agents={{ count: 1, onClick: vi.fn(), label: "Agents 1", expanded: false }}
+        jobs={{ count, onClick, label: `Jobs ${count}`, expanded: false }}
+        changes={{ onClick: vi.fn(), label: "Files" }}
+        handle={{ ref: vi.fn(), onClick: vi.fn(), label: "Switch pane" }}
+      />,
+    );
+    return screen.getByRole("button", { name: `Jobs ${count}` });
+  }
+
+  it("stands right of the agents mark on the controls row, and a tap calls its handler", async () => {
+    const onClick = vi.fn();
+    const jobs = renderJobs(2, onClick);
+    expect(jobs).toHaveAttribute("data-slot", "belt-jobs");
+    expect(jobs).toHaveAttribute("aria-expanded", "false");
+    const order = names();
+    expect(order.indexOf("Jobs 2")).toBe(order.indexOf("Agents 1") + 1);
+    expect(jobs.closest('[data-slot="composer-controls"]')).not.toBeNull();
+    await userEvent.click(jobs);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("draws the Timer glyph as its neighbours draw theirs, with the running count in the shared corner badge", () => {
+    const jobs = renderJobs(2);
+    expect(jobs.querySelector("svg.lucide-timer")).not.toBeNull();
+    const glyph = (el: HTMLElement) => el.querySelector("svg.lucide")!.getAttribute("class")!.split(" ").filter((c) => !c.startsWith("lucide"));
+    expect(glyph(jobs)).toEqual(glyph(screen.getByRole("button", { name: "Agents 1" })));
+    const count = jobs.querySelector<HTMLElement>('[data-slot="belt-jobs-count"]')!;
+    expect(count.textContent).toBe("2");
+    expect(count).toHaveClass("pointer-events-none", "absolute", "top-0.5", "right-0.5", "rounded-full", "bg-chrome", "ring-2", "ring-chrome", "tabular-nums");
+  });
+
+  it("wears no badge when only ended jobs are listed", () => {
+    const jobs = renderJobs(0);
+    expect(jobs.querySelector('[data-slot="belt-jobs-count"]')).toBeNull();
+  });
+
+  it("is not drawn without the prop", () => {
+    render(<ActionsRow general={[general()]} agent="pi" onRun={took} handle={{ ref: vi.fn(), onClick: vi.fn(), label: "Switch pane" }} />);
+    expect(document.querySelector('[data-slot="belt-jobs"]')).toBeNull();
+  });
+});
+
 // THE COMPOSER'S CLEAR SLOT (upstream M40 spec 04, issue #291): an icon-only X at the end of the
 // fork's controls row. The composer decides WHEN (a draft in the box, or the Undo window after a
 // tap); this file decides WHERE and how it is drawn.

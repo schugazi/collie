@@ -14,10 +14,11 @@
 #              cannot hide behind a removed one in another. A test must not be skipped just to get
 #              green, so a higher count is a failure. Raise a number only with a reason.
 #              Bridge went from 2 to 0 when M43 spec 04 checked the access list instead of the mode.
-#              Today, 182 in all, each one named, with its reason:
-#              bridge 100. 5 are the POSIX-only and engine cases below, 1 the /etc link scan, 5 are the hold socket tests, 6 the walky ones, 30 are the
+#              Today, 190 in all, each one named, with its reason:
+#              bridge 106. 5 are the POSIX-only and engine cases below, 1 the /etc link scan, 5 are the hold socket tests, 6 the walky ones, 30 are the
 #                durable example apps, 10 are the durable-harness adapter test, 36 are the durable socket tests (see "Durable, bridge" below),
-#                and 5 are the pane's program reads (see "The pane's program, bridge" below).
+#                5 are the pane's program reads (see "The pane's program, bridge" below), and 6 are the fake git of a new
+#                worktree (see "The fake git of a new worktree, bridge" below).
 #                Two skips come from the Claude-only raw Enter test in protocol.unstyled.test.ts (PR 637) that does not apply to pi and omp.
 #                Of the first 5, four are in bridge/stt/local-cli.test.ts. Windows has no executable bit
 #                and no file owner check in this provider:
@@ -82,7 +83,16 @@
 #                - "procProbe sees a live process's executable and folder" (pane-binary.test.ts, off Linux: it reads /proc)
 #                - "two copies of one harness" (pane-binary.test.ts, win32: its fake omp copies are POSIX sh scripts), its one test and
 #                  the hook Bun counts with it. The Windows path of paneBinaryOf runs on Windows with a fake host ("no /proc" tests).
-#              cli 57 in all: 18 in the next paragraph, then 3 of the statusLine wrapper and 36 of walky talky. Of the 18, 12 are every test of the "doctor durable" describe in cli/doctor.test.ts: each reads a
+#              The fake git of a new worktree, bridge (6). bridge/worktree-add.test.ts hands `addWorktree` a fake git, a POSIX
+#                `#!/bin/sh` script that Windows cannot spawn (EFTYPE). Those tests are `test.skipIf` on win32; every test
+#                there that runs the real git runs on Windows too (M81). Each name sits on one line, so the pin test can find it:
+#                - "two creates for one folder at once spawn one git worktree add, and both open the checkout" (a logging wrapper)
+#                - "a create waiting on a failed one for its folder reports the failure, and runs no add of its own" (the same)
+#                - "removes the half-made checkout and the branch it made, and says so" (a git that sleeps past the timeout)
+#                - "says the branch stayed behind when its delete fails" (the same)
+#                - "keeps the branch when the checkout could not be removed" (the same)
+#                - "never removes a folder that was there before the call" (the same)
+#              cli 59 in all: 18 in the next paragraph, then 3 of the statusLine wrapper and 38 of walky talky. Of the 18, 12 are every test of the "doctor durable" describe in cli/doctor.test.ts: each reads a
 #                real Unix socket. Its Windows rows are tested in cli/durable-findings.test.ts with a fake
 #                platform. The other 6:
 #                "a per-call override wins over the Exec's own environment (#283) > a child killed by a signal says which one"
@@ -98,9 +108,9 @@
 #                `describe.skipIf` off Linux: it signals a POSIX process group, and the wrapper is not on Windows by design
 #                (the usage row, .adr/0115). Its 3 tests are "a SIGTERM to the wrapper stops a compound command's grandchild"
 #                (2, one per group layout) and "passes the command's output and exit code through".
-#              Walky talky, cli (36). cli/walky.test.ts runs the verbs against a real bridge socket in a temp state
+#              Walky talky, cli (38). cli/walky.test.ts runs the verbs against a real bridge socket in a temp state
 #                dir, and Windows cannot bind it (the same reason as the hold socket). Each of those tests is
-#                `socketTest`, 10 in "send", 22 in "reply, inbox, status, who", 1 in "cancel" and 3 in "on a crew member". The
+#                `socketTest`, 10 in "send", 24 in "reply, inbox, status, who" (two of them, from M85, are the resting-session sends and the `--wake` refusal on a reply), 1 in "cancel" and 3 in "on a crew member". The
 #                tests that never reach the socket run on Windows: the usage errors, "no bridge at all is
 #                UNREACHABLE" and "on Windows it says why and exits STATE".
 #              scripts 25: 23 are every test of scripts/install.test.ts ("scripts/install.sh > ..."):
@@ -111,8 +121,8 @@
 #                  (it needs a tmux binary, and Windows has none)
 param(
   [Parameter(Mandatory = $true)][string]$Out,
-  [int]$MaxSkipsBridge = 100,
-  [int]$MaxSkipsCli = 57,
+  [int]$MaxSkipsBridge = 106,
+  [int]$MaxSkipsCli = 59,
   [int]$MaxSkipsScripts = 25
 )
 $skipBudget = @{ bridge = $MaxSkipsBridge; cli = $MaxSkipsCli; scripts = $MaxSkipsScripts }
