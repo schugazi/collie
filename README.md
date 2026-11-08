@@ -60,6 +60,8 @@ COLLIE_MUX=herdr collie start          # or: herdr-core, tmux, zellij
 **3. Pair your phone.** Run `collie qr` and scan it. Add Collie to your home screen and open it from
 the icon. Then run `collie pair` and type the code under **Settings → System → Paired devices**.
 
+![Put Collie on the home screen: iPhone and Android steps.](docs/images/install/pwa-install.svg)
+
 That's it: agents waiting on you show up first. Tap one to reply.
 
 > Collie is remote shell access to your machine. Keep it on your tailnet (`tailscale serve`, never
@@ -86,7 +88,7 @@ Prefer to have your agent do it? Ask it to run `collie skill` and follow the bri
 - **Twelve UI languages** and a per-device typeface setting
 - **Herdr session switching** managed from the web interface
 - **PWA support** running locally on loopback with no external accounts or cloud dependencies
-- **No telemetry**: the app sends no analytics, usage statistics or crash reports. Its one unprompted call is the update check to GitHub ([details](./docs/security.md#what-leaves-your-machine))
+- **Telemetry**: new in 1.27.0 and on by default; before that Collie sent nothing. Once a day each bridge (one instance with its own state folder) sends a random ID, the version, the OS, the CPU, the install kind and the release line and, when a trouble card showed, the agent program's name and version, the multiplexer and, for a dialog, a short hash of its key-hint row, as a count. No usage, no content. Turn it off on each machine in Settings, with `COLLIE_TELEMETRY=0` (in the instance's `.env` for a service), `telemetry = false` or `DO_NOT_TRACK=1` ([details](./docs/security.md#what-leaves-your-machine))
 
 ## Demo
 
@@ -384,6 +386,14 @@ The tabs, in order: Dashboard, Pane, Crew, Settings, Boot & connection, Idle & r
 Notices, Motion. Notices covers everything that ANNOUNCES (the notice primitive, the strip band,
 the status toast); Motion covers everything that MOVES without announcing anything (collapse and
 swap primitives, loading bars, sheets, menus, pending and pulsing controls).
+
+A card shows its label and nothing else. Its `reach` and `note`, and a section's `intent`, appear
+only while the page's Notes switch is on (off by default, remembered in `localStorage`).
+`cd web && bun run playground:build` builds the page alone into `web/dist-playground/` (minified,
+one chunk per section, no service worker) for any static server; it never touches `dist/`.
+
+A design round that compares numbered options uses `Round` (`src/playground/round.tsx`): one Case
+switch drives every option, with Zoom, Replay and Flip.
 
 Within a tab, cards are grouped under a `Group` — a small heading over its own `.pg-grid` — ordered
 from the everyday state to the rare one, so a tab with a dozen cards can be skimmed by its group

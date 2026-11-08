@@ -1,10 +1,12 @@
 import {
   makeNotifySink,
   NotificationCoordinator,
+  paneClears,
   type MuteGate,
   type NotifyClock,
   type PushSender,
 } from "../notifications.ts";
+import type { PushMessage } from "../push.ts";
 import { askFloodMessage, AskPush } from "../durable/ask-push.ts";
 import { DEFAULT_GUARD_SESSION } from "../durable/guard.ts";
 import type { AgentStatus, AgentView, CrewMode, PaneWire } from "../types.ts";
@@ -96,6 +98,8 @@ export interface PeerNotifierDeps<H> {
   readonly delayMs: number;
   /** The LEAD's notify prefs, read live — same reason, same construction. */
   readonly isNotifiable: (status: AgentStatus) => boolean;
+  /** The LEAD's "one notification per agent" pref, read live. Absent: the per-host summary. */
+  readonly individual?: () => boolean;
   /**
    * The push guard for panes that carry asks as data (ADR 0100), keyed on `(member id, toolCallId)`.
    * Absent: every pane pushes on its way into `blocked`, as before.
@@ -198,6 +202,13 @@ export class PeerNotifier<H = unknown> {
     for (const { coordinator } of this.hosts.values()) coordinator.applyPrefs();
   }
 
+  /** One `clear` per peer pane with an alert on screen, for the snooze route when each alert is its own notification. */
+  paneClears(): PushMessage[] {
+    return [...this.hosts.entries()].flatMap(([host, { coordinator }]) =>
+      paneClears(crewHerdTagFor(host, true, ""), coordinator.outstandingPaneIds()),
+    );
+  }
+
   /** Every peer slot currently live, for the snooze route's clear-what's-on-screen fan. */
   tags(): string[] {
     return [...this.hosts.keys()].map((host) => crewHerdTagFor(host, true, ""));
@@ -214,6 +225,7 @@ export class PeerNotifier<H = unknown> {
         sink,
         this.deps.delayMs,
         this.deps.isNotifiable,
+        this.deps.individual,
       ),
       statuses: new Map<string, AgentStatus>(),
       pinned: new Set<string>(),

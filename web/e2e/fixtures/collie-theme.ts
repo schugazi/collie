@@ -25,3 +25,44 @@ function requiredOnly(half: Half | undefined): Half {
 
 /** `collie.json`'s light and dark halves with the 43 required tokens only. */
 export const collieHalves = { light: requiredOnly(collie.light), dark: requiredOnly(collie.dark) } as const;
+
+/**
+ * AN IMPORTED THEME THAT DRAWS THE FIRST COLLIE LOOK'S SHAPE: stock shadows, medium weight, the page
+ * for the chrome, capital labels, the plain tab and the field composer. The default theme Collie now
+ * draws the flat, banded, folder-and-box look, so a case that measures the geometry of the older
+ * layout (the voice takeover's 1px rule, a 30px tab row) seeds this one.
+ */
+export const plainLookTheme = {
+  version: 2,
+  id: "plain-look",
+  name: "Plain look",
+  light: collieHalves.light,
+  dark: collieHalves.dark,
+  surface: { shadow: "default", weight: "default", chrome: "page", labels: "caps", tabs: "plain", composer: "field" },
+} as const;
+
+/**
+ * THE FORK'S BOX LOOK: Collie's own theme with the box composer. The fork's `collie.json` names the
+ * field composer, so a case that measures the box seeds this one.
+ */
+export const boxLookTheme = { ...collie, id: "box-look", name: "Box look", surface: { ...collie.surface, composer: "box" } };
+
+async function wear(page: import("@playwright/test").Page, theme: { readonly id: string }): Promise<void> {
+  await page.addInitScript(
+    ([design, library]) => {
+      localStorage.setItem("collie:design:v1", design);
+      localStorage.setItem("collie:themes:v1", library);
+    },
+    [JSON.stringify({ font: "aldrich", theme: theme.id }), JSON.stringify({ version: 1, themes: [theme] })] as const,
+  );
+}
+
+/** Seed the design blob and the library so the device wears {@link plainLookTheme}. */
+export async function wearPlainLook(page: import("@playwright/test").Page): Promise<void> {
+  await wear(page, plainLookTheme);
+}
+
+/** Seed the design blob and the library so the device wears {@link boxLookTheme}. */
+export async function wearBoxLook(page: import("@playwright/test").Page): Promise<void> {
+  await wear(page, boxLookTheme);
+}
