@@ -1249,7 +1249,6 @@ export const fr: Dictionary = {
   "harnessBar.compactAsk": "Compact now?",
   "harnessBar.yes": "Yes",
   "harnessBar.no": "No",
-  "composer.agentOffer.none": "Aucun",
   "harnessBar.model": "Modèle",
   "harnessBar.effort": "Effort",
   "harnessBar.compact": "Compacter",

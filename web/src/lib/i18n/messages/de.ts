@@ -362,7 +362,6 @@ export const de: Dictionary = {
   "composer.controls.display": "Anzeige",
   "composer.controls.screenAria": "Bildschirmzeilen anzeigen, ohne Karten",
   "composer.controls.screen": "Bildschirm",
-  "composer.agentOffer.none": "Keiner",
   "composer.controls.clear": "Nachricht löschen",
   "composer.controls.undoClear": "Löschen rückgängig machen",
   "composer.sentPreview.label": "Gesendet:",

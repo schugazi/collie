@@ -359,7 +359,6 @@ export const ko: Dictionary = {
   "composer.controls.display": "표시",
   "composer.controls.screenAria": "카드 없이 화면 행 표시",
   "composer.controls.screen": "화면",
-  "composer.agentOffer.none": "없음",
   "composer.controls.clear": "메시지 지우기",
   "composer.controls.undoClear": "지우기 취소",
   "composer.sentPreview.label": "보낸 내용:",

@@ -91,7 +91,6 @@ const KEYS = new Map<string, KeyFate>([
   ["collie:update-mode:v1", { area: "session", prefix: false, fate: "kept", why: "update screen state" }],
   ["collie:auto-reloaded-for=", { area: "session", prefix: true, fate: "kept", why: "reload guard, a build id" }],
   ["collie:pwa:guardReload:v1", { area: "session", prefix: false, fate: "kept", why: "reload guard" }],
-  ["collie:agent-offer:v1", { area: "session", prefix: false, fate: "kept", why: "pane ids and offer states, no content" }],
   ["collie:math-reload:v1", { area: "session", prefix: false, fate: "kept", why: "reload guard, the one reload when the math pack arrives" }],
   ["collie.slot.tab", { area: "session", prefix: false, fate: "kept", why: "navigation state, one slot number" }],
   ["collie:theme-trial:v1", { area: "session", prefix: false, fate: "kept", why: "a theme being tried in this tab (M59 spec 08): a preference that lasts the tab, like the theme library" }],

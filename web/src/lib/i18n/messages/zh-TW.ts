@@ -348,7 +348,6 @@ export const zhTW: Dictionary = {
   "composer.controls.display": "顯示",
   "composer.controls.screenAria": "顯示螢幕列，不含卡片",
   "composer.controls.screen": "螢幕",
-  "composer.agentOffer.none": "無",
   "composer.controls.clear": "清除訊息",
   "composer.controls.undoClear": "復原清除",
   "composer.sentPreview.label": "已傳送：",

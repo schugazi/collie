@@ -25,7 +25,6 @@ Running a crew? Update the lead first; members follow on their own. Details:
 
 ### Added
 
-- **A bare new tab offers to start Claude or Codex.** When "+" skips the New tab sheet and opens a plain shell, the belt's top row shows Claude, Codex and None until one is tapped; Claude and Codex type that command into the shell, None just brings the usual controls back. The New tab sheet and the New page pick the agent everywhere else.
 - **The Keys tray's number pad has a zero key.** The 123 panel now runs 1 to 9 then 0, two even rows of five.
 
 ### Changed

@@ -1,7 +1,7 @@
 import { forwardRef, useContext, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
 import type { ChangeEvent, ClipboardEvent, CSSProperties, MouseEvent, ReactNode } from "react";
-import { useLocation, useRevalidator } from "react-router";
+import { useRevalidator } from "react-router";
 
 import { StatusDot } from "@/components/status-badge";
 import { applyDraftFontSize, fontStack, inputFocusZoomsPage, reportOfferOf, sentSuggestionsOf } from "@/hooks/use-display-prefs";
@@ -460,29 +460,6 @@ const ATTACH_PRESS_MS = 220;
 const TAKEOVER_FOCUS_FRAMES = 15;
 
 /**
- * The new-terminal agent offer per pane (`offerAgent` in Composer): "pending" from the navigation
- * that created the pane until a tap makes it "answered". In sessionStorage, not the history entry,
- * so switching away and back keeps an unanswered offer and a reload does not revive an answered one.
- * ponytail: never pruned, so a Herdr-reused pane id inherits a stale "pending"; isShell bounds it.
- */
-const AGENT_OFFER_KEY = "collie:agent-offer:v1";
-function readAgentOffers(): Record<string, "pending" | "answered"> {
-  try {
-    // SAFETY: only this module writes the key, and always this shape; a bad parse falls to `{}`.
-    return JSON.parse(globalThis.sessionStorage?.getItem(AGENT_OFFER_KEY) ?? "{}") as Record<string, "pending" | "answered">;
-  } catch {
-    return {};
-  }
-}
-function writeAgentOffer(key: string, state: "pending" | "answered"): void {
-  try {
-    globalThis.sessionStorage?.setItem(AGENT_OFFER_KEY, JSON.stringify({ ...readAgentOffers(), [key]: state }));
-  } catch {
-    // Storage full or blocked: the offer then lasts only as long as this render's state.
-  }
-}
-
-/**
  * A photo chip's thumbnail source: a blob URL for the picked file, valid for this page session only
  * (ADR 0060). Undefined where the browser has no object URLs (jsdom), which draws the icon tile. The
  * bridge's CSP admits `blob:` in `img-src` for exactly this; a blob URL is minted by this page's own
@@ -620,25 +597,6 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   const noteOfflineKeystroke = (value: string) => {
     if (value === "" || !offlineRef.current) return;
     setDraftNote((note) => (note === "idle" ? "shown" : note));
-  };
-
-  // A terminal just opened from this phone (`pickAgent`, hooks/use-spaces.ts): the belt's top row
-  // offers Claude / Codex / None instead of the controls until one is tapped (AGENT_OFFER_KEY above).
-  // A pane that is no longer a bare shell (an agent already started in it) never asks.
-  const location = useLocation();
-  const pickKey = `${scopeKey(scope)}|${paneId}`;
-  const [offerPending, setOfferPending] = useState(() => {
-    const known = readAgentOffers()[pickKey];
-    if (known !== undefined) return known === "pending";
-    // SAFETY: `location.state` is whatever the navigation attached; only `pickAgent === true` counts.
-    const created = (location.state as { pickAgent?: boolean } | null)?.pickAgent === true;
-    if (created) writeAgentOffer(pickKey, "pending");
-    return created;
-  });
-  const offerAgent = offerPending && isShell && !locked;
-  const answerPick = () => {
-    writeAgentOffer(pickKey, "answered");
-    setOfferPending(false);
   };
 
   // The phone-owned draft, restored from (and written through to) the per-pane draft store — the
@@ -2422,18 +2380,6 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
     beltPills.current = pills;
     return pills;
   };
-  // The fork's new-terminal offer covers the top row while it is pending, but `keepBelt` still records
-  // the usual controls: another column draws those for this pane, and its tap must find them here.
-  // Harness names are another tool's vocabulary, so they stay untranslated. Disabled mid-send: `send`
-  // refuses while one is in flight, and the tap would still dismiss the offer having typed nothing.
-  const offerOr = (controls: GeneralAction[]): GeneralAction[] =>
-    offerAgent
-      ? [
-          { id: "claude", icon: "harnesses", label: "Claude", disabled: sending, onSelect: () => { answerPick(); void send("claude", false); } },
-          { id: "codex", icon: "view-source", label: "Codex", disabled: sending, onSelect: () => { answerPick(); void send("codex", false); } },
-          { id: "none", icon: "dismiss", label: translate("composer.agentOffer.none"), onSelect: answerPick },
-        ]
-      : controls;
   const beltTap = useRef({ locked, send, stop: stopOffered ? stopTurn : null, changesPill, agents: subagentList.length > 0, jobs: jobList.length > 0, pins: pinCount > 0 });
   beltTap.current = { locked, send, stop: stopOffered ? stopTurn : null, changesPill, agents: subagentList.length > 0, jobs: jobList.length > 0, pins: pinCount > 0 };
   // The tap moved the focus here and left its act, which runs once, through the same handler and gates
@@ -2828,7 +2774,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
   */}
         {aboveBelt}
         <ActionsRow
-          general={offerOr(keepBelt([
+          general={keepBelt([
               // Keys and Quick are TOGGLES for the in-flow dock above (not overlays): tap to
               // open, tap again to close. `expanded` ties each to the dock; the "on" tint marks
               // it pressed while open. Both share the single-valued `drawer`, so opening one
@@ -2957,7 +2903,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Compo
                   display.onToggle();
                 },
               },
-          ]))}
+          ])}
           agent={agent}
           mine={operatorCommands}
           onRun={(command) => send(command, false)}

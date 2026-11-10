@@ -1312,7 +1312,6 @@ export const ru: Dictionary = {
   "harnessBar.compactAsk": "Compact now?",
   "harnessBar.yes": "Yes",
   "harnessBar.no": "No",
-  "composer.agentOffer.none": "Нет",
   "harnessBar.model": "Модель",
   "harnessBar.effort": "Усилие",
   "harnessBar.compact": "Компактный",

@@ -472,7 +472,6 @@ export const en = {
   "composer.controls.display": "Display",
   "composer.controls.screenAria": "Show the screen rows, without cards",
   "composer.controls.screen": "Screen",
-  "composer.agentOffer.none": "None",
   "composer.controls.clear": "Clear message",
   "composer.controls.undoClear": "Undo clear",
   "composer.sentPreview.label": "You sent:",

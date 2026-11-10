@@ -125,9 +125,7 @@ export function useSpaceActions(canWrite?: () => boolean) {
     // the SAME scope, or the phone would open the new pane's id on the machine it was looking at —
     // where that id is a different terminal, which is the one mistake the host dimension exists to
     // prevent. Absent means the ambient scope, which is every caller that cannot re-address.
-    // `pickAgent`: the new pane is a bare "+ tab" shell nothing has typed into yet, so the composer
-    // offers to start an agent in it. Only `newTab` sets it: the New page already chose what to start.
-    (res: CreateResponse, what: "tab" | "space", at?: Scope, harness?: string, pickAgent = false) => {
+    (res: CreateResponse, what: "tab" | "space", at?: Scope, harness?: string) => {
       if (!res.ok) {
         setStatus(describeApiError(res), "error");
         return;
@@ -154,7 +152,7 @@ export function useSpaceActions(canWrite?: () => boolean) {
       // `open`: a step DOWN from a dashboard or a space, SIDEWAYS from a pane (a new tab opened
       // from inside one), so the new pane's way up is the level the operator started from (ADR 0067).
       const scope = at ?? scopeRef.current;
-      const state: NavExtras = { freshPane: fresh, pickAgent };
+      const state: NavExtras = { freshPane: fresh };
       if (harness !== undefined) state.agentLaunch = { id: mintRequestId(), paneKey: paneScopeKey(scope, p.paneId), harness };
       nav.open(panePath(p.paneId, scope), state);
     },
@@ -194,7 +192,7 @@ export function useSpaceActions(canWrite?: () => boolean) {
       creatingTabRef.current.add(key);
       setCreatingTab(new Set(creatingTabRef.current));
       try {
-        open(await api.createTab(workspaceId, {}, scope), "tab", scope, undefined, true);
+        open(await api.createTab(workspaceId, {}, scope), "tab", scope);
       } catch (e) {
         setStatus(describeThrownError(e), "error");
       } finally {

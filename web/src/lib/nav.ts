@@ -393,8 +393,6 @@ export function pairLandingPath(search: string): string | null {
 export interface NavState {
   from?: string;
   freshPane?: AgentView;
-  /** A new bare terminal: the composer offers Claude / Codex / None on its top belt row once. */
-  pickAgent?: boolean;
   /** A named terminal-agent launch, scoped separately from the optimistic shell bootstrap. */
   agentLaunch?: AgentLaunch;
   /**

@@ -360,7 +360,6 @@ export const es: Dictionary = {
   "composer.controls.display": "Pantalla",
   "composer.controls.screenAria": "Mostrar las filas de la pantalla, sin tarjetas",
   "composer.controls.screen": "Pantalla",
-  "composer.agentOffer.none": "Ninguno",
   "composer.controls.clear": "Borrar mensaje",
   "composer.controls.undoClear": "Deshacer borrado",
   "composer.sentPreview.label": "Enviado:",

@@ -357,7 +357,6 @@ export const ja: Dictionary = {
   "composer.controls.display": "表示",
   "composer.controls.screenAria": "カードなしで画面の行を表示",
   "composer.controls.screen": "画面",
-  "composer.agentOffer.none": "なし",
   "composer.controls.clear": "メッセージを消去",
   "composer.controls.undoClear": "消去を元に戻す",
   "composer.sentPreview.label": "送信済み:",

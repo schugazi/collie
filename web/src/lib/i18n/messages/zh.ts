@@ -349,7 +349,6 @@ export const zh: Dictionary = {
   "composer.controls.display": "显示",
   "composer.controls.screenAria": "显示屏幕行，不含卡片",
   "composer.controls.screen": "屏幕",
-  "composer.agentOffer.none": "无",
   "composer.controls.clear": "清除消息",
   "composer.controls.undoClear": "撤销清除",
   "composer.sentPreview.label": "已发送：",
