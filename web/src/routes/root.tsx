@@ -286,15 +286,15 @@ export function BootSplash() {
         style={{ animation: `boot-splash-in 200ms ease-out ${revealDelay}ms both` }}
       >
         {/* The loading border stays coloured with reduced motion. The text names the state. */}
-        <CollieMark size={64} weight="header" loading paper="var(--background)" />
+        <CollieMark size={64} weight="header" state="loading" paper="var(--background)" />
         <span className="text-sm">{t("error.boot.connecting")}</span>
       </div>
     );
   }
   return (
     <div className="flex h-(--app-h) flex-col items-center justify-center gap-3 p-6 text-center">
-      {/* A disconnected mark is still and muted; the text names the state. */}
-      <CollieMark size={64} weight="header" paper="var(--background)" className="opacity-40 grayscale" />
+      {/* A disconnected mark is still and muted (`idle`); the text names the state. */}
+      <CollieMark size={64} weight="header" state="idle" paper="var(--background)" />
       <p className="font-medium text-foreground">{t("error.boot.title")}</p>
       <p className="max-w-xs text-sm text-muted-foreground">{t("error.boot.body")}</p>
       <button

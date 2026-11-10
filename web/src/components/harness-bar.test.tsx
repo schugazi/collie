@@ -64,7 +64,7 @@ describe("HarnessBar", () => {
     expect(onRun).toHaveBeenCalledWith("/resume");
     // The ✓ replaces only the icon for ECHO_DONE_MS; the word "Resume" stays put.
     const button = screen.getByRole("button", { name: "Resume" });
-    await waitFor(() => expect(button.querySelector("svg.lucide-check")).toBeInTheDocument());
+    await waitFor(() => expect(button.querySelector('svg[data-icon="confirm"]')).toBeInTheDocument());
     expect(button).toHaveTextContent("Resume");
   });
 
@@ -81,7 +81,7 @@ describe("HarnessBar", () => {
     expect(onRun).toHaveBeenCalledWith("/compact");
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: "Compact" }).querySelector("svg.lucide-check"),
+        screen.getByRole("button", { name: "Compact" }).querySelector('svg[data-icon="confirm"]'),
       ).toBeInTheDocument(),
     );
   });
@@ -122,7 +122,7 @@ describe("HarnessBar", () => {
     const before = button.textContent;
     await userEvent.click(button);
     expect(onRun).toHaveBeenCalledWith("/resume");
-    await waitFor(() => expect(button.querySelector("svg.lucide-check")).toBeInTheDocument());
+    await waitFor(() => expect(button.querySelector('svg[data-icon="confirm"]')).toBeInTheDocument());
     // Same box, same word: only the icon swapped for the check.
     expect(button.textContent).toBe(before);
     expect(button).toHaveTextContent("Resume");
@@ -133,7 +133,7 @@ describe("HarnessBar", () => {
     render(<HarnessBar agent="claude" onRun={onRun} />);
     const button = screen.getByRole("button", { name: "Resume" });
     await userEvent.click(button);
-    await waitFor(() => expect(button.querySelector("svg.lucide-check")).toBeInTheDocument());
+    await waitFor(() => expect(button.querySelector('svg[data-icon="confirm"]')).toBeInTheDocument());
     expect(button).toHaveClass("bg-white");
     expect(button).not.toHaveClass("bg-primary");
     const accent = accentFor("claude");

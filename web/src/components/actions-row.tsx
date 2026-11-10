@@ -1,6 +1,4 @@
 import type { CSSProperties } from "react";
-import { Bot, Layers, ListTree, Timer, Undo2, X, ZoomIn } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Collapse } from "@/components/ui/collapse";
@@ -22,6 +20,8 @@ import { useLocale } from "@/hooks/use-locale";
 import { t as translate } from "@/lib/i18n";
 import type { OperatorCommand } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { Icon } from "@/components/icons/icon";
+import type { IconKey } from "@/components/icons/keys";
 
 // TWO ROWS OF ACTIONS, DIRECTLY ABOVE THE INPUT. Stop stands at the top row's start (in view at rest,
 // no scroll needed; dimmed while no turn runs, so the row never reflows), then Collie's own controls —
@@ -162,7 +162,7 @@ const PINNED_MARK_BADGE = "pointer-events-none absolute top-0.5 right-0.5 rounde
 export interface GeneralAction {
   /** Stable, for React's key. Never shown. */
   id: string;
-  icon: LucideIcon;
+  icon: IconKey;
   /** ALREADY TRANSLATED. The button's accessible name — what a reader announces and what a test
    *  addresses. It is never shortened for the paint. */
   label: string;
@@ -324,9 +324,24 @@ export interface ActionsRowProps {
     /** The Jobs sheet is open: `aria-expanded`. */
     expanded: boolean;
   };
+  /**
+   * THE PINS MARK (M90): the pinned messages of the pane's session. Built like the agents mark and standing right
+   * of the jobs mark, left of Changes: the Pin glyph, the count of pins as the same corner badge, the same `Collapse`
+   * on its x axis. The pane view passes it only while the session has at least one pin, so it is never drawn at zero.
+   * A tap opens the Pins sheet.
+   */
+  pins?: {
+    /** How many pins the session holds. Above zero whenever the prop is passed. */
+    count: number;
+    onClick: () => void;
+    /** ALREADY TRANSLATED. "3 pinned": the accessible name, the count in words a reader hears. */
+    label: string;
+    /** The Pins sheet is open: `aria-expanded`. */
+    expanded: boolean;
+  };
 }
 
-export function ActionsRow({ general, agent, mine, onRun, disabled, durable, stop, hand = "right", handle, changes, zoom, clear, agents, jobs }: ActionsRowProps) {
+export function ActionsRow({ general, agent, mine, onRun, disabled, durable, stop, hand = "right", handle, changes, zoom, clear, agents, jobs, pins }: ActionsRowProps) {
   useLocale();
 
   const harnessItems = useHarnessBarItems(agent, mine);
@@ -426,7 +441,7 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, durable, sto
                       onClick={action.onSelect}
                       className={cn(`${STRIP_ROW_PILL} gap-1 text-[11px]`, action.on === true ? ON : OFF, left && "[direction:ltr]")}
                     >
-                      <action.icon className={BELT_ICON} />
+                      <Icon name={action.icon} className={BELT_ICON} />
                       {action.word ?? action.label}
                     </Button>
                   ))}
@@ -441,7 +456,7 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, durable, sto
                       onClick={zoom.onClick}
                       className={cn(STRIP_ROW_PILL, OFF)}
                     >
-                      <ZoomIn className={cn(BELT_ICON, "text-primary")} />
+                      <Icon name="zoom" className={cn(BELT_ICON, "text-primary")} />
                     </Button>
                   )}
                   {/* THE AGENTS MARK (the `agents` prop), last on the controls row: the fork's Switch
@@ -459,7 +474,7 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, durable, sto
                         onClick={agents.onClick}
                         className={cn(`${STRIP_ROW_PILL} relative`, OFF)}
                       >
-                        <Bot className={cn(BELT_ICON, "text-primary")} />
+                        <Icon name="subagent" className={cn(BELT_ICON, "text-primary")} />
                         <span
                           aria-hidden
                           data-slot="belt-agents-count"
@@ -488,7 +503,7 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, durable, sto
                         onClick={jobs.onClick}
                         className={cn(`${STRIP_ROW_PILL} relative`, OFF)}
                       >
-                        <Timer className={cn(BELT_ICON, "text-primary")} />
+                        <Icon name="jobs" className={cn(BELT_ICON, "text-primary")} />
                         {jobs.count > 0 && (
                           <span
                             aria-hidden
@@ -501,6 +516,34 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, durable, sto
                             {jobs.count}
                           </span>
                         )}
+                      </Button>
+                    )}
+                  </Collapse>
+                  {/* THE PINS MARK (the `pins` prop), right of the jobs mark and built as it is. Passed
+                      only while the session has a pin, so its badge is never drawn at zero. */}
+                  <Collapse axis="x" appear open={pins !== undefined}>
+                    {pins && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        data-slot="belt-pins"
+                        aria-label={pins.label}
+                        aria-expanded={pins.expanded}
+                        onClick={pins.onClick}
+                        className={cn(`${STRIP_ROW_PILL} relative`, OFF)}
+                      >
+                        <Icon name="pins-list" className={cn(BELT_ICON, "text-primary")} />
+                        <span
+                          aria-hidden
+                          data-slot="belt-pins-count"
+                          className={cn(
+                            PINNED_MARK_BADGE,
+                            "flex h-2.5 min-w-2.5 items-center justify-center text-[9px] leading-none font-semibold tabular-nums text-primary",
+                          )}
+                        >
+                          {pins.count}
+                        </span>
                       </Button>
                     )}
                   </Collapse>
@@ -570,9 +613,9 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, durable, sto
               className={cn(CELL_BUTTON, clear.inert === true && "opacity-50")}
             >
               {clear.mode === "undo" ? (
-                <Undo2 className={cn(BELT_ICON, "text-primary")} />
+                <Icon name="undo" className={cn(BELT_ICON, "text-primary")} />
               ) : (
-                <X className={cn(BELT_ICON, "text-primary")} />
+                <Icon name="clear" className={cn(BELT_ICON, "text-primary")} />
               )}
             </Button>
           ) : changes && (
@@ -584,7 +627,7 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, durable, sto
               onClick={changes.onClick}
               className={CELL_BUTTON}
             >
-              <ListTree className={cn(BELT_ICON, "text-primary")} />
+              <Icon name="files" className={cn(BELT_ICON, "text-primary")} />
             </Button>
           )}
           {handle && (
@@ -598,7 +641,7 @@ export function ActionsRow({ general, agent, mine, onRun, disabled, durable, sto
               className={CELL_BUTTON}
             >
               <span className="relative flex">
-                <Layers className={cn(BELT_ICON, "text-primary")} />
+                <Icon name="pane-switcher" className={cn(BELT_ICON, "text-primary")} />
                 {/* The needs-you mark (the triangle), on the mark's top-right corner, absolutely placed
                     so it never moves the belt. The chrome-coloured disc and ring cut it out of the
                     glyph it overlaps. 10px since 2026-10-14: at 12px the triangle read as heavy as the

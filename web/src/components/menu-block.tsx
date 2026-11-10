@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Loader2 } from "lucide-react";
+import { Icon } from "@/components/icons/icon";
 
 import { cn } from "@/lib/utils";
 import type { MenuModel, StyledLine } from "@/lib/blocks";
@@ -108,7 +108,7 @@ export function MenuBlock({ menu, lines, onAction, disabled }: MenuBlockProps) {
   }
 
   const spinner = (
-    <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" aria-label={t("dialog.sendingAria")} />
+    <Icon name="busy" className="size-3.5 shrink-0 animate-spin text-muted-foreground" aria-label={t("dialog.sendingAria")} />
   );
   // A full-width button's spinner stands OUT of the flow, at its left edge: inserted beside the word
   // it pushed the label sideways for as long as the key was sending (the Cancel "flicker").
@@ -183,9 +183,9 @@ export function MenuBlock({ menu, lines, onAction, disabled }: MenuBlockProps) {
       {(menu.nav.upDown || (leftRight !== undefined && !readsBody)) && (
         <div className="flex items-center gap-1.5">
           {menu.nav.upDown &&
-            navButton("up", t("dialog.menu.moveUp"), MENU_UP_KEYS, <ArrowUp className="size-4" />)}
+            navButton("up", t("dialog.menu.moveUp"), MENU_UP_KEYS, <Icon name="key-up" className="size-4" />)}
           {menu.nav.upDown &&
-            navButton("down", t("dialog.menu.moveDown"), MENU_DOWN_KEYS, <ArrowDown className="size-4" />)}
+            navButton("down", t("dialog.menu.moveDown"), MENU_DOWN_KEYS, <Icon name="key-down" className="size-4" />)}
           {/* No visible value beside ←/→: the mirror above already shows it, and a label whose width
               tracked the live value resized every arrow as it changed (operator, from the phone). The
               accessible names still carry it. Every arrow is flex-1, so four split the row evenly. */}
@@ -195,7 +195,7 @@ export function MenuBlock({ menu, lines, onAction, disabled }: MenuBlockProps) {
               "left",
               t("dialog.menu.leftAria", { verb: leftRight.verb, label: leftRight.label }),
               MENU_LEFT_KEYS,
-              <ArrowLeft className="size-4" />,
+              <Icon name="key-left" className="size-4" />,
             )}
           {leftRight !== undefined &&
             !readsBody &&
@@ -203,7 +203,7 @@ export function MenuBlock({ menu, lines, onAction, disabled }: MenuBlockProps) {
               "right",
               t("dialog.menu.rightAria", { verb: leftRight.verb, label: leftRight.label }),
               MENU_RIGHT_KEYS,
-              <ArrowRight className="size-4" />,
+              <Icon name="key-right" className="size-4" />,
             )}
         </div>
       )}
