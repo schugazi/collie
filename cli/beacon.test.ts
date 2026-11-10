@@ -329,6 +329,24 @@ describe("it never fails, and it never speaks", () => {
     }
   });
 
+  test("a print or SDK run inside the pane writes nothing — and does not read stdin", async () => {
+    for (const entrypoint of ["sdk-cli", "sdk-ts", "sdk-py"]) {
+      let read = false;
+      const d = {
+        ...deps({ env: { ...TMUX, CLAUDE_CODE_ENTRYPOINT: entrypoint } }),
+        readStdin: () => {
+          read = true;
+          return Promise.resolve(payload({ hook_event_name: "SessionStart", source: "startup" }));
+        },
+      };
+      expect(await cmdBeaconEmit(d)).toBe(EXIT.OK);
+      expect(read).toBe(false);
+      expect(d.files.entries.size).toBe(1);
+    }
+    // The interactive CLI is the pane's agent.
+    expect((await silent({ env: { ...TMUX, CLAUDE_CODE_ENTRYPOINT: "cli" } })).size).toBe(1);
+  });
+
   test("a subagent's payload is ignored — its session id is not the pane's", async () => {
     expect((await silent({ stdin: payload({ agent_id: "sub-1", agent_type: "explore" }) })).size).toBe(0);
   });

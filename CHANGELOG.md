@@ -69,6 +69,7 @@ Running a crew? Update the lead first; members follow on their own. Details:
 - **The New worktree switch no longer slides in after the New page opens.** It waited for the machine's agent list and then animated in over the Folder field; it is now on screen from the first paint.
 - **A named session's question keeps its buttons while the task list is open.** The closing rule Claude Code 2.1.296 draws under a dialog in a named session is now taken off whether the task list or a background agent's message sits under it or between it and the footer.
 - **A lead's launcher row now starts on the crew member you pick.** The launch forwarded to a member dropped the lead's row and its mark, so the member refused it as not allowlisted.
+- **A `claude -p` run inside a pane no longer takes over that pane's session.** It inherited the pane's markers, so its hooks replaced the visible Claude's beacon, and History and Chat showed the background run. The beacon hooks now skip print and SDK runs.
 
 ## [1.28.0] - 2026-11-09
 

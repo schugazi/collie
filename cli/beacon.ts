@@ -610,6 +610,10 @@ export async function cmdBeaconEmit(deps: BeaconEmitDeps): Promise<number> {
     const markers = readEnvMarkers(deps.ctx.env);
     // Not in a multiplexer Collie can join a beacon to: nothing to say, and nothing read.
     if (markers.length === 0) return EXIT.OK;
+    // A print or SDK run (`claude -p`, entrypoint `sdk-cli`/`sdk-ts`/…) started from inside the pane
+    // inherits the pane's markers but is not the pane's agent: its beacon would replace the session of
+    // the Claude the operator sees, and its edges would move that pane's status.
+    if ((deps.ctx.env.CLAUDE_CODE_ENTRYPOINT ?? "").startsWith("sdk-")) return EXIT.OK;
 
     const payload = asObject(JSON.parse(await deps.readStdin()));
     if (payload === null) return EXIT.OK;
