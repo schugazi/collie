@@ -59,17 +59,36 @@ Also check the merged result where git reported **no** conflict. A clean textual
 
 ## 3. Verify
 
-Repeat until everything is green (memory-heavy, so wrap in `dev-run`):
+The tests are most of a sync's time: the frontend suite is about 58,000 tests and takes about 18 minutes on this 4-core host, the backend suite about 90 seconds. **Each suite runs in full exactly once per sync, here.** After that, rerun only what failed or what a fix touched; step 5 adds no second full run.
+
+Run the checks one at a time, never two suites at once: two suites side by side push the slow tests past their timeouts. Start each test run with the Bash tool's `run_in_background: true`, its output in a scratchpad log, and wait for the completion notice; don't poll with `sleep` or `pgrep`. Wrap the test runs in `dev-run` (memory-heavy).
 
 ```bash
 bun install && (cd web && bun install)
 bun run typecheck && (cd web && bun run typecheck)     # both — root doesn't cover web tests
 bun run lint
-dev-run -- bun run test
-dev-run -- bash -c 'cd web && bun run test'
+dev-run -- bun run test > <scratchpad>/backend.log 2>&1
+dev-run -- bash -c 'cd web && bunx vitest run --testTimeout=60000 --hookTimeout=60000' > <scratchpad>/web.log 2>&1
 ```
 
-Also check that `~/.bun/bin/bun --version` is still at or above `MIN_BUN` in `cli/update-check.ts`. A failing test that the fork's own code (`git diff upstream/stable -- <file>`) caused is yours to fix. If it fails the same way on plain `upstream/stable`, note it and don't fix it.
+`--testTimeout`/`--hookTimeout` lift the 5-second default for tests that set no limit of their own. Keep vitest's default worker count: two workers instead of three ran the suite slower and failed no fewer tests.
+
+Also check that `~/.bun/bin/bun --version` is still at or above `MIN_BUN` in `cli/update-check.ts`.
+
+**A red test on this host is usually load, not a bug.** A full run here ends with a few red tests even on a clean tree. Tests that set their own limit (the playground's 30-second cases, `unread-dialog`'s fixture sweep, `fold.plain`) fail at that limit whenever the host is busy. A few timing-sensitive UI tests (`wide-layout`, the update banner) fail fast under the same load. A backend failure at about 5000 ms is the same thing. Before you read any failure, rerun all the failed files together in one command, on one worker:
+
+```bash
+dev-run -- bash -c 'cd web && bunx vitest run --maxWorkers=1 --testTimeout=60000 --hookTimeout=60000 <failed files>'
+dev-run -- bun test --timeout 20000 <failed backend files>
+```
+
+A file that passes alone failed from load: name it in the commit body and move on. Upstream publishes a release only from a commit whose CI passed, so a failure that repeats alone is either the fork's code (`git diff upstream/stable -- <file>`), which is yours to fix, or this host's environment, which you note and don't fix. After a fix, rerun the failed files plus the tests related to what you changed, not the full suite:
+
+```bash
+dev-run -- bash -c 'cd web && bunx vitest related --run --testTimeout=60000 --hookTimeout=60000 <changed web/ files, relative to web/>'
+```
+
+ `related` follows imports, so a fix in a module many screens import selects a large part of the suite (`src/lib/nav.ts` selects 132 files, about 8 minutes, and the i18n messages nearly all of it): that is the run then.
 
 Then record the merge as a **local, unpublished** commit. `--remerge-diff` needs a commit to show the resolutions, and the commit is amended in step 5:
 
@@ -89,7 +108,7 @@ Make **one** Agent tool call with `subagent_type: "code-reviewer"`, `model: "sol
 
 ## 5. Apply what you agree with
 
-For each finding, decide: apply it, or reject it with a one-line reason. Re-run all of step 3's checks. Then fold the accepted fixes into the merge commit so each sync stays one commit:
+For each finding, decide: apply it, or reject it with a one-line reason. After the fixes, re-run both typechecks and lint, the backend suite (it is fast) and, for the frontend, step 3's `vitest related` command over the files the fixes changed, read the same way as in step 3. No full frontend run; `bun run build` in step 6 typechecks once more. Then fold the accepted fixes into the merge commit so each sync stays one commit:
 
 ```bash
 git add -A && git commit --amend
