@@ -5,7 +5,8 @@ import { MARK_STYLE, beadFill, useMark, type MarkProps, type MarkSpec } from "./
 // The fork's mark: the mycroftxxx dashboard emblem (a bitmap) with a ring that pulses while the app
 // works. It implements upstream's mark contract (mark-contract.ts) so every state the host asks for
 // reads: the ring is three arcs, the mark's three beads, so `applying` and `reconnected` colour it with
-// their status colours, `idle` dims the whole mark, and a resting mark runs no animation (`data-rest`).
+// their status colours, `idle` dims the whole mark, and a resting mark runs no animation (the pulse
+// runs only under the live look, so `rest` has nothing to drift).
 // The ring is the only line drawn: while live it takes a theme's `--mark-ink`, teal by default.
 
 const STYLE = `${MARK_STYLE}
