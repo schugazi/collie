@@ -59,7 +59,7 @@ Also check the merged result where git reported **no** conflict. A clean textual
 
 ## 3. Verify
 
-The tests are most of a sync's time: the frontend suite is about 58,000 tests and takes about 18 minutes on this 4-core host, the backend suite about 90 seconds. **Each suite runs in full exactly once per sync, here.** After that, rerun only what failed or what a fix touched; step 5 adds no second full run.
+The tests are most of a sync's time: the frontend suite is about 58,000 tests and takes about 18 minutes on this 4-core host, the backend suite about 90 seconds. **The frontend suite runs in full exactly once per sync, here.** After that, rerun only what failed or what a fix touched; step 5 adds no second full frontend run. The backend suite is cheap and runs again in step 5.
 
 Run the checks one at a time, never two suites at once: two suites side by side push the slow tests past their timeouts. Start each test run with the Bash tool's `run_in_background: true`, its output in a scratchpad log, and wait for the completion notice; don't poll with `sleep` or `pgrep`. Wrap the test runs in `dev-run` (memory-heavy).
 
@@ -82,7 +82,7 @@ dev-run -- bash -c 'cd web && bunx vitest run --maxWorkers=1 --testTimeout=60000
 dev-run -- bun test <failed backend files>     # add --timeout 20000 only for a failure at ~5000 ms
 ```
 
-Waive a failure as load only when both hold: it passes alone, and the original failure is a load signature, a timeout at a limit or one of the timing-sensitive tests named above, in a file the fork's delta (`git diff upstream/stable --stat`) doesn't touch. Name each waived file in the commit body. Read every other failure even if it passes alone: an assertion failure can be order-dependent state or a timing regression. Upstream publishes a release only from a commit whose CI passed, so a failure that stands is either the fork's code (`git diff upstream/stable -- <file>`), which is yours to fix, or, when the fork's diff doesn't explain it, checked on plain `upstream/stable`: run just that file in a throwaway worktree of `upstream/stable` (with its own `bun install`). If it fails the same way there, note it and don't fix it.
+Waive a failure as load only when both hold: it passes alone, and the original failure is a load signature, a timeout at a limit or one of the timing-sensitive tests named above, in a file the fork's delta (`git diff upstream/stable --stat`) doesn't touch. Name each waived file in the commit body. Read every other failure even if it passes alone: an assertion failure can be order-dependent state or a timing regression. Upstream publishes a release only from a commit whose CI passed, so a failure that stands is either the fork's code (`git diff upstream/stable -- <file>`), which is yours to fix, or, when the fork's diff doesn't explain it, checked on plain `upstream/stable`: run just that file in a throwaway worktree (`git worktree add --detach .claude/worktrees/upstream-check upstream/stable`, its own `bun install`, `git worktree remove` after). If it fails the same way there, note it and don't fix it.
 
 **The backend `test` script chains its commands with `&&`** (`package.json`), so one red `bun test` folder or script stops every command after it. Once the failure is settled, run the remaining commands of that chain, from the one after the failed one, so none goes unrun. A failed shell script reruns with its own `bash scripts/….sh`, not `bun test`.
 
