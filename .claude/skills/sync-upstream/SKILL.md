@@ -75,20 +75,24 @@ dev-run -- bash -c 'cd web && bunx vitest run --testTimeout=60000 --hookTimeout=
 
 Also check that `~/.bun/bin/bun --version` is still at or above `MIN_BUN` in `cli/update-check.ts`.
 
-**A red test on this host is usually load, not a bug.** A full run here ends with a few red tests even on a clean tree. Tests that set their own limit (the playground's 30-second cases, `unread-dialog`'s fixture sweep, `fold.plain`) fail at that limit whenever the host is busy. A few timing-sensitive UI tests (`wide-layout`, the update banner) fail fast under the same load. A backend failure at about 5000 ms is the same thing. Before you read any failure, rerun all the failed files together in one command, on one worker:
+**A red test on this host is often load, not a bug.** A full run here ends with a few red tests even on a clean tree. Tests that set their own limit (the playground's 30-second cases, `unread-dialog`'s fixture sweep, `fold.plain`) fail at that limit whenever the host is busy. A few timing-sensitive UI tests (`wide-layout`, the update banner) fail fast under the same load. A backend failure at about 5000 ms (Bun's default limit) is the same thing. Rerun all the failed files together in one command, on one worker:
 
 ```bash
 dev-run -- bash -c 'cd web && bunx vitest run --maxWorkers=1 --testTimeout=60000 --hookTimeout=60000 <failed files>'
-dev-run -- bun test --timeout 20000 <failed backend files>
+dev-run -- bun test <failed backend files>     # add --timeout 20000 only for a failure at ~5000 ms
 ```
 
-A file that passes alone failed from load: name it in the commit body and move on. Upstream publishes a release only from a commit whose CI passed, so a failure that repeats alone is either the fork's code (`git diff upstream/stable -- <file>`), which is yours to fix, or this host's environment, which you note and don't fix. After a fix, rerun the failed files plus the tests related to what you changed, not the full suite:
+Waive a failure as load only when both hold: it passes alone, and the original failure is a load signature, a timeout at a limit or one of the timing-sensitive tests named above, in a file the fork's delta (`git diff upstream/stable --stat`) doesn't touch. Name each waived file in the commit body. Read every other failure even if it passes alone: an assertion failure can be order-dependent state or a timing regression. Upstream publishes a release only from a commit whose CI passed, so a failure that stands is either the fork's code (`git diff upstream/stable -- <file>`), which is yours to fix, or, when the fork's diff doesn't explain it, checked on plain `upstream/stable`: run just that file in a throwaway worktree of `upstream/stable` (with its own `bun install`). If it fails the same way there, note it and don't fix it.
+
+**The backend `test` script chains its commands with `&&`** (`package.json`), so one red `bun test` folder or script stops every command after it. Once the failure is settled, run the remaining commands of that chain, from the one after the failed one, so none goes unrun. A failed shell script reruns with its own `bash scripts/….sh`, not `bun test`.
+
+After a fix, rerun the failed files plus the tests related to what you changed, not the full suite:
 
 ```bash
 dev-run -- bash -c 'cd web && bunx vitest related --run --testTimeout=60000 --hookTimeout=60000 <changed web/ files, relative to web/>'
 ```
 
- `related` follows imports, so a fix in a module many screens import selects a large part of the suite (`src/lib/nav.ts` selects 132 files, about 8 minutes, and the i18n messages nearly all of it): that is the run then.
+`related` follows imports, so a fix in a module many screens import selects a large part of the suite (`src/lib/nav.ts` selects 132 files, about 8 minutes, and the i18n messages nearly all of it): that is the run then. It does not see files tests read from disk (fixtures, pane captures, JSON allowlists such as `fold.plain.allow.json`), and it passes when it selects nothing. For a changed file outside the import graph, find its readers (`grep -rl <basename> web/src web/e2e`) and add those test files; check the run's `Test Files` count is not zero.
 
 Then record the merge as a **local, unpublished** commit. `--remerge-diff` needs a commit to show the resolutions, and the commit is amended in step 5:
 
