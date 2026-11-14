@@ -22,6 +22,7 @@ glyph, and Clear Dark then tints it dark unlike the others. Regenerate its tiles
 and `web/vite-icons.ts`. The app name is `mycroftxxx remote` and its Home
 Screen label is `mycroftxxx`. Release and dev channels share this branding.
 The Android notification badge is a transparent monochrome glyph (`web/public/badge.svg`).
+The pi profile's `idle.frame.under` also takes the voice dispatcher's footer opening (` ○ idle · `, or its counter alone on a narrow pane; `~/voice-hub/dispatcher/pi/look.ts`): herdr-core reads it unpainted, so without it every send to Dispatch is refused. Keep it through upstream merges, and change it with the look.
 The shipped HTML locks page zoom and document scrolling; routes and sheets own their scrollers.
 The composer's border frames only the draft; Attach and Send stand outside it, beside the box, and the field hides its scrollbar.
 Keep internal CLI, configuration, storage and protocol identifiers compatible with Collie.

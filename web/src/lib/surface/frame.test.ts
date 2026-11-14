@@ -767,6 +767,22 @@ describe("the interior walk on rules with no prompt glyph (M56 spec 14)", () => 
     expect(findInputFrame([...lines(RULE, "Update Available", RULE, "", RULE, "typed draft"), painted(custom)], PI)).toBeNull();
   });
 
+  // Personal fork: the voice-hub dispatcher's pi look replaces pi's footer with one row opening on its
+  // state (`~/voice-hub/dispatcher/pi/look.ts`). herdr-core reads it with no paint, so `under` names it.
+  it("reads the dispatcher look's footer on a plain read, and only that opening", () => {
+    const box = [...lines("reply", RULE, ""), ...lines(RULE)];
+    const footerRow = " ○ idle · Claude Opus 5.5 · low · standard · ctx 12k/125k ▰▱▱▱▱▱▱▱ · ▸ phone 2m      ⚑ 0 today";
+    expect(findInputFrame([...box, ...lines(footerRow)], PI)!.interior.text).toBe("");
+    expect(findInputFrame([...box, ...lines(" ◉ working · Claude Opus 5.5")], PI)).not.toBeNull();
+    expect(findInputFrame([...box, ...lines(" ⚠ unknown           ⚑ 2 today")], PI)).not.toBeNull();
+    // Under about 25 columns the look drops every part but its counter, right-aligned.
+    expect(findInputFrame([...box, ...lines("          ⚑ 0 today")], PI)).not.toBeNull();
+    expect(findInputFrame([...box, ...lines("⚑ 0 today")], PI)).toBeNull();
+    expect(findInputFrame([...lines("reply", RULE, "hello there"), ...lines(RULE, footerRow)], PI)!.interior.text).toBe("hello there");
+    expect(findInputFrame([...box, ...lines(" ○ idle hands")], PI)).toBeNull();
+    expect(findInputFrame([...box, ...lines("○ idle · Claude Opus 5.5")], PI)).toBeNull();
+  });
+
   it("reads stock pi 1.3.0 under its own custom-footer example, empty and with a draft (issue 485)", () => {
     expect(findInputFrame(fixtureRows("pi--v130-custom-footer-idle.txt"), PI)!.interior.text).toBe("");
     expect(findInputFrame(fixtureRows("pi--v130-custom-footer-draft.txt"), PI)!.interior.text).toBe("hello from the probe");
