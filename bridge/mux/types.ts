@@ -227,7 +227,7 @@ export interface MuxPane extends MuxIdentity {
   /** How that agent is doing. `"unknown"` is the honest answer without `agentDetection`. */
   readonly status: AgentStatus;
   /**
-   * True when the pane asked its multiplexer to show every state as `idle` — the voice-hub
+   * True when the pane asked its multiplexer to show every state as `idle` — the switchboard
    * dispatcher does. Such a pane never alerts and never reads as unread.
    */
   readonly pinnedIdle?: true;

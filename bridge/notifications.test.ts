@@ -480,7 +480,7 @@ describe("NotificationCoordinator — retraction", () => {
     expect(sink.events).toEqual([]);
   });
 
-  // The voice-hub dispatcher labels every status `idle`. Its labels can land after detection already
+  // The switchboard dispatcher labels every status `idle`. Its labels can land after detection already
   // raised an alert, and a working → idle completion from a labelled pane is no completion.
   test("a pane pinned idle never alerts, and the pin takes back a pending alert", () => {
     const { clock, sink, coord } = setup();

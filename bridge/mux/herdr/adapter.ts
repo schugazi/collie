@@ -580,7 +580,7 @@ function toMuxPane(
   // `scroll`, so an older Herdr reads as "unknown" rather than "zero".
   if (raw.scroll) pane.readableLines = raw.scroll.max_offset_from_bottom + raw.scroll.viewport_rows;
   // A state label the pane reported replaces the detected status, as in Herdr's own sidebar. A pane
-  // labelling every other state `idle` (the voice-hub dispatcher) has pinned itself idle: it never
+  // labelling every other state `idle` (the switchboard dispatcher) has pinned itself idle: it never
   // alerts and never reads as unread, whatever detection saw before its labels arrived.
   const labels = raw.state_labels;
   const shown = labels?.[raw.agent_status];

@@ -180,7 +180,7 @@ describe("StateEngine — transition detection", () => {
     expect(transitions).toEqual([{ pane: "w1:p1", from: "working", to: "blocked" }]);
   });
 
-  // The voice-hub dispatcher reports `--state-label <state>=idle` for every state, which Herdr's
+  // The switchboard dispatcher reports `--state-label <state>=idle` for every state, which Herdr's
   // own sidebar honours; Collie must too, or it reads as done/blocked and pushes.
   test("state labels relabel the status, and labelling every state idle pins the pane", async () => {
     const { herdr, engine, transitions, poll } = makeEngine();

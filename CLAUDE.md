@@ -22,14 +22,14 @@ glyph, and Clear Dark then tints it dark unlike the others. Regenerate its tiles
 and `web/vite-icons.ts`. The app name is `mycroftxxx remote` and its Home
 Screen label is `mycroftxxx`. Release and dev channels share this branding.
 The Android notification badge is a transparent monochrome glyph (`web/public/badge.svg`).
-The pi profile's `idle.frame.under` also takes the voice dispatcher's footer opening (` ○ idle · `, or its counter alone on a narrow pane; `~/voice-hub/dispatcher/pi/look.ts`): herdr-core reads it unpainted, so without it every send to Dispatch is refused. Keep it through upstream merges, and change it with the look.
+The pi profile's `idle.frame.under` also takes the voice dispatcher's footer opening (` ○ idle · `, or its counter alone on a narrow pane; `~/switchboard/dispatcher/pi/look.ts`): herdr-core reads it unpainted, so without it every send to Dispatch is refused. Keep it through upstream merges, and change it with the look.
 The shipped HTML locks page zoom and document scrolling; routes and sheets own their scrollers.
 The composer's border frames only the draft; Attach and Send stand outside it, beside the box, and the field hides its scrollbar.
 Keep internal CLI, configuration, storage and protocol identifiers compatible with Collie.
 Set `COLLIE_UPDATE_REPO=schugazi/collie` on deployments; origin is the personal fork and
 upstream is AltanS/collie.
 Walky talky is off on mycroftxxx (`COLLIE_WALKY=off` in `~/.config/herdr/plugins/config/herdr.collie/.env`, the unit's
-`EnvironmentFile`) and its skill is not installed: the voice dispatcher (`~/voice-hub`) and Claude Code's own messaging cover it. Deploy main with the existing full build, then restart the bridge.
+`EnvironmentFile`) and its skill is not installed: the voice dispatcher (`~/switchboard`) and Claude Code's own messaging cover it. Deploy main with the existing full build, then restart the bridge.
 Take upstream by merge, never rebase, via `/sync-upstream` (`.claude/skills/sync-upstream/`), and only its latest stable release, never `upstream/main` or an edge prerelease.
 The logo is a local bitmap asset, not the upstream generated Collie mark, drawn on upstream's mark contract (`web/src/components/mark-contract.ts`) so it shows the shared logo states; `collie-mark-hash.test.ts` skips it.
 The host's `~/.bun/bin/bun` must stay at or above `MIN_BUN` (`cli/update-check.ts`, 1.4.4); the flake pins 1.4.4.

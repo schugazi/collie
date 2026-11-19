@@ -85,7 +85,7 @@ export interface WirePane {
   terminal_title_stripped?: string | null;
   /**
    * The status a pane asked Herdr to SHOW in place of a detected one, reported through
-   * `herdr pane report-metadata --state-label <detected>=<shown>` — live-observed on the voice-hub
+   * `herdr pane report-metadata --state-label <detected>=<shown>` — live-observed on the switchboard
    * dispatcher, which maps every state to `idle`. Absent unless a pane reported one; a value is free
    * text on the wire, so the adapter keeps only a known status word.
    */

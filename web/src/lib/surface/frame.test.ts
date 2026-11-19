@@ -767,8 +767,8 @@ describe("the interior walk on rules with no prompt glyph (M56 spec 14)", () => 
     expect(findInputFrame([...lines(RULE, "Update Available", RULE, "", RULE, "typed draft"), painted(custom)], PI)).toBeNull();
   });
 
-  // Personal fork: the voice-hub dispatcher's pi look replaces pi's footer with one row opening on its
-  // state (`~/voice-hub/dispatcher/pi/look.ts`). herdr-core reads it with no paint, so `under` names it.
+  // Personal fork: the switchboard dispatcher's pi look replaces pi's footer with one row opening on its
+  // state (`~/switchboard/dispatcher/pi/look.ts`). herdr-core reads it with no paint, so `under` names it.
   it("reads the dispatcher look's footer on a plain read, and only that opening", () => {
     const box = [...lines("reply", RULE, ""), ...lines(RULE)];
     const footerRow = " ○ idle · Claude Opus 5.5 · low · standard · ctx 12k/125k ▰▱▱▱▱▱▱▱ · ▸ phone 2m      ⚑ 0 today";

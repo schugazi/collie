@@ -280,7 +280,7 @@ export class NotificationCoordinator<H = unknown> {
     // stay a resolve. Known limit: an agent the operator interrupts also goes `working → idle` and
     // will push. Not `isNewWork`: that one includes `blocked → idle`.
     const to: AgentStatus = from === "working" && rawTo === "idle" ? "done" : rawTo;
-    // A pane pinned idle (the voice-hub dispatcher) never alerts, and the pin arriving after a
+    // A pane pinned idle (the switchboard dispatcher) never alerts, and the pin arriving after a
     // detected blocked/done takes back the alert that detection raised.
     if (agent.pinnedIdle || !this.isNotifiable(to)) {
       // Resolved to a non-notifiable (or preference-disabled) state: drop a still-pending alert,
