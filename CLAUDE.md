@@ -14,6 +14,8 @@ decisions [`.adr/`](./.adr/) · adding a harness
 
 ## Personal fork
 
+**Shut down on mycroftxxx, not in use:** the user reaches Herdr 2 from the iPhone with Heeler instead. `collie.service` is stopped and disabled, its `tailscale serve` mapping on 8454 is removed, and its Claude beacon hooks are uninstalled. This checkout, the `~/.local/bin/collie` link, the private `.env` and the state in `~/.local/state/collie/` (pairings, push keys, `stt.json`) are kept. To start it again: `collie start` (rewrites and enables the unit, republishes 8454), then `collie hooks install claude`; host-side details in `~/.local/share/collie/CLAUDE.md`. Until then a deploy is just the build: don't `collie restart`, since that brings the bridge back up.
+
 The in-app logo uses the mycroftxxx server dashboard emblem with a transparent exterior. The installed PWA icon
 is a teal `>_` inside a thin teal ring on gold, 80% of the tile, like Herald and the dashboard. Its gold tiles are
 drawn at 4x and Lanczos-shrunk like the other PWAs': iOS 27 lifts a crisp two-tone tile off its background as a

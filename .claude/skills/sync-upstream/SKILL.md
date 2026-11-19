@@ -123,6 +123,8 @@ In the amended body, add one line per rejected finding with its reason.
 
 ## 6. Deploy on this host
 
+While Collie is retired on this host (`systemctl --user is-enabled collie.service` says `disabled`; `~/.local/share/collie/CLAUDE.md`), deploy and roll back with the build alone: drop `collie restart`, `status` and `doctor` below, since `collie restart` enables the unit and republishes 8454.
+
 ```bash
 dev-run -- bun run build && collie restart
 collie status && collie doctor
